@@ -21,3 +21,5 @@ settings put secure accessibility_enabled 1
 ```
 
 Version 2.9 adds a full Panchang screen with offline timings and date navigation. On Home, focus the Hindu calendar stack with D-pad Up from the first app row or D-pad Right from the clock area, then press OK.
+
+Version 2.10 adds Night mode (on by default), with configurable start and end times in Launcher Settings. Night mode warms and dims Home and screensaver content during the selected time window; matching start and end times disable the window. It also fixes the remote's BACK key on the Panchang screen (BACK returns to Home; with the date picker open, BACK closes only the picker, and OK in the picker now closes it) and adds an on-screen **Back** button as the first button in the Panchang screen's bottom row.

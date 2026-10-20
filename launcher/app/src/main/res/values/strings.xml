@@ -131,6 +131,13 @@
     <string name="screensaver_minutes">%1$d min</string>
     <string name="photo_refresh_scheduled">Photo refresh scheduled (unmetered Wi-Fi).</string>
     <string name="start_after_title">Start screensaver after</string>
+    <string name="night_mode">Night mode: %1$s</string>
+    <string name="night_starts">Night starts: %1$s</string>
+    <string name="night_ends">Night ends: %1$s</string>
+    <string name="night_time_picker">Choose time</string>
+    <string name="night_time_value">%1$s:%2$02d %3$s</string>
+    <string name="night_am">AM</string>
+    <string name="night_pm">PM</string>
     <string name="card_app_name">App: %1$s</string>
     <string name="card_state_shown">Shown</string>
     <string name="card_state_over_limit">Shown, over the limit of 8</string>

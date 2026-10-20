@@ -111,12 +111,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView homeCalendarLine1, homeCalendarTithi, homeCalendarMoon, homeCalendarRahu;
     private View homeCalendarDivider, homeCalendarStack;
     private Config config;
+    private int originalHomeBackground;
+    private boolean nightReceiverRegistered;
+    private final Runnable nightBoundary = () -> updateNightTheme(true);
+    private final BroadcastReceiver nightTimeReceiver = new BroadcastReceiver() {
+        @Override public void onReceive(Context c, Intent i) { updateNightTheme(true); }
+    };
     private boolean weatherEnabled;
     private final Runnable weatherRefresh = new Runnable() { public void run() { if (weatherEnabled) { requestWeather(false); handler.postDelayed(this, WeatherClient.REFRESH_MS); } } };
     private boolean homeCalendarOn;
-    private final Runnable calendarTransition=()->updateHomeCalendar(true);
+    private final Runnable calendarTransition=()->{NightTheme.prepareHomeTextUpdate(root,originalHomeBackground);updateHomeCalendar(true);updateNightTheme(true);};
     private boolean calendarReceiverRegistered;
-    private final BroadcastReceiver calendarTimeReceiver=new BroadcastReceiver(){@Override public void onReceive(Context c,Intent i){updateHomeCalendar(true);}};
+    private final BroadcastReceiver calendarTimeReceiver=new BroadcastReceiver(){@Override public void onReceive(Context c,Intent i){NightTheme.prepareHomeTextUpdate(root,originalHomeBackground);updateHomeCalendar(true);updateNightTheme(true);}};
     private boolean shamsi;
     /** Optional time-of-day backdrop (config.xml, sky_intensity); 0 keeps it hidden. */
     private SkyView sky;
@@ -229,6 +235,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sourcePanelAction = cfg.sourcePanelAction;
 
         root = findViewById(R.id.root);
+        originalHomeBackground = cfg.backgroundColor;
         root.setBackgroundColor(cfg.backgroundColor);
         if (cfg.wallpaper != null) showWallpaper(cfg.wallpaper);
         sky = findViewById(R.id.sky);
@@ -474,6 +481,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onResume() {
         super.onResume();
+        registerNightReceiver();
         homeCalendarOn=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE).getBoolean("home_hindu_calendar",true);
         applyHomeCalendarTextSize();
         if (wallpaperView == null && wallpaperFile != null) showWallpaper(wallpaperFile);
@@ -489,6 +497,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         handler.removeCallbacks(weatherRefresh);
         if(weatherEnabled){WeatherData cached=WeatherClient.cached(this);long age=System.currentTimeMillis()-WeatherClient.fetchedAt(this);if(cached!=null&&age>=0&&age<WeatherClient.FRESH_MS)showWeather(cached);else homeWeather.setVisibility(View.GONE);if(age<0||age>=WeatherClient.REFRESH_MS)requestWeather(false);handler.postDelayed(weatherRefresh,WeatherClient.REFRESH_MS);}
         else homeWeather.setVisibility(View.GONE);
+        updateNightTheme(true);
         if (!calendarReceiverRegistered) {
             IntentFilter f=new IntentFilter();f.addAction(Intent.ACTION_TIME_CHANGED);f.addAction(Intent.ACTION_TIMEZONE_CHANGED);f.addAction(Intent.ACTION_DATE_CHANGED);
             if(Build.VERSION.SDK_INT>=33)registerReceiver(calendarTimeReceiver,f,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(calendarTimeReceiver,f);
@@ -608,12 +617,38 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroName.animate().cancel();
         ambient.animate().cancel();
         handler.removeCallbacks(minuteTick);
+        handler.removeCallbacks(nightBoundary);
+        if (nightReceiverRegistered) { try { unregisterReceiver(nightTimeReceiver); } catch (IllegalArgumentException ignored) {} nightReceiverRegistered = false; }
+        NightTheme.applyHome(root, false, originalHomeBackground);
         handler.removeCallbacks(weatherRefresh);
         handler.removeCallbacks(calendarTransition);
         if(calendarReceiverRegistered){try{unregisterReceiver(calendarTimeReceiver);}catch(IllegalArgumentException ignored){}calendarReceiverRegistered=false;}
         // Nothing of ours stays on screen over another app; an undecided prompt simply returns next time.
         if (cardPrompt != null) cardPrompt.dismiss();
         if (openPopup != null) openPopup.dismiss();
+    }
+
+    private void registerNightReceiver() {
+        if (nightReceiverRegistered) return;
+        IntentFilter f = new IntentFilter();
+        f.addAction(Intent.ACTION_TIME_CHANGED); f.addAction(Intent.ACTION_TIMEZONE_CHANGED); f.addAction(Intent.ACTION_DATE_CHANGED);
+        if (Build.VERSION.SDK_INT >= 33) registerReceiver(nightTimeReceiver, f, Context.RECEIVER_NOT_EXPORTED); else registerReceiver(nightTimeReceiver, f);
+        nightReceiverRegistered = true;
+    }
+
+    private void updateNightTheme(boolean schedule) {
+        if (root == null) return;
+        handler.removeCallbacks(nightBoundary);
+        android.content.SharedPreferences p = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE);
+        boolean enabled = p.getBoolean("night_mode", true);
+        int start = p.getInt("night_start_min", 22 * 60), end = p.getInt("night_end_min", 6 * 60);
+        Calendar now = Calendar.getInstance();
+        boolean night = enabled && NightWindow.isNight(now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE), start, end);
+        NightTheme.applyHome(root, night, originalHomeBackground);
+        if (schedule && enabled && start != end) {
+            long next = NightWindow.nextBoundaryMillis(System.currentTimeMillis(), java.util.TimeZone.getDefault(), start, end);
+            handler.postDelayed(nightBoundary, Math.max(0L, next - System.currentTimeMillis() + 500L));
+        }
     }
 
     private void requestWeather(boolean force){
