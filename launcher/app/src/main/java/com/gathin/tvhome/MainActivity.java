@@ -404,16 +404,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnInputs.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
-        // Centre the pill bar on the date/weather line above the clock.
+        // Top-align the pill bar with the date/weather line above the clock.
         View pillBar = findViewById(R.id.topButtons), dateText = findViewById(R.id.date);
         if (pillBar != null && dateText != null && dateText.getParent() instanceof View) {
             View dateRow = (View) dateText.getParent();
             dateRow.addOnLayoutChangeListener((q0, q1, q2, q3, q4, q5, q6, q7, q8) -> {
                 int pillH = pillBar.getHeight();
                 if (pillH == 0 || dateRow.getHeight() == 0 || !(dateRow.getParent() instanceof View)) return;
-                int centre = ((View) dateRow.getParent()).getTop() + dateRow.getTop() + dateRow.getHeight() / 2;
+                int rowTop = ((View) dateRow.getParent()).getTop() + dateRow.getTop();
                 android.view.ViewGroup.MarginLayoutParams pillLp = (android.view.ViewGroup.MarginLayoutParams) pillBar.getLayoutParams();
-                int wanted = centre - pillH / 2;
+                int wanted = rowTop;
                 if (pillLp.topMargin != wanted) { pillLp.topMargin = wanted; pillBar.post(() -> pillBar.setLayoutParams(pillLp)); }
             });
         }

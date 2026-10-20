@@ -1,0 +1,6 @@
+<resources>
+    <style name="RaiderHeader"><item name="android:textSize">28sp</item><item name="android:textColor">@color/raider_primary</item><item name="android:fontFamily">@font/outfit_medium</item></style>
+    <style name="RaiderTitle"><item name="android:textSize">20sp</item><item name="android:textColor">@color/raider_primary</item><item name="android:fontFamily">@font/outfit_medium</item></style>
+    <style name="RaiderValue"><item name="android:textSize">15sp</item><item name="android:textColor">@color/raider_secondary</item><item name="android:fontFamily">@font/outfit_regular</item></style>
+    <style name="RaiderRailLabel"><item name="android:textSize">18sp</item><item name="android:textColor">@color/raider_primary</item><item name="android:fontFamily">@font/outfit_medium</item></style>
+</resources>

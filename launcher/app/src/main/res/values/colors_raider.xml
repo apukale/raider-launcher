@@ -1,0 +1,8 @@
+<resources>
+    <color name="raider_gradient_start">#12132A</color>
+    <color name="raider_gradient_end">#1C1E3F</color>
+    <color name="raider_card">#CC1A1B2E</color>
+    <color name="raider_primary">#F4F1EA</color>
+    <color name="raider_secondary">#A9ABC7</color>
+    <color name="raider_accent">#F2A93B</color>
+</resources>
