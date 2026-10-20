@@ -32,8 +32,8 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
                                @NonNull RecyclerView.State state) {
         int pos = parent.getChildAdapterPosition(view);
         if (pos >= 0 && pos < dockSize) {
-            outRect.top = (int) (6 * density);
-            outRect.bottom = (int) (12 * density);
+            outRect.top = (int) (10 * density);
+            outRect.bottom = (int) (10 * density);
         }
     }
 
@@ -58,8 +58,8 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             }
         }
         if (!any) return;
-        float pad = 14 * density;
-        rect.inset(-pad, -pad);
+        // Room for the 1.12x focus scale plus the glass glow, the same above and below.
+        rect.inset(-14 * density, -18 * density);
         float radius = 26 * density;
         c.drawRoundRect(rect, radius, radius, band);
         c.drawRoundRect(rect, radius, radius, edge);

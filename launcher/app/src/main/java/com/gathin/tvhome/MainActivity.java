@@ -734,7 +734,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         float w = card.getWidth() * scale + 2 * pad;
         float h = card.getHeight() * scale + 2 * pad;
         float x = r.exactCenterX() - w / 2f;
-        float y = r.exactCenterY() - h / 2f - (advancedEffects ? 4f * density : 0f);
+        float y = r.exactCenterY() - h / 2f;
 
         ViewGroup.LayoutParams lp = glass.getLayoutParams();
         if (lp.width != (int) w || lp.height != (int) h) {
@@ -765,7 +765,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         View item = (View) card.getParent();
         if (position < COLUMNS) {
             // Dock: park it at the bottom of the screen and show the top shelf for this app.
-            int decoratedTop = item.getTop() - (int) (6 * density);
+            int decoratedTop = item.getTop() - (int) (10 * density);
             int dy = decoratedTop - grid.getPaddingTop();
             // A 1px mismatch used to start a scroll on every dock move. Only scroll when the row is
             // actually off; reduced motion does it in one jump so it does not fight the highlight.
@@ -776,7 +776,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             showHero(position, scroll ? r.top - dy : r.top);
         } else {
-            hideHero();
+            tintForRow(position);
             // Scroll just enough so the whole glass (not only the tile) is visible.
             Rect want = new Rect(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
             grid.requestChildRectangleOnScreen(item, want, reducedMotion);
@@ -788,7 +788,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void showHero(int position, float dockTopInRoot) {
         String label = adapter.labelAt(position);
         int color = adapter.ambientColorAt(position);
-        float y = dockTopInRoot - 14 * density - 26 * density - heroName.getHeight();
+        float y = dockTopInRoot - 18 * density - 26 * density - heroName.getHeight();
         boolean changed = !label.contentEquals(heroName.getText());
 
         if (!animations || reducedMotion) {
@@ -820,8 +820,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             heroName.setY(y);
             heroName.setTranslationX(0f);
             heroName.animate().alpha(1f).setDuration(260).start();
-            setAmbient(color);
-            ambient.animate().alpha(1f).setDuration(600).start();
+            if (ambient.getAlpha() > 0.99f) transitionAmbient(color);
+            else { setAmbient(color); ambient.animate().alpha(1f).setDuration(600).start(); }
             heroShown = true;
         } else if (changed) {
             if (advancedEffects) heroName.animate().cancel();
@@ -885,7 +885,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         ambient.animate().alpha(1f).setDuration(180).start();
         ambientAnimator = ValueAnimator.ofObject(new ArgbEvaluator(), ambientColor, color);
-        ambientAnimator.setDuration(360);
+        ambientAnimator.setDuration(300);
         ambientAnimator.addUpdateListener(animation -> setAmbient((int) animation.getAnimatedValue()));
         ambientAnimator.start();
     }
@@ -894,6 +894,32 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (ambientAnimator != null) {
             ambientAnimator.cancel();
             ambientAnimator = null;
+        }
+    }
+
+    /** Lower rows: keep the glow, tinted with the focused app's sampled colour (cached per entry), instead of fading to black. The glow mask peaks at ~36% alpha over black, so white text stays readable. */
+    private void tintForRow(int position) {
+        int color = adapter.ambientColorAt(position);
+        if (heroShown) {
+            heroName.animate().cancel();
+            heroShown = false;
+            if (animations) heroName.animate().alpha(0f).setDuration(reducedMotion ? 100 : 160).start();
+            else heroName.setAlpha(0f);
+        }
+        if (!animations || reducedMotion) {
+            stopAmbientAnimation();
+            ambient.animate().cancel();
+            setAmbient(color);
+            ambient.setAlpha(1f);
+            return;
+        }
+        if (ambient.getAlpha() < 0.99f && ambientColor != color) {
+            stopAmbientAnimation();
+            ambient.animate().cancel();
+            setAmbient(color);
+            ambient.animate().alpha(1f).setDuration(300).start();
+        } else {
+            transitionAmbient(color);
         }
     }
 
