@@ -24,10 +24,14 @@ public class UnsplashPhotoParserTest {
     }
 
     @Test(timeout=5000) public void sourceParsingAndLegacyMigration() {
-        assertEquals(Set.of("bing","picsum","unsplash"),PhotoSources.parse("both"));
-        assertEquals(Set.of("bing","unsplash"),PhotoSources.parse(""));
+        Set<String> all=Set.of("bing","unsplash","apod","nasa","wikimedia","pexels","pixabay","art");
+        assertEquals(all,PhotoSources.parse("both"));
+        assertEquals(all,PhotoSources.parse(""));
         assertEquals(Set.of("bing"),PhotoSources.parse("bing"));
-        assertEquals(Set.of("picsum"),PhotoSources.parse("picsum"));
+        assertEquals(Set.of("bing","unsplash"),PhotoSources.parse("picsum"));
+        assertEquals(Set.of("bing","nasa"),PhotoSources.parse("bing,picsum,nasa"));
+        assertEquals("https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Big_Lake.jpg/1920px-Big_Lake.jpg",ExtraPhotoSources.wikimediaThumb("https://upload.wikimedia.org/wikipedia/commons/a/ab/Big_Lake.jpg",1920));
+        assertEquals("/th?id=OHR.Taj",ExtraPhotoSources.bingKey("/th?id=OHR.Taj_EN-IN1234567890"));
     }
 
     @Test(timeout=5000) public void allowListRequiresHttpsDefaultPortAndKnownHosts() throws Exception {
@@ -36,5 +40,7 @@ public class UnsplashPhotoParserTest {
         assertFalse(PhotoUrlPolicy.isAllowed(new URL("http://api.unsplash.com/photos/random")));
         assertFalse(PhotoUrlPolicy.isAllowed(new URL("https://api.unsplash.com:444/photos/random")));
         assertFalse(PhotoUrlPolicy.isAllowed(new URL("https://example.com/photo.jpg")));
+        assertFalse(PhotoUrlPolicy.isAllowed(new URL("https://picsum.photos/id/1/1920/1080.jpg")));
+        assertTrue(PhotoUrlPolicy.isAllowed(new URL("https://images-assets.nasa.gov/image/x/x~orig.jpg")));
     }
 }

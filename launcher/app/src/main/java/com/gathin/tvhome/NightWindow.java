@@ -37,6 +37,18 @@ public final class NightWindow {
         return candidate.getTimeInMillis();
     }
 
+    /** Next instant (strictly after now) at the given local minute of day. */
+    public static long nextLocalTimeMillis(long nowMillis, TimeZone tz, int minuteOfDay) {
+        Calendar c = Calendar.getInstance(tz);
+        c.setTimeInMillis(nowMillis);
+        setLocalBoundary(c, Math.floorMod(minuteOfDay, MINUTES_PER_DAY));
+        for (int i = 0; i < 3 && c.getTimeInMillis() <= nowMillis; i++) {
+            c.add(Calendar.DAY_OF_MONTH, 1);
+            setLocalBoundary(c, Math.floorMod(minuteOfDay, MINUTES_PER_DAY));
+        }
+        return c.getTimeInMillis();
+    }
+
     private static void setLocalBoundary(Calendar calendar, int minuteOfDay) {
         calendar.set(Calendar.HOUR_OF_DAY, minuteOfDay / 60);
         calendar.set(Calendar.MINUTE, minuteOfDay % 60);

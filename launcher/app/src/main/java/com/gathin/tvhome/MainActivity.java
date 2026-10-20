@@ -114,6 +114,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private Config config;
     private int originalHomeBackground;
     private boolean nightReceiverRegistered;
+    private int homeFont;
     private final Runnable nightBoundary = () -> updateNightTheme(true);
     private final BroadcastReceiver nightTimeReceiver = new BroadcastReceiver() {
         @Override public void onReceive(Context c, Intent i) { updateNightTheme(true); }
@@ -221,7 +222,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         PhotoStore.schedule(this, !PhotoStore.hasPhotos(this));
+        homeFont = Fonts.family(this, Fonts.HOME);
         setContentView(R.layout.activity_main);
+        Fonts.apply(findViewById(R.id.root), Fonts.HOME);
         density = getResources().getDisplayMetrics().density;
         // config.xml, overlaid by config.json from a pushed theme (see Config and tools/theme.sh).
         Config cfg = config = Config.load(this);
@@ -504,6 +507,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onResume() {
         super.onResume();
+        if (homeFont != Fonts.family(this, Fonts.HOME)) { recreate(); return; }
         PhotoStore.migratePhotoContent(this);
         registerNightReceiver();
         homeCalendarOn=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE).getBoolean("home_hindu_calendar",true);
@@ -667,14 +671,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (root == null) return;
         handler.removeCallbacks(nightBoundary);
         android.content.SharedPreferences p = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE);
-        boolean enabled = p.getBoolean("night_mode", true);
-        int start = p.getInt("night_start_min", 22 * 60), end = p.getInt("night_end_min", 6 * 60);
-        Calendar now = Calendar.getInstance();
-        boolean night = enabled && NightWindow.isNight(now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE), start, end);
+        long nowMs = System.currentTimeMillis();
+        // Schedule, or the manual Start now / Stop now override until its expiry.
+        boolean night = NightState.isActive(p, nowMs);
         NightTheme.applyHome(root, night, originalHomeBackground);
-        if (schedule && enabled && start != end) {
-            long next = NightWindow.nextBoundaryMillis(System.currentTimeMillis(), java.util.TimeZone.getDefault(), start, end);
-            handler.postDelayed(nightBoundary, Math.max(0L, next - System.currentTimeMillis() + 500L));
+        long next = NightState.nextChangeMillis(p, nowMs);
+        if (schedule && next != Long.MAX_VALUE) {
+            handler.postDelayed(nightBoundary, Math.max(0L, next - nowMs + 500L));
         }
     }
 
@@ -1277,7 +1280,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         LinearLayout rows = panel.findViewById(R.id.rows);
 
         // Compact: as wide as the Inputs pill (a touch wider so "HDMI 1" fits), hanging right below it.
-        int width = Math.max(anchor.getWidth(), (int) (150 * density));
+        int width = Math.max(anchor.getWidth(), (int) ((InputNames.count(this) > 0 ? 220 : 150) * density));
         final PopupWindow popup = glassPopup(panel, width);
 
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
@@ -1321,8 +1324,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 int state = hdmi && hdmiStateBogus ? -1 : tim.getInputState(id);
                 if (!hdmi && rows.getChildCount() > 0 && !sawNonHdmi) addSeparator(rows);
                 if (!hdmi) sawNonHdmi = true;
-                addInputRow(rows, popup, hdmi ? R.drawable.ic_input : R.drawable.ic_av, label, state,
+                final String baseLabel = label;
+                addInputRow(rows, popup, hdmi ? R.drawable.ic_input : R.drawable.ic_av, InputNames.display(this, id, label), state,
                         () -> openInput(id));
+                View added = rows.getChildAt(rows.getChildCount() - 1);
+                if (added != null) added.setOnLongClickListener(v -> { popup.dismiss(); InputNames.showRename(this, id, baseLabel, this::showInputs); return true; });
             }
         }
         // Nothing to list where there is no TvInputManager: the TV's own source panel switches inputs.

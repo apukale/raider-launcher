@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="nightNowChoice" type="id" />
+    <item name="fontChoice" type="id" />
+    <item name="inputNamesChoice" type="id" />
+</resources>

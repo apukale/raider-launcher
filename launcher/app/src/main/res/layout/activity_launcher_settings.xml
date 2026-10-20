@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Overscan-safe: 48dp sides, 27dp top/bottom. Rail and content panels share top, radius (16dp card), padding (8dp) and 40dp rows. -->
+<!-- Overscan-safe: 48dp sides, 27dp top/bottom. Rail (205dp, 11 x 36dp rows, 2dp gaps) and content panel share the top edge and 16dp card radius. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/settingsRoot" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@drawable/raider_gradient" android:paddingStart="48dp" android:paddingEnd="48dp" android:paddingTop="27dp" android:paddingBottom="27dp">
     <LinearLayout android:layout_width="match_parent" android:layout_height="44dp" android:orientation="horizontal" android:gravity="center_vertical">
         <TextView android:id="@+id/settingsHeader" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Raider Launcher" android:textColor="@color/raider_primary" android:textSize="28sp" android:fontFamily="@font/outfit_medium" android:includeFontPadding="false" android:singleLine="true" />
@@ -8,7 +8,7 @@
         <TextView android:id="@+id/clearCacheHeader" android:layout_width="wrap_content" android:layout_height="40dp" android:layout_marginStart="16dp" android:paddingStart="14dp" android:paddingEnd="18dp" android:gravity="center_vertical" android:drawableStart="@drawable/ic_clean" android:drawablePadding="8dp" android:text="Clear app cache" android:textColor="@color/raider_primary" android:textSize="16sp" android:fontFamily="@font/outfit_medium" android:includeFontPadding="false" android:singleLine="true" android:focusable="true" android:clickable="true" />
     </LinearLayout>
     <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:layout_marginTop="16dp" android:orientation="horizontal" android:baselineAligned="false" android:clipChildren="false">
-        <LinearLayout android:id="@+id/categoryRail" android:layout_width="250dp" android:layout_height="wrap_content" android:orientation="vertical" android:padding="8dp" />
+        <LinearLayout android:id="@+id/categoryRail" android:layout_width="205dp" android:layout_height="wrap_content" android:orientation="vertical" android:padding="4dp" />
         <ScrollView android:id="@+id/categoryScroll" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="16dp" android:fillViewport="false" android:scrollbars="none" android:clipToPadding="false" android:clipChildren="false">
             <LinearLayout android:id="@+id/categoryContent" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingBottom="24dp" android:clipChildren="false" android:clipToPadding="false" />
         </ScrollView>

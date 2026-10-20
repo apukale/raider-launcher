@@ -8,7 +8,7 @@
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- Used only by PhotoStore to fetch local screensaver photos from Picsum and Bing. -->
+    <!-- Used only by PhotoStore to fetch local screensaver photos (Bing, Unsplash, NASA, Wikimedia, museums) and by WeatherClient. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />

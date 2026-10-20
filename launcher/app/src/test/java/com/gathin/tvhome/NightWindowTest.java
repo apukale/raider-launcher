@@ -62,4 +62,14 @@ public final class NightWindowTest {
                 Integer.parseInt(parts[2]), Integer.parseInt(parts[3]), Integer.parseInt(parts[4]));
         return c.getTimeInMillis();
     }
+    @Test(timeout = 5000) public void nextLocalTimeIsStrictlyAfterNow() {
+        TimeZone ist = TimeZone.getTimeZone("Asia/Kolkata");
+        Calendar c = Calendar.getInstance(ist); c.clear(); c.set(2026, Calendar.OCTOBER, 20, 14, 0, 0);
+        long six = NightWindow.nextLocalTimeMillis(c.getTimeInMillis(), ist, 6 * 60);
+        Calendar r = Calendar.getInstance(ist); r.setTimeInMillis(six);
+        assertEquals(21, r.get(Calendar.DAY_OF_MONTH)); assertEquals(6, r.get(Calendar.HOUR_OF_DAY));
+        long ten = NightWindow.nextLocalTimeMillis(c.getTimeInMillis(), ist, 22 * 60);
+        r.setTimeInMillis(ten); assertEquals(20, r.get(Calendar.DAY_OF_MONTH)); assertEquals(22, r.get(Calendar.HOUR_OF_DAY));
+        assertTrue(NightWindow.nextLocalTimeMillis(c.getTimeInMillis(), ist, 14 * 60) > c.getTimeInMillis());
+    }
 }

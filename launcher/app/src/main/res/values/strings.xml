@@ -115,7 +115,6 @@
     <string name="screensaver_photos">Photos + clock + Hindu calendar</string>
     <string name="photo_source">Photo source: %1$s</string>
     <string name="photo_source_bing">Bing daily</string>
-    <string name="photo_source_picsum">Picsum</string>
     <string name="photo_source_both">Both</string>
     <string name="photo_source_unsplash">Unsplash</string>
     <string name="photo_source_all">All sources</string>
@@ -133,7 +132,6 @@
     <string name="refresh_photos">Refresh photos now
 %1$s</string>
     <string name="photo_count_size">%1$d photos · %2$s / %3$s</string>
-    <string name="photo_credit">Photo: %1$s / Unsplash via Picsum</string>
     <string name="start_after">Start screensaver after: %1$s</string>
     <string name="module_cards_settings">Module cards</string>
     <string name="screensaver_minutes">%1$d min</string>
