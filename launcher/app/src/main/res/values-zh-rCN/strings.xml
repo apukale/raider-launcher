@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">主屏幕</string>
+    <string name="app_name">Raider Launcher</string>
     <string name="inputs">输入源</string>
     <string name="wifi">无线网络</string>
     <string name="settings">设置</string>
@@ -33,5 +33,5 @@
     <string name="not_available">此电视不支持该功能</string>
     <string name="cant_open">无法打开 %1$s</string>
     <string name="date_format">M月d日 EEEE</string>
-    <string name="dream_name">时钟</string>
+    <string name="dream_name">Raider Launcher screensaver</string>
 </resources>

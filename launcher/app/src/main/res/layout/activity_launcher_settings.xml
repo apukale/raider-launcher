@@ -30,7 +30,8 @@
             android:textSize="20sp" />
 
         <TextView android:id="@+id/moduleCardsChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" android:text="@string/module_cards_settings" />
-        <TextView android:id="@+id/weatherChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" />
+        <TextView android:id="@+id/weatherChoice" style="@style/SettingsRow" android:layout_height="70dp" android:layout_marginTop="10dp" android:textSize="16sp" />
+        <TextView android:id="@+id/pillLabelsChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" />
         <TextView android:id="@+id/nightModeChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" />
         <TextView android:id="@+id/nightStartsChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" />
         <TextView android:id="@+id/nightEndsChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" />
@@ -140,7 +141,7 @@
         <TextView android:id="@+id/calendarChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" />
         <TextView android:id="@+id/homeCalendarChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" />
         <TextView android:id="@+id/calendarTextSizeChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" />
-        <TextView android:id="@+id/refreshPhotosChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" />
+        <TextView android:id="@+id/refreshPhotosChoice" style="@style/SettingsRow" android:layout_height="94dp" android:layout_marginTop="10dp" android:textSize="14sp" />
         <TextView android:id="@+id/startAfterChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" />
         <TextView android:id="@+id/startScreensaverChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" android:text="@string/start_screensaver_now" />
     </LinearLayout>

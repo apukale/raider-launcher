@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Inici</string>
+    <string name="app_name">Raider Launcher</string>
     <string name="inputs">Entrades</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">Configuració</string>
@@ -18,7 +18,7 @@
     <string name="offline">Sense connexió</string>
     <string name="not_available">No disponible en aquest televisor</string>
     <string name="cant_open">No s\'ha pogut obrir %1$s</string>
-    <string name="dream_name">Rellotge</string>
+    <string name="dream_name">Raider Launcher screensaver</string>
     <string name="launcher_settings">Configuració del llançador</string>
     <string name="columns_label">Aplicacions per fila</string>
     <string name="animations_state">Animacions: %1$s</string>

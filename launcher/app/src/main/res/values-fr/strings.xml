@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Accueil</string>
+    <string name="app_name">Raider Launcher</string>
     <string name="inputs">Sources</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">Paramètres</string>
@@ -19,7 +19,7 @@
     <string name="not_available">Indisponible sur cette TV</string>
     <string name="cant_open">Impossible d\'ouvrir %1$s</string>
     <string name="date_format">EEEE d MMMM</string>
-    <string name="dream_name">Horloge</string>
+    <string name="dream_name">Raider Launcher screensaver</string>
     <string name="vpn">VPN</string>
     <string name="vpn_off">VPN désactivé</string>
     <string name="home_settings">Accueil par défaut</string>

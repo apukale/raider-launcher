@@ -105,6 +105,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView greeting;
     private View btnInputs;
     private TextView btnWifi;
+    private boolean pillLabels;
     private TextView shamsiDate;
     private TextView homeDate;
     private TextView homeWeather;
@@ -495,7 +496,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         updateHomeCalendar(true);
         weatherEnabled=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE).getBoolean("weather_on_home",true);
         handler.removeCallbacks(weatherRefresh);
-        if(weatherEnabled){WeatherData cached=WeatherClient.cached(this);long age=System.currentTimeMillis()-WeatherClient.fetchedAt(this);if(cached!=null&&age>=0&&age<WeatherClient.FRESH_MS)showWeather(cached);else homeWeather.setVisibility(View.GONE);if(age<0||age>=WeatherClient.REFRESH_MS)requestWeather(false);handler.postDelayed(weatherRefresh,WeatherClient.REFRESH_MS);}
+        PhotoStore.scheduleIfMissingThrottled(this);
+        if(weatherEnabled){WeatherData cached=WeatherClient.cached(this);long fetched=WeatherClient.fetchedAt(this),age=System.currentTimeMillis()-fetched;if(cached!=null&&age>=0&&age<WeatherClient.FRESH_MS)showWeather(cached);else homeWeather.setVisibility(View.GONE);if(fetched==0||age<0||age>=WeatherClient.REFRESH_MS)requestWeather(true);handler.postDelayed(weatherRefresh,WeatherClient.REFRESH_MS);}
         else homeWeather.setVisibility(View.GONE);
         updateNightTheme(true);
         if (!calendarReceiverRegistered) {
@@ -505,6 +507,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         updateWifiLabel();
         updateInputsButton();
+        pillLabels=LauncherPrefs.showPillLabels(getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE).contains("pill_labels"),getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE).getBoolean("pill_labels",false));
+        applyPillLabels();
         sky.update();
         handler.postDelayed(minuteTick, MINUTE_MS);
     }
@@ -652,7 +656,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void requestWeather(boolean force){
-        if(!weatherEnabled||(!force&&System.currentTimeMillis()-WeatherClient.fetchedAt(this)<WeatherClient.REFRESH_MS))return;
+        long fetched=WeatherClient.fetchedAt(this);if(!weatherEnabled||(!force&&fetched>0&&System.currentTimeMillis()-fetched<WeatherClient.REFRESH_MS))return;
         WeatherClient.fetch(this,config,data->runOnUiThread(()->{if(!weatherEnabled||isFinishing())return;if(data!=null)showWeather(data);else if(System.currentTimeMillis()-WeatherClient.fetchedAt(this)>=WeatherClient.FRESH_MS)homeWeather.setVisibility(View.GONE);}));
     }
     private void showWeather(WeatherData data){
@@ -1039,6 +1043,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (shamsi) shamsiDate.setText(Shamsi.today());
     }
 
+    private void applyPillLabels(){if(btnInputs==null||btnWifi==null)return;TextView settings=findViewById(R.id.btnSettings);for(TextView button:new TextView[]{(TextView)btnInputs,btnWifi,settings}){if(button==null)continue;String label=button.getContentDescription()==null?String.valueOf(button.getText()):String.valueOf(button.getContentDescription());if(button.getId()==R.id.btnInputs)label=getString(R.string.inputs);else if(button.getId()==R.id.btnWifi&&label.isEmpty())label=getString(R.string.wifi);else if(button.getId()==R.id.btnSettings)label=getString(R.string.settings);button.setContentDescription(label);button.setText(pillLabels?label:"");button.setPadding(pillLabels?dp(16):0,0,pillLabels?dp(20):0,0);button.setCompoundDrawablesRelativeWithIntrinsicBounds(pillLabels?button.getCompoundDrawablesRelative()[0]:null,null,null,null);button.setMinWidth(pillLabels?0:dp(42));button.setMaxWidth(pillLabels?Integer.MAX_VALUE:dp(42));}}
+    private int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
+
     private void updateHomeCalendar(boolean rearm) {
         if(homeDate==null)return;
         Calendar c=Calendar.getInstance(); long ms=System.currentTimeMillis(); double now=PanchangDisplay.jdNow();
@@ -1117,6 +1124,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             btnWifi.setText(text);
         }
         btnWifi.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, 0, 0, 0);
+        applyPillLabels();
     }
 
     /** The network pill opens the VPN app when one is configured and installed, otherwise Wi-Fi settings. */

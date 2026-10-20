@@ -2,9 +2,14 @@ plugins {
     id 'com.android.application'
 }
 
+def localProps = new Properties()
+def localPropsFile = rootProject.file('local.properties')
+if (localPropsFile.exists()) localPropsFile.withInputStream { localProps.load(it) }
+
 android {
     namespace 'com.gathin.tvhome'
     compileSdk 34
+    buildFeatures { buildConfig true }
 
     defaultConfig {
         applicationId 'com.gathin.tvhome'
@@ -12,6 +17,7 @@ android {
         targetSdk 34
         versionCode 11
         versionName '2.10'
+        buildConfigField 'String', 'UNSPLASH_ACCESS_KEY', '"' + (localProps.getProperty('UNSPLASH_ACCESS_KEY', '').replace('\\', '\\\\').replace('"', '\\"')) + '"'
     }
 
     buildTypes {
@@ -36,4 +42,5 @@ dependencies {
     implementation 'androidx.dynamicanimation:dynamicanimation:1.0.0'
     // Test only (never in the APK): plain JVM tests for the module card validators, src/test.
     testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20231013'
 }

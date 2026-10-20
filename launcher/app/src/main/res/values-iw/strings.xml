@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">בית</string>
+    <string name="app_name">Raider Launcher</string>
     <string name="inputs">כניסות</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">הגדרות</string>
@@ -19,7 +19,7 @@
     <string name="not_available">לא זמין בטלוויזיה זו</string>
     <string name="cant_open">לא ניתן לפתוח את %1$s</string>
     <string name="date_format">EEEE  d בMMMM</string>
-    <string name="dream_name">שעון</string>
+    <string name="dream_name">Raider Launcher screensaver</string>
     <string name="vpn">VPN</string>
     <string name="vpn_off">ה־VPN כבוי</string>
     <string name="home_settings">מסך הבית המוגדר כברירת מחדל</string>

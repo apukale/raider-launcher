@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Home</string>
+    <string name="app_name">Raider Launcher</string>
     <string name="app_actions">App options</string>
     <string name="move_app">Move</string>
     <string name="hide_app">Hide</string>
@@ -30,15 +30,15 @@
     <string name="not_available">Not available on this TV</string>
     <string name="cant_open">Can\'t open %1$s</string>
     <string name="date_format">EEEE  d MMMM</string>
-    <string name="dream_name">Clock</string>
+    <string name="dream_name">Raider Launcher screensaver</string>
     <string name="vpn">VPN</string>
     <string name="vpn_off">VPN off</string>
     <string name="home_settings">Choose default home</string>
     <string name="default_home">Default Home app</string>
     <string name="default_home_current">Default Home app: %1$s</string>
-    <string name="this_launcher_home">CleanYourTV (this launcher)</string>
+    <string name="this_launcher_home">Raider Launcher (this launcher)</string>
     <string name="home_restore_note">To bring back Google TV Home, use the restore script or adb.</string>
-    <string name="home_settings_help">Select your original home to stop using CleanYourTV as Home, or CleanYourTV to switch back. The original launcher must be enabled and your TV must provide a home picker; use the restore script first if it was disabled.</string>
+    <string name="home_settings_help">Select your original home to stop using Raider Launcher as Home, or Raider Launcher to switch back. The original launcher must be enabled and your TV must provide a home picker; use the restore script first if it was disabled.</string>
     <string name="launcher_settings">Launcher settings</string>
     <string name="columns_label">Apps per row</string>
     <string name="animations_state">Animations: %1$s</string>
@@ -80,14 +80,20 @@
     <string name="cache_clearing_unavailable">Could not clear app caches. Open Storage settings to clear them manually.</string>
     <string name="on">On</string>
     <string name="off">Off</string>
-    <string name="weather_on_home">Weather on Home: %1$s</string>
+    <string name="weather_on_home">Weather: %1$s</string>
+    <string name="weather_status_updated">Updated %1$s · %2$d°</string>
+    <string name="weather_status_failed">Last try failed: %1$s</string>
+    <string name="weather_status_never">Not fetched yet</string>
+    <string name="pill_labels">Button labels: %1$s</string>
+    <string name="pill_labels_text">Show text</string>
+    <string name="pill_labels_icons">Icons only</string>
     <string name="enable">Enable</string>
     <string name="input_key_service_description">Opens the input switcher when the remote\'s Input button is pressed.</string>
     <string name="restart_tv">Restart TV</string>
     <string name="restart_tv_confirm">Open the TV\'s power menu? You can choose Restart there.</string>
-    <string name="restart_tv_service_missing">Restart needs the CleanYourTV power-menu accessibility service. Turn it on in Settings &gt; Accessibility, or enable it over adb.</string>
-    <string name="power_menu_service_name">CleanYourTV power menu</string>
-    <string name="power_menu_service_description">Only opens the TV power menu when you choose Restart TV in CleanYourTV.</string>
+    <string name="restart_tv_service_missing">Restart needs the Raider Launcher power-menu accessibility service. Turn it on in Settings &gt; Accessibility, or enable it over adb.</string>
+    <string name="power_menu_service_name">Raider Launcher power menu</string>
+    <string name="power_menu_service_description">Only opens the TV power menu when you choose Restart TV in Raider Launcher.</string>
     <string name="home_key_name">Home button</string>
     <string name="home_key_description">Makes the remote\'s Home button open this launcher.</string>
     <string name="card_prompt_title">New card from %1$s</string>
@@ -111,6 +117,8 @@
     <string name="photo_source_bing">Bing daily</string>
     <string name="photo_source_picsum">Picsum</string>
     <string name="photo_source_both">Both</string>
+    <string name="photo_source_unsplash">Unsplash</string>
+    <string name="photo_source_all">All sources</string>
     <string name="photo_source_title">Photo source</string>
     <string name="photo_storage">Photo storage: %1$d MB</string>
     <string name="photo_storage_title">Photo storage</string>
