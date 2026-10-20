@@ -123,6 +123,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean reducedMotion;
     /** hidden_apps as the adapter sees them (config.xml or a theme's config.json): a hidden app gets no card either. */
     private Set<String> hiddenApps = Collections.emptySet();
+    private final Set<String> configuredHiddenApps = new HashSet<>();
     private List<Cards.Card> cards = Collections.emptyList();
     /** The grid has been laid out and focused since the last resume; the card prompt waits for this. */
     private boolean tilesReady;
@@ -133,6 +134,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean rebuildOnResume = true;
     /** The Inputs or Module cards dropdown while one is open, so onPause can close it. */
     private PopupWindow openPopup;
+    private boolean movingTile;
+    private int movingPosition = -1;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     /** Refreshes the network pill when the connection changes: at boot Wi-Fi often connects after Home is shown. */
@@ -231,7 +234,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         vpnApp = cfg.vpnApp;
         moduleCards = cfg.moduleCards;
-        hiddenApps = new HashSet<>(cfg.hiddenApps);
+        configuredHiddenApps.addAll(cfg.hiddenApps);
+        hiddenApps = new HashSet<>(configuredHiddenApps);
 
         grid = findViewById(R.id.grid);
         rtlAppGrid = getResources().getBoolean(R.bool.rtl_app_grid);
@@ -446,6 +450,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** Rebuilds the tiles (and the module cards), then puts focus back where it was. */
     private void reloadApps(boolean animate) {
+        if (movingTile) finishMovingTile(false);
         // Capture the app before rebinding can move focus and overwrite its key.
         final String returnKey = lastFocusedKey;
         final int returnSlot = lastFocused;
@@ -485,6 +490,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final String returnKey = lastFocusedKey;
         final int returnSlot = lastFocused;
         final List<Cards.Card> none = Collections.emptyList();
+        hiddenApps.clear();
+        hiddenApps.addAll(configuredHiddenApps);
+        hiddenApps.addAll(getSharedPreferences("app_layout", MODE_PRIVATE)
+                .getStringSet("hidden", Collections.emptySet()));
         cards = moduleCards ? CardFeature.run(() -> Cards.discover(this, hiddenApps, Cards.load(Cards.storeFile(this))), none) : none;
         adapter.reload(cards.isEmpty() ? none : CardFeature.run(() -> Cards.shown(cards), none));
         lastFocusedKey = returnKey;
@@ -509,6 +518,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onPause() {
         super.onPause();
+        if (movingTile) finishMovingTile(false);
         stopAmbientAnimation();
         heroName.animate().cancel();
         ambient.animate().cancel();
@@ -545,7 +555,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     public void onBackPressed() {
-        // Home screen: Back goes nowhere.
+        if (movingTile) finishMovingTile();
+        // Home screen: Back otherwise goes nowhere.
     }
 
     // ---- glass highlight -------------------------------------------------------------------------
@@ -752,6 +763,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     public boolean onTileVerticalKey(int position, int keyCode) {
+        if (movingTile) { moveTileInDirection(position, keyCode); return true; }
+        if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) return false;
         int count = adapter.getItemCount();
         int target;
         // Horizontal: swallow the key at a row's ends so focus never wraps to the next row or
@@ -770,6 +783,71 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         focusTile(target);
         return true;
+    }
+
+    @Override
+    public void onTileLongPressed(int position, View card) {
+        if (position < 0 || position >= adapter.getItemCount()) return;
+        final String key = adapter.keyAt(position);
+        String pkg = adapter.packageAt(position);
+        android.app.AlertDialog dialog = new android.app.AlertDialog.Builder(this)
+                .setTitle(R.string.app_actions)
+                .setItems(new CharSequence[]{getString(R.string.move_app), getString(R.string.hide_app), getString(R.string.app_info)}, (d, which) -> {
+            if (which == 0) {
+                movingTile = true;
+                movingPosition = adapter.positionOf(key);
+                lastFocusedKey = key;
+                adapter.setMovingKey(key);
+                focusTile(movingPosition);
+                Toast.makeText(this, R.string.move_hint, Toast.LENGTH_SHORT).show();
+            } else if (which == 1) {
+                android.content.SharedPreferences p = getSharedPreferences("app_layout", MODE_PRIVATE);
+                Set<String> hidden = new HashSet<>(p.getStringSet("hidden", Collections.emptySet()));
+                hidden.add(pkg);
+                p.edit().putStringSet("hidden", hidden).apply();
+                reloadApps(false);
+            } else {
+                try { startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg))); } catch (Exception ignored) { }
+            }
+        }).create();
+        // A long press opens this dialog while OK is still held. Ignore that press's release so
+        // it cannot choose the focused menu row.
+        final boolean[] ignoreFirstOkUp = {true};
+        dialog.setOnShowListener(d -> dialog.getListView().setOnKeyListener((v, code, event) -> {
+            if (ignoreFirstOkUp[0] && (code == KeyEvent.KEYCODE_DPAD_CENTER || code == KeyEvent.KEYCODE_ENTER)
+                    && event.getAction() == KeyEvent.ACTION_UP) {
+                ignoreFirstOkUp[0] = false;
+                return true;
+            }
+            return false;
+        }));
+        dialog.show();
+    }
+
+    private void moveTileInDirection(int position, int keyCode) {
+        if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) { finishMovingTile(); return; }
+        int target = movingPosition;
+        if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) target--;
+        else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) target++;
+        else if (keyCode == KeyEvent.KEYCODE_DPAD_UP) target -= COLUMNS;
+        else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) target += COLUMNS;
+        if (target >= 0 && target < adapter.getItemCount() && target != movingPosition) {
+            adapter.move(movingPosition, target);
+            movingPosition = target;
+            lastFocusedKey = adapter.keyAt(target);
+            focusTile(target);
+        }
+    }
+
+    private void finishMovingTile() {
+        finishMovingTile(true);
+    }
+
+    private void finishMovingTile(boolean restoreFocus) {
+        movingTile = false;
+        movingPosition = -1;
+        adapter.setMovingKey(null);
+        if (restoreFocus && lastFocusedKey != null) focusTile(adapter.positionOf(lastFocusedKey));
     }
 
     private void focusTile(int position) {

@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Home</string>
+    <string name="app_actions">App options</string>
+    <string name="move_app">Move</string>
+    <string name="hide_app">Hide</string>
+    <string name="app_info">App info</string>
+    <string name="move_hint">Use the direction buttons to move. Press OK or Back to finish.</string>
+    <string name="reset_order">Reset order</string>
+    <string name="reset_order_confirm">Return to alphabetical order and the theme dock?</string>
+    <string name="unhide_apps">Show hidden apps</string>
+    <string name="no_hidden_apps">There are no hidden apps.</string>
     <string name="inputs">Inputs</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">Settings</string>
@@ -23,6 +32,10 @@
     <string name="vpn">VPN</string>
     <string name="vpn_off">VPN off</string>
     <string name="home_settings">Choose default home</string>
+    <string name="default_home">Default Home app</string>
+    <string name="default_home_current">Default Home app: %1$s</string>
+    <string name="this_launcher_home">CleanYourTV (this launcher)</string>
+    <string name="home_restore_note">To bring back Google TV Home, use the restore script or adb.</string>
     <string name="home_settings_help">Select your original home to stop using CleanYourTV as Home, or CleanYourTV to switch back. The original launcher must be enabled and your TV must provide a home picker; use the restore script first if it was disabled.</string>
     <string name="launcher_settings">Launcher settings</string>
     <string name="columns_label">Apps per row</string>
@@ -33,6 +46,26 @@
     <string name="follow_theme">Follow theme (reset on-TV choices)</string>
     <string name="follow_theme_hint">Uses the current theme or built-in layout and motion settings. Pushing or resetting a theme also clears your on-TV choices.</string>
     <string name="tv_settings">TV system settings</string>
+    <string name="network_dns">Network / DNS</string>
+    <string name="network_dns_current">Private DNS: %1$s</string>
+    <string name="dns_off">Off</string>
+    <string name="dns_automatic">Automatic</string>
+    <string name="dns_adguard">AdGuard (dns.adguard-dns.com)</string>
+    <string name="dns_adguard_family">AdGuard Family (family.adguard-dns.com)</string>
+    <string name="dns_google">Google (dns.google)</string>
+    <string name="dns_cloudflare">Cloudflare (one.one.one.one)</string>
+    <string name="dns_cloudflare_family">Cloudflare Family (family-blocking.cloudflare-dns.com)</string>
+    <string name="dns_quad9">Quad9 (dns.quad9.net)</string>
+    <string name="dns_manual">Manual</string>
+    <string name="dns_manual_current">Manual (%1$s)</string>
+    <string name="dns_custom">Manual hostname</string>
+    <string name="dns_custom_hint">Enter a Private DNS provider hostname.</string>
+    <string name="dns_hostname_hint">dns.example.com</string>
+    <string name="dns_invalid_hostname">Enter a valid hostname without a scheme or port.</string>
+    <string name="dns_permission_title">Private DNS permission required</string>
+    <string name="dns_permission_message">Permission not granted. Grant it with adb: pm grant com.gathin.tvhome android.permission.WRITE_SECURE_SETTINGS</string>
+    <string name="dns_saved">Private DNS setting saved</string>
+    <string name="dns_named_value">%1$s (%2$s)</string>
     <string name="on">On</string>
     <string name="off">Off</string>
     <string name="enable">Enable</string>

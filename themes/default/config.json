@@ -1,6 +1,7 @@
 {
   "dock_apps": ["com.netflix.ninja", "com.amazon.amazonvideo.livingroom", "com.google.android.youtube.tv", "in.startv.hotstar"],
   "hidden_apps": ["com.mediatek.wwtv.tvcenter", "com.mitv.gallery"],
+  "tile_overrides": ["org.smarttube.stable=com.google.android.youtube.tv|YouTube"],
   "columns": 4,
   "rows_below_dock": 0,
   "reduced_motion": false,

@@ -66,6 +66,18 @@
             android:text="@string/follow_theme" />
 
         <TextView
+            android:id="@+id/resetOrderChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="18dp"
+            android:text="@string/reset_order" />
+
+        <TextView
+            android:id="@+id/unhideAppsChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="10dp"
+            android:text="@string/unhide_apps" />
+
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="7dp"
@@ -74,16 +86,30 @@
             android:textSize="14sp" />
 
         <TextView
-            android:id="@+id/defaultHomeChoice"
+            android:id="@+id/dnsChoice"
             style="@style/SettingsRow"
             android:layout_marginTop="28dp"
-            android:text="@string/home_settings" />
+            android:text="@string/network_dns" />
+
+        <TextView
+            android:id="@+id/defaultHomeChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="18dp"
+            android:text="@string/default_home" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="7dp"
             android:text="@string/home_settings_help"
+            android:textColor="#FFACB8C1"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="7dp"
+            android:text="@string/home_restore_note"
             android:textColor="#FFACB8C1"
             android:textSize="14sp" />
 

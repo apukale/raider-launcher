@@ -5,18 +5,43 @@ import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.os.Bundle;
+import android.provider.Settings.Global;
 import android.provider.Settings;
+import android.text.InputType;
+import android.view.WindowManager;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 /** Remote-friendly settings owned by the launcher; system settings stay one row away. */
 public final class LauncherSettingsActivity extends Activity {
+    private static final String PRIVATE_DNS_MODE = "private_dns_mode";
+    private static final String PRIVATE_DNS_SPECIFIER = "private_dns_specifier";
+    private static final String[] DNS_HOSTS = {
+            "", "", "dns.adguard-dns.com", "family.adguard-dns.com", "dns.google",
+            "one.one.one.one", "family-blocking.cloudflare-dns.com", "dns.quad9.net"
+    };
+    private static final String[] DNS_LABELS = {
+            "Off", "Automatic", "AdGuard", "AdGuard Family", "Google", "Cloudflare",
+            "Cloudflare Family", "Quad9"
+    };
     private SharedPreferences choices;
     private final TextView[] columnChoices = new TextView[4];
     private TextView animationsChoice;
     private TextView advancedChoice;
     private TextView followThemeChoice;
+    private TextView dnsChoice;
+    private TextView defaultHomeChoice;
     private int columns;
     private boolean animations;
     private boolean advancedEffects;
@@ -76,12 +101,25 @@ public final class LauncherSettingsActivity extends Activity {
             setResult(RESULT_OK);
             refresh();
         });
-        findViewById(R.id.defaultHomeChoice).setOnClickListener(v -> {
+        defaultHomeChoice = findViewById(R.id.defaultHomeChoice);
+        defaultHomeChoice.setOnClickListener(v -> {
             Toast.makeText(this, R.string.home_settings_help, Toast.LENGTH_LONG).show();
             open(new Intent(Settings.ACTION_HOME_SETTINGS));
         });
+        dnsChoice = findViewById(R.id.dnsChoice);
+        dnsChoice.setOnClickListener(v -> showDnsChoices());
         findViewById(R.id.tvSettingsChoice).setOnClickListener(v ->
                 open(new Intent(Settings.ACTION_SETTINGS)));
+        findViewById(R.id.resetOrderChoice).setOnClickListener(v ->
+                new AlertDialog.Builder(this).setTitle(R.string.reset_order)
+                        .setMessage(R.string.reset_order_confirm)
+                        .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                            getSharedPreferences("app_layout", MODE_PRIVATE).edit()
+                                    .remove("custom_order").remove("ordered_components").apply();
+                            Toast.makeText(this, R.string.reset_order, Toast.LENGTH_SHORT).show();
+                            setResult(RESULT_OK);
+                        }).setNegativeButton(android.R.string.cancel, null).show());
+        findViewById(R.id.unhideAppsChoice).setOnClickListener(v -> showHiddenApps());
         refresh();
         columnChoices[Math.max(0, Math.min(columns - 4, 3))].requestFocus();
     }
@@ -104,6 +142,8 @@ public final class LauncherSettingsActivity extends Activity {
         advancedChoice.setEnabled(animations);
         advancedChoice.setAlpha(animations ? 1f : 0.5f);
         followThemeChoice.setSelected(!hasOnTvChoices());
+        dnsChoice.setText(getString(R.string.network_dns_current, currentDnsValue()));
+        defaultHomeChoice.setText(getString(R.string.default_home_current, currentHomeLabel()));
     }
 
     private boolean hasOnTvChoices() {
@@ -117,5 +157,149 @@ public final class LauncherSettingsActivity extends Activity {
         } catch (ActivityNotFoundException | SecurityException e) {
             Toast.makeText(this, R.string.not_available, Toast.LENGTH_LONG).show();
         }
+    }
+
+    private String currentHomeLabel() {
+        Intent home = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME);
+        ResolveInfo resolved = getPackageManager().resolveActivity(home,
+                android.content.pm.PackageManager.MATCH_DEFAULT_ONLY);
+        if (resolved == null || resolved.activityInfo == null) return getString(R.string.not_available);
+        if (getPackageName().equals(resolved.activityInfo.packageName)) return getString(R.string.this_launcher_home);
+        CharSequence label = resolved.loadLabel(getPackageManager());
+        return label == null ? resolved.activityInfo.packageName : label.toString();
+    }
+
+    private String currentDnsValue() {
+        String mode = Global.getString(getContentResolver(), PRIVATE_DNS_MODE);
+        if ("off".equals(mode)) return getString(R.string.dns_off);
+        if (!"hostname".equals(mode)) return getString(R.string.dns_automatic);
+        String host = Global.getString(getContentResolver(), PRIVATE_DNS_SPECIFIER);
+        if (host == null || host.trim().isEmpty()) return getString(R.string.dns_automatic);
+        for (int i = 2; i < DNS_HOSTS.length; i++) {
+            if (DNS_HOSTS[i].equalsIgnoreCase(host)) {
+                return getString(R.string.dns_named_value, DNS_LABELS[i], host);
+            }
+        }
+        return host;
+    }
+
+    private void showDnsChoices() {
+        String mode = Global.getString(getContentResolver(), PRIVATE_DNS_MODE);
+        String host = Global.getString(getContentResolver(), PRIVATE_DNS_SPECIFIER);
+        int checked = 1;
+        if ("off".equals(mode)) {
+            checked = 0;
+        } else if ("hostname".equals(mode) && host != null && !host.trim().isEmpty()) {
+            checked = DNS_HOSTS.length;
+            for (int i = 2; i < DNS_HOSTS.length; i++) {
+                if (DNS_HOSTS[i].equalsIgnoreCase(host)) {
+                    checked = i;
+                    break;
+                }
+            }
+        }
+        final int checkedIndex = checked;
+        CharSequence[] options = new CharSequence[DNS_HOSTS.length + 1];
+        options[0] = getString(R.string.dns_off);
+        options[1] = getString(R.string.dns_automatic);
+        options[2] = getString(R.string.dns_adguard);
+        options[3] = getString(R.string.dns_adguard_family);
+        options[4] = getString(R.string.dns_google);
+        options[5] = getString(R.string.dns_cloudflare);
+        options[6] = getString(R.string.dns_cloudflare_family);
+        options[7] = getString(R.string.dns_quad9);
+        options[8] = checked == DNS_HOSTS.length
+                ? getString(R.string.dns_manual_current, host) : getString(R.string.dns_manual);
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(R.string.network_dns)
+                .setSingleChoiceItems(options, checked, (choiceDialog, which) -> {
+                    choiceDialog.dismiss();
+                    if (which == DNS_HOSTS.length) showCustomDns();
+                    else if (which == 0) writeDns("off", null);
+                    else if (which == 1) writeDns("opportunistic", null);
+                    else writeDns("hostname", DNS_HOSTS[which]);
+                }).setNegativeButton(android.R.string.cancel, null).create();
+        dialog.setOnShowListener(d -> {
+            dialog.getListView().setSelection(checkedIndex);
+            dialog.getListView().requestFocus();
+        });
+        dialog.show();
+    }
+
+    private void showCustomDns() {
+        EditText input = new EditText(this);
+        input.setSingleLine(true);
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        input.setHint(R.string.dns_hostname_hint);
+        input.setText(Global.getString(getContentResolver(), PRIVATE_DNS_SPECIFIER));
+        input.setSelection(input.length());
+        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(R.string.dns_custom)
+                .setMessage(R.string.dns_custom_hint).setView(input)
+                .setPositiveButton(android.R.string.ok, (d, which) -> {
+                    String host = input.getText().toString().trim();
+                    if (!validHostname(host)) {
+                        Toast.makeText(this, R.string.dns_invalid_hostname, Toast.LENGTH_LONG).show();
+                    } else {
+                        writeDns("hostname", host);
+                    }
+                }).setNegativeButton(android.R.string.cancel, null).create();
+        dialog.setOnShowListener(d -> {
+            input.requestFocus();
+            dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+        });
+        dialog.show();
+    }
+
+    private boolean validHostname(String host) {
+        if (host.isEmpty() || host.length() > 253 || host.startsWith(".") || host.endsWith(".")) return false;
+        String[] labels = host.split("\\.", -1);
+        for (String label : labels) {
+            if (label.isEmpty() || label.length() > 63 || !label.matches("[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?")) return false;
+        }
+        return true;
+    }
+
+    private void writeDns(String mode, String hostname) {
+        if (checkSelfPermission("android.permission.WRITE_SECURE_SETTINGS") != PackageManager.PERMISSION_GRANTED) {
+            new AlertDialog.Builder(this).setTitle(R.string.dns_permission_title)
+                    .setMessage(R.string.dns_permission_message).setPositiveButton(android.R.string.ok, null).show();
+            return;
+        }
+        try {
+            if ("hostname".equals(mode)) Global.putString(getContentResolver(), PRIVATE_DNS_SPECIFIER, hostname);
+            Global.putString(getContentResolver(), PRIVATE_DNS_MODE, mode);
+            refresh();
+            Toast.makeText(this, R.string.dns_saved, Toast.LENGTH_SHORT).show();
+        } catch (SecurityException ignored) {
+            new AlertDialog.Builder(this).setTitle(R.string.dns_permission_title)
+                    .setMessage(R.string.dns_permission_message).setPositiveButton(android.R.string.ok, null).show();
+        }
+    }
+
+    private void showHiddenApps() {
+        SharedPreferences layout = getSharedPreferences("app_layout", MODE_PRIVATE);
+        Set<String> hidden = new HashSet<>(layout.getStringSet("hidden", Collections.emptySet()));
+        List<String> packages = new ArrayList<>(hidden);
+        Collections.sort(packages, String.CASE_INSENSITIVE_ORDER);
+        if (packages.isEmpty()) {
+            Toast.makeText(this, R.string.no_hidden_apps, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        CharSequence[] labels = new CharSequence[packages.size()];
+        for (int i = 0; i < packages.size(); i++) {
+            String pkg = packages.get(i);
+            try {
+                ApplicationInfo info = getPackageManager().getApplicationInfo(pkg, 0);
+                labels[i] = getPackageManager().getApplicationLabel(info);
+            } catch (Exception ignored) {
+                labels[i] = pkg;
+            }
+        }
+        new AlertDialog.Builder(this).setTitle(R.string.unhide_apps).setItems(labels, (dialog, which) -> {
+            Set<String> updated = new HashSet<>(layout.getStringSet("hidden", Collections.emptySet()));
+            updated.remove(packages.get(which));
+            layout.edit().putStringSet("hidden", updated).apply();
+            setResult(RESULT_OK);
+            showHiddenApps();
+        }).setNegativeButton(android.R.string.cancel, null).show();
     }
 }
