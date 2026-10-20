@@ -14,7 +14,7 @@ final class WeatherData {
         return new WeatherData(t,high,low,code,round(number(current,"apparent_temperature")),(int)number(current,"relative_humidity_2m"),(int)arrayNumber(daily,"precipitation_probability_max"));
     }
     private static int round(double d){return (int)Math.floor(d+0.5);}
-    private static String object(String s,String key){Matcher m=Pattern.compile("\\\""+key+"\\\"\\s*:\\s*\\{([^}]*)}").matcher(s);if(!m.find())throw new IllegalArgumentException("Missing "+key);return m.group(1);}
+    private static String object(String s,String key){Matcher m=Pattern.compile("\\\""+key+"\\\"\\s*:\\s*\\{([^}]*)\\}").matcher(s);if(!m.find())throw new IllegalArgumentException("Missing "+key);return m.group(1);}
     private static double number(String s,String key){Matcher m=Pattern.compile("\\\""+key+"\\\"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)").matcher(s);if(!m.find())throw new IllegalArgumentException("Missing "+key);return Double.parseDouble(m.group(1));}
     private static double arrayNumber(String s,String key){Matcher m=Pattern.compile("\\\""+key+"\\\"\\s*:\\s*\\[\\s*(-?\\d+(?:\\.\\d+)?)").matcher(s);if(!m.find())throw new IllegalArgumentException("Missing "+key);return Double.parseDouble(m.group(1));}
     static String iconGroup(int code){if(code==0)return "clear";if(code<=3&&code>=1)return "cloud";if(code==45||code==48)return "fog";if(code>=51&&code<=57)return "drizzle";if((code>=61&&code<=67)||(code>=80&&code<=82))return "rain";if((code>=71&&code<=77)||(code>=85&&code<=86))return "snow";if(code>=95&&code<=99)return "thunder";return "cloud";}
