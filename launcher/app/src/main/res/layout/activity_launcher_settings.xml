@@ -136,6 +136,7 @@
         <TextView android:id="@+id/photoIntervalChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" />
         <TextView android:id="@+id/calendarChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" />
         <TextView android:id="@+id/homeCalendarChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" />
+        <TextView android:id="@+id/calendarTextSizeChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" />
         <TextView android:id="@+id/refreshPhotosChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" />
         <TextView android:id="@+id/startAfterChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" />
         <TextView android:id="@+id/startScreensaverChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" android:text="@string/start_screensaver_now" />

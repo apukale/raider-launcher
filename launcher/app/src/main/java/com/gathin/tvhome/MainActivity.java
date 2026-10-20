@@ -128,7 +128,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private float glassScrollShift;
     private boolean glassShown;
     // Static so they survive the activity being destroyed while another app is open (low-memory TVs,
-    // or Developer options → "Don't keep activities"); they only reset when the process dies.
+    // or Developer options â†’ "Don't keep activities"); they only reset when the process dies.
     private static int lastFocused = 0;
     /** App of the last focused tile, so focus follows it when the app list changes. */
     private static String lastFocusedKey;
@@ -255,6 +255,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         homeWeather = findViewById(R.id.weather);
         homeCalendarLine1=findViewById(R.id.homeCalendarLine1); homeCalendarTithi=findViewById(R.id.homeCalendarTithi); homeCalendarMoon=findViewById(R.id.homeCalendarMoon); homeCalendarRahu=findViewById(R.id.homeCalendarRahu);
         homeCalendarDivider=findViewById(R.id.homeCalendarDivider); homeCalendarStack=findViewById(R.id.homeCalendarStack);
+        homeCalendarStack.setOnClickListener(v -> open(new Intent(this, PanchangActivity.class)));
+        homeCalendarStack.setOnKeyListener((v,key,event)->{ if(event.getAction()==KeyEvent.ACTION_DOWN && (key==KeyEvent.KEYCODE_DPAD_CENTER || key==KeyEvent.KEYCODE_ENTER)){open(new Intent(this,PanchangActivity.class));return true;} return false; });
         homeDate.setEllipsize(null);
         homeCalendarOn = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE).getBoolean("home_hindu_calendar", true);
         homeDate.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->updateHomeCalendar(false));
@@ -291,6 +293,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         adapter = new AppAdapter(this, this, COLUMNS, cfg);
         grid.setAdapter(adapter);
+        grid.addOnChildAttachStateChangeListener(new RecyclerView.OnChildAttachStateChangeListener() {
+            @Override public void onChildViewAttachedToWindow(@NonNull View view) {
+                RecyclerView.ViewHolder holder=grid.getChildViewHolder(view); int p=holder.getBindingAdapterPosition();
+                if(p>=COLUMNS && p<2*COLUMNS)view.setNextFocusUpId(R.id.homeCalendarStack);
+            }
+            @Override public void onChildViewDetachedFromWindow(@NonNull View view) {}
+        });
 
         // tvOS layout: push the dock row towards the bottom of the screen, leaving room for
         // rows_below_dock grid rows under it; the rest of the grid stays below until you press Down.
@@ -466,6 +475,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onResume() {
         super.onResume();
         homeCalendarOn=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE).getBoolean("home_hindu_calendar",true);
+        applyHomeCalendarTextSize();
         if (wallpaperView == null && wallpaperFile != null) showWallpaper(wallpaperFile);
         promptsPaused = false;
         if (rebuildOnResume) {
@@ -774,7 +784,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /**
      * The glow used to be a full-screen radial GradientDrawable. On Android 10 that drawable is
-     * drawn on the CPU, so fading it for half a second redrew 1920×1080 every frame and the
+     * drawn on the CPU, so fading it for half a second redrew 1920Ã—1080 every frame and the
      * highlight looked like it was running at a few frames per second. A small bitmap stretched
      * over the screen is one texture. It is painted once in white and tinted with the app's colour,
      * so changing apps neither repaints it on the CPU (about 11 ms) nor uploads it again.
@@ -999,17 +1009,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         Calendar c=Calendar.getInstance(); long ms=System.currentTimeMillis(); double now=PanchangDisplay.jdNow();
         String date=new SimpleDateFormat(getString(R.string.date_format),Locale.getDefault()).format(new Date(ms));
         homeDate.setText(date);
-        if(!homeCalendarOn){handler.removeCallbacks(calendarTransition);homeCalendarStack.setVisibility(View.GONE);homeCalendarDivider.setVisibility(View.GONE);return;}
-        homeCalendarStack.setVisibility(View.VISIBLE);homeCalendarDivider.setVisibility(View.VISIBLE);
+        if(!homeCalendarOn){handler.removeCallbacks(calendarTransition);homeCalendarStack.setFocusable(false);homeCalendarStack.setClickable(false);homeCalendarStack.setVisibility(View.GONE);homeCalendarDivider.setVisibility(View.GONE);return;}
+        homeCalendarStack.setFocusable(true);homeCalendarStack.setClickable(true);homeCalendarStack.setVisibility(View.VISIBLE);homeCalendarDivider.setVisibility(View.VISIBLE);
         Panchang.Result r=PanchangDisplay.day(c);
         homeCalendarLine1.setText(r.month+" "+Panchang.currentPaksha(now)+(r.festival.isEmpty()?"":" \u00B7 "+r.festival));
-        homeCalendarTithi.setText(Panchang.currentTithiName(now)+" till "+PanchangDisplay.time(Panchang.tithiEndJd(now)));
+        String tithi=Panchang.currentTithiName(now)+" till "+PanchangDisplay.time(Panchang.tithiEndJd(now));
+        homeCalendarTithi.setText(tithi); homeCalendarTithi.setLetterSpacing(0.04f); homeCalendarRahu.setLetterSpacing(0.04f); homeCalendarMoon.setLetterSpacing(0.04f);
         String moonText="Moon in "+Panchang.moonRashi(now)+" \u00B7 "+Panchang.currentNakshatra(now)+" till "+PanchangDisplay.time(Panchang.nakshatraEndJd(now));
         homeCalendarMoon.setText(moonText); PanchangDisplay.MoonDrawable icon=new PanchangDisplay.MoonDrawable(now); int size=Math.max(1,(int)(homeCalendarMoon.getTextSize()*1.2f));icon.setBounds(0,0,size,size);homeCalendarMoon.setCompoundDrawables(icon,null,null,null);homeCalendarMoon.setCompoundDrawablePadding((int)(6*getResources().getDisplayMetrics().density));
         double rs=Panchang.rahuStartJd(c.get(Calendar.YEAR),c.get(Calendar.MONTH)+1,c.get(Calendar.DAY_OF_MONTH)),re=Panchang.rahuEndJd(c.get(Calendar.YEAR),c.get(Calendar.MONTH)+1,c.get(Calendar.DAY_OF_MONTH));
         if(now<re){String start=PanchangDisplay.time(rs),end=PanchangDisplay.time(re);int sp=start.lastIndexOf(' '),ep=end.lastIndexOf(' ');if(sp>=0&&ep>=0&&start.substring(sp+1).equals(end.substring(ep+1)))start=start.substring(0,sp);homeCalendarRahu.setText("Rahu Kalam "+start+"\u2013"+end);homeCalendarRahu.setVisibility(View.VISIBLE);homeCalendarRahu.setTextColor(now>=rs?0xCCD9B273:0xE6FFFFFF);}else homeCalendarRahu.setVisibility(View.GONE);
+        homeCalendarTithi.setTag(tithi); homeCalendarRahu.setTag(homeCalendarRahu.getVisibility()==View.VISIBLE?homeCalendarRahu.getText():""); homeCalendarStack.post(()->fitHomeCalendar(0));
         if(rearm){handler.removeCallbacks(calendarTransition);long delay=PanchangDisplay.transitionDelayMs(c,now);handler.postDelayed(calendarTransition,delay);}
     }
+    private void applyHomeCalendarTextSize(){if(homeCalendarStack==null)return;int size=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE).getInt("home_calendar_text_size",2);int first=size==0?17:size==1?21:25,other=size==0?14:size==1?17:21;homeCalendarLine1.setTextSize(first);homeCalendarTithi.setTextSize(other);homeCalendarMoon.setTextSize(other);homeCalendarRahu.setTextSize(other);PanchangDisplay.MoonDrawable icon=new PanchangDisplay.MoonDrawable(PanchangDisplay.jdNow());int px=Math.max(1,(int)(homeCalendarMoon.getTextSize()*1.2f));icon.setBounds(0,0,px,px);homeCalendarMoon.setCompoundDrawables(icon,null,null,null);}
+    private void fitHomeCalendar(int attempt){if(homeCalendarStack==null)return;if(homeCalendarStack.getWidth()==0){if(attempt<3)homeCalendarStack.post(()->fitHomeCalendar(attempt+1));return;}float width=homeCalendarStack.getWidth()-homeCalendarStack.getPaddingLeft()-homeCalendarStack.getPaddingRight();homeCalendarLine1.setLetterSpacing(0.02f);homeCalendarTithi.setLetterSpacing(0.02f);homeCalendarMoon.setLetterSpacing(0.02f);homeCalendarRahu.setLetterSpacing(0.02f);String tithi=String.valueOf(homeCalendarTithi.getTag()),rahu=String.valueOf(homeCalendarRahu.getTag());float combined=homeCalendarTithi.getPaint().measureText(tithi+" \u00B7 "+rahu);if(!rahu.isEmpty()&&combined<=width){homeCalendarTithi.setText(tithi+" \u00B7 "+rahu);homeCalendarRahu.setVisibility(View.GONE);}else{homeCalendarTithi.setText(tithi);homeCalendarRahu.setVisibility(rahu.isEmpty()?View.GONE:View.VISIBLE);}}
     /** Shows the Wi-Fi network name on the button when we can read it, otherwise the connection type. */
     private void updateWifiLabel() {
         String text = getString(R.string.wifi);

@@ -33,9 +33,9 @@
         <item name="android:ellipsize">end</item>
         <item name="android:gravity">start|center_vertical</item>
         <item name="android:textColor">#D9FFFFFF</item>
-        <item name="android:textSize">11sp</item>
+        <item name="android:textSize">21sp</item>
         <item name="android:fontFamily">@font/outfit_regular</item>
-        <item name="android:letterSpacing">0.02</item>
+        <item name="android:letterSpacing">0.04</item>
         <item name="android:includeFontPadding">false</item>
     </style>
 

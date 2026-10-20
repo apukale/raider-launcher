@@ -117,6 +117,11 @@
     <string name="photo_interval">Photo change interval: %1$s</string>
     <string name="hindu_calendar">Hindu calendar: %1$s</string>
     <string name="home_hindu_calendar">Hindu calendar on Home: %1$s</string>
+    <string name="calendar_text_size">Calendar text size: %1$s</string>
+    <string name="calendar_size_small">Small</string>
+    <string name="calendar_size_medium">Medium</string>
+    <string name="calendar_size_large">Large</string>
+    <string name="calendar_text_size_title">Calendar text size</string>
     <string name="refresh_photos">Refresh photos now
 %1$s</string>
     <string name="photo_count_size">%1$d photos · %2$s / %3$s</string>

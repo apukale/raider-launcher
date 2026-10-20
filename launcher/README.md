@@ -19,3 +19,5 @@ Version 2.6 adds **Restart TV** to the Settings hold-OK menu. It opens Android's
 settings put secure enabled_accessibility_services "<existing>:com.gathin.tvhome/com.gathin.tvhome.PowerMenuService"
 settings put secure accessibility_enabled 1
 ```
+
+Version 2.9 adds a full Panchang screen with offline timings and date navigation. On Home, focus the Hindu calendar stack with D-pad Up from the first app row or D-pad Right from the clock area, then press OK.
