@@ -130,9 +130,9 @@ final class Config {
         boolean homeSettings = res.getBoolean(R.bool.show_home_settings_shortcut);
         int background = 0xFF000000;
         int skyIntensity = res.getInteger(R.integer.sky_intensity);
-        double weatherLatitude = decimal(res.getString(R.string.weather_latitude), 23.0);
-        double weatherLongitude = decimal(res.getString(R.string.weather_longitude), 82.5);
-        String weatherPlace = res.getString(R.string.weather_place);
+        double weatherLatitude = decimal(firstNonEmpty(BuildConfig.WEATHER_LATITUDE, res.getString(R.string.weather_latitude)), Double.NaN);
+        double weatherLongitude = decimal(firstNonEmpty(BuildConfig.WEATHER_LONGITUDE, res.getString(R.string.weather_longitude)), Double.NaN);
+        String weatherPlace = firstNonEmpty(BuildConfig.WEATHER_PLACE, res.getString(R.string.weather_place));
         boolean applied = false;
 
         File dir = dir(ctx);
@@ -283,4 +283,6 @@ final class Config {
         }
         return out;
     }
+    /** Build-time value from local.properties (gitignored) wins over the empty repo default. */
+    private static String firstNonEmpty(String a, String b) { return a != null && !a.trim().isEmpty() ? a.trim() : (b == null ? "" : b.trim()); }
 }

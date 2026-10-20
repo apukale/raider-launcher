@@ -7,8 +7,9 @@
 -->
 <resources>
 
-    <string name="weather_latitude" translatable="false">23.0</string>
-    <string name="weather_longitude" translatable="false">82.5</string>
+    <!-- Weather location: left empty in the repo. Set WEATHER_LATITUDE / WEATHER_LONGITUDE / WEATHER_PLACE in launcher/local.properties (gitignored) or weather_* in a theme config.json. -->
+    <string name="weather_latitude" translatable="false"></string>
+    <string name="weather_longitude" translatable="false"></string>
     <string name="weather_place" translatable="false"></string>
 
     <!-- Apps pinned to the dock row at the bottom, in this order. Missing apps are skipped. -->
