@@ -80,6 +80,7 @@
     <string name="cache_clearing_unavailable">Could not clear app caches. Open Storage settings to clear them manually.</string>
     <string name="on">On</string>
     <string name="off">Off</string>
+    <string name="weather_on_home">Weather on Home: %1$s</string>
     <string name="enable">Enable</string>
     <string name="input_key_service_description">Opens the input switcher when the remote\'s Input button is pressed.</string>
     <string name="restart_tv">Restart TV</string>

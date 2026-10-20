@@ -107,6 +107,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView btnWifi;
     private TextView shamsiDate;
     private TextView homeDate;
+    private TextView homeWeather;
+    private TextView homeCalendarLine1, homeCalendarTithi, homeCalendarMoon, homeCalendarRahu;
+    private View homeCalendarDivider, homeCalendarStack;
+    private Config config;
+    private boolean weatherEnabled;
+    private final Runnable weatherRefresh = new Runnable() { public void run() { if (weatherEnabled) { requestWeather(false); handler.postDelayed(this, WeatherClient.REFRESH_MS); } } };
     private boolean homeCalendarOn;
     private final Runnable calendarTransition=()->updateHomeCalendar(true);
     private boolean calendarReceiverRegistered;
@@ -211,7 +217,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         setContentView(R.layout.activity_main);
         density = getResources().getDisplayMetrics().density;
         // config.xml, overlaid by config.json from a pushed theme (see Config and tools/theme.sh).
-        Config cfg = Config.load(this);
+        Config cfg = config = Config.load(this);
         COLUMNS = cfg.columns;
         animations = cfg.animations;
         advancedEffects = cfg.animations && cfg.advancedEffects;
@@ -246,6 +252,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnWifi = findViewById(R.id.btnWifi);
         shamsiDate = findViewById(R.id.shamsiDate);
         homeDate = findViewById(R.id.date);
+        homeWeather = findViewById(R.id.weather);
+        homeCalendarLine1=findViewById(R.id.homeCalendarLine1); homeCalendarTithi=findViewById(R.id.homeCalendarTithi); homeCalendarMoon=findViewById(R.id.homeCalendarMoon); homeCalendarRahu=findViewById(R.id.homeCalendarRahu);
+        homeCalendarDivider=findViewById(R.id.homeCalendarDivider); homeCalendarStack=findViewById(R.id.homeCalendarStack);
         homeDate.setEllipsize(null);
         homeCalendarOn = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE).getBoolean("home_hindu_calendar", true);
         homeDate.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->updateHomeCalendar(false));
@@ -466,6 +475,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         rebuildOnResume = false;
         updateGreeting();
         updateHomeCalendar(true);
+        weatherEnabled=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE).getBoolean("weather_on_home",true);
+        handler.removeCallbacks(weatherRefresh);
+        if(weatherEnabled){WeatherData cached=WeatherClient.cached(this);long age=System.currentTimeMillis()-WeatherClient.fetchedAt(this);if(cached!=null&&age>=0&&age<WeatherClient.FRESH_MS)showWeather(cached);else homeWeather.setVisibility(View.GONE);if(age<0||age>=WeatherClient.REFRESH_MS)requestWeather(false);handler.postDelayed(weatherRefresh,WeatherClient.REFRESH_MS);}
+        else homeWeather.setVisibility(View.GONE);
         if (!calendarReceiverRegistered) {
             IntentFilter f=new IntentFilter();f.addAction(Intent.ACTION_TIME_CHANGED);f.addAction(Intent.ACTION_TIMEZONE_CHANGED);f.addAction(Intent.ACTION_DATE_CHANGED);
             if(Build.VERSION.SDK_INT>=33)registerReceiver(calendarTimeReceiver,f,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(calendarTimeReceiver,f);
@@ -585,11 +598,23 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroName.animate().cancel();
         ambient.animate().cancel();
         handler.removeCallbacks(minuteTick);
+        handler.removeCallbacks(weatherRefresh);
         handler.removeCallbacks(calendarTransition);
         if(calendarReceiverRegistered){try{unregisterReceiver(calendarTimeReceiver);}catch(IllegalArgumentException ignored){}calendarReceiverRegistered=false;}
         // Nothing of ours stays on screen over another app; an undecided prompt simply returns next time.
         if (cardPrompt != null) cardPrompt.dismiss();
         if (openPopup != null) openPopup.dismiss();
+    }
+
+    private void requestWeather(boolean force){
+        if(!weatherEnabled||(!force&&System.currentTimeMillis()-WeatherClient.fetchedAt(this)<WeatherClient.REFRESH_MS))return;
+        WeatherClient.fetch(this,config,data->runOnUiThread(()->{if(!weatherEnabled||isFinishing())return;if(data!=null)showWeather(data);else if(System.currentTimeMillis()-WeatherClient.fetchedAt(this)>=WeatherClient.FRESH_MS)homeWeather.setVisibility(View.GONE);}));
+    }
+    private void showWeather(WeatherData data){
+        Calendar c=Calendar.getInstance();int y=c.get(Calendar.YEAR),m=c.get(Calendar.MONTH)+1,d=c.get(Calendar.DAY_OF_MONTH);
+        long rise=(long)((Panchang.sunriseJd(y,m,d)-2440587.5)*86400000d),set=(long)((Panchang.sunsetJd(y,m,d)-2440587.5)*86400000d);boolean night=System.currentTimeMillis()<rise||System.currentTimeMillis()>set;
+        String label=data.temperature+"\u00B0 \u00B7 "+data.high+"\u00B0/"+data.low+"\u00B0"+(data.precipitation>=40?" \u00B7 "+data.precipitation+"%":"");
+        homeWeather.setText(label);homeWeather.setContentDescription(config.weatherPlace+" weather: "+label);int size=(int)(homeWeather.getTextSize()*1.25f);WeatherIconDrawable icon=new WeatherIconDrawable(WeatherData.iconGroup(data.code),night,0xA6FFFFFF);icon.setBounds(0,0,size,size);homeWeather.setCompoundDrawables(icon,null,null,null);homeWeather.setCompoundDrawablePadding((int)(5*getResources().getDisplayMetrics().density));homeWeather.setVisibility(View.VISIBLE);
     }
 
     @Override
@@ -971,25 +996,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void updateHomeCalendar(boolean rearm) {
         if(homeDate==null)return;
-        Calendar c=Calendar.getInstance();long ms=System.currentTimeMillis();double now=PanchangDisplay.jdNow();
+        Calendar c=Calendar.getInstance(); long ms=System.currentTimeMillis(); double now=PanchangDisplay.jdNow();
         String date=new SimpleDateFormat(getString(R.string.date_format),Locale.getDefault()).format(new Date(ms));
-        if(!homeCalendarOn){handler.removeCallbacks(calendarTransition);homeDate.setText(date);return;}
-        Panchang.Result r=PanchangDisplay.day(c);String monthTithi=r.month+" "+Panchang.currentPaksha(now)+" "+Panchang.currentTithiName(now)+" till "+PanchangDisplay.time(Panchang.tithiEndJd(now));
+        homeDate.setText(date);
+        if(!homeCalendarOn){handler.removeCallbacks(calendarTransition);homeCalendarStack.setVisibility(View.GONE);homeCalendarDivider.setVisibility(View.GONE);return;}
+        homeCalendarStack.setVisibility(View.VISIBLE);homeCalendarDivider.setVisibility(View.VISIBLE);
+        Panchang.Result r=PanchangDisplay.day(c);
+        homeCalendarLine1.setText(r.month+" "+Panchang.currentPaksha(now)+(r.festival.isEmpty()?"":" \u00B7 "+r.festival));
+        homeCalendarTithi.setText(Panchang.currentTithiName(now)+" till "+PanchangDisplay.time(Panchang.tithiEndJd(now)));
+        String moonText="Moon in "+Panchang.moonRashi(now)+" \u00B7 "+Panchang.currentNakshatra(now)+" till "+PanchangDisplay.time(Panchang.nakshatraEndJd(now));
+        homeCalendarMoon.setText(moonText); PanchangDisplay.MoonDrawable icon=new PanchangDisplay.MoonDrawable(now); int size=Math.max(1,(int)(homeCalendarMoon.getTextSize()*1.2f));icon.setBounds(0,0,size,size);homeCalendarMoon.setCompoundDrawables(icon,null,null,null);homeCalendarMoon.setCompoundDrawablePadding((int)(6*getResources().getDisplayMetrics().density));
         double rs=Panchang.rahuStartJd(c.get(Calendar.YEAR),c.get(Calendar.MONTH)+1,c.get(Calendar.DAY_OF_MONTH)),re=Panchang.rahuEndJd(c.get(Calendar.YEAR),c.get(Calendar.MONTH)+1,c.get(Calendar.DAY_OF_MONTH));
-        String moon="Moon in "+Panchang.moonRashi(now)+" till "+PanchangDisplay.time(Panchang.moonRashiEndJd(now));
-        String rahu=now<re?"RAHU KALAM "+PanchangDisplay.time(rs)+" – "+PanchangDisplay.time(re):"";
-        String nak=Panchang.currentNakshatra(now)+" till "+PanchangDisplay.time(Panchang.nakshatraEndJd(now));
-        java.util.ArrayList<String> parts=new java.util.ArrayList<>();parts.add(date);parts.add(monthTithi);if(!r.festival.isEmpty())parts.add(r.festival);parts.add(moon);if(!rahu.isEmpty())parts.add(rahu);parts.add(nak);
-        float width=homeDate.getWidth()>0?homeDate.getWidth():getResources().getDisplayMetrics().widthPixels;Paint paint=homeDate.getPaint();String text=joinCalendar(parts);
-        while(parts.size()>2&&paint.measureText(text)>width){parts.remove(parts.size()-1);text=joinCalendar(parts);}
-        SpannableString styled=new SpannableString(text);int festivalAt=r.festival.isEmpty()?-1:text.indexOf(r.festival,date.length());if(festivalAt>=0)styled.setSpan(new android.text.style.ForegroundColorSpan(0xFFFFD28A),festivalAt,festivalAt+r.festival.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        int moonAt=text.indexOf("Moon in ");if(moonAt>=0){PanchangDisplay.MoonDrawable icon=new PanchangDisplay.MoonDrawable(now);int size=Math.max(1,(int)homeDate.getTextSize());icon.setBounds(0,0,size,size);styled.setSpan(new ImageSpan(icon,ImageSpan.ALIGN_BOTTOM),moonAt,moonAt+1,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);}
-        int rahuAt=text.indexOf("RAHU KALAM");if(rahuAt>=0&&now>=rs)styled.setSpan(new android.text.style.ForegroundColorSpan(0xCCD9B273),rahuAt,text.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        homeDate.setText(styled);
+        if(now<re){String start=PanchangDisplay.time(rs),end=PanchangDisplay.time(re);int sp=start.lastIndexOf(' '),ep=end.lastIndexOf(' ');if(sp>=0&&ep>=0&&start.substring(sp+1).equals(end.substring(ep+1)))start=start.substring(0,sp);homeCalendarRahu.setText("Rahu Kalam "+start+"\u2013"+end);homeCalendarRahu.setVisibility(View.VISIBLE);homeCalendarRahu.setTextColor(now>=rs?0xCCD9B273:0xE6FFFFFF);}else homeCalendarRahu.setVisibility(View.GONE);
         if(rearm){handler.removeCallbacks(calendarTransition);long delay=PanchangDisplay.transitionDelayMs(c,now);handler.postDelayed(calendarTransition,delay);}
     }
-    private static String joinCalendar(List<String> parts){StringBuilder b=new StringBuilder();for(String p:parts){if(b.length()>0)b.append("  ·  ");b.append(p);}return b.toString();}
-
     /** Shows the Wi-Fi network name on the button when we can read it, otherwise the connection type. */
     private void updateWifiLabel() {
         String text = getString(R.string.wifi);

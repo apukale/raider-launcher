@@ -30,6 +30,7 @@
             android:textSize="20sp" />
 
         <TextView android:id="@+id/moduleCardsChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" android:text="@string/module_cards_settings" />
+        <TextView android:id="@+id/weatherChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" />
 
         <LinearLayout
             android:layout_width="match_parent"

@@ -59,6 +59,8 @@ final class Config {
     final int backgroundColor;
     /** Time-of-day backdrop, 0 to 100 (config.xml, sky_intensity); 0 keeps the plain background. */
     final int skyIntensity;
+    final double weatherLatitude, weatherLongitude;
+    final String weatherPlace;
     /** Full-screen picture behind the launcher, or null for the plain colour. */
     final File wallpaper;
     /** Whether the overlay file was present and parsed. */
@@ -70,6 +72,7 @@ final class Config {
                    int columns, int rowsBelowDock, boolean animations, boolean advancedEffects,
                    boolean shamsiDate, boolean showGreeting, boolean moduleCards, boolean reducedMotion, String vpnApp,
                    boolean showHomeSettingsShortcut, int backgroundColor, int skyIntensity,
+                   double weatherLatitude, double weatherLongitude, String weatherPlace,
                    File wallpaper, boolean overlayApplied) {
         this.dockApps = Collections.unmodifiableList(dockApps);
         this.hiddenApps = Collections.unmodifiableList(hiddenApps);
@@ -92,6 +95,9 @@ final class Config {
         this.showHomeSettingsShortcut = showHomeSettingsShortcut;
         this.backgroundColor = backgroundColor;
         this.skyIntensity = skyIntensity;
+        this.weatherLatitude = weatherLatitude;
+        this.weatherLongitude = weatherLongitude;
+        this.weatherPlace = weatherPlace;
         this.wallpaper = wallpaper;
         this.overlayApplied = overlayApplied;
     }
@@ -124,6 +130,9 @@ final class Config {
         boolean homeSettings = res.getBoolean(R.bool.show_home_settings_shortcut);
         int background = 0xFF000000;
         int skyIntensity = res.getInteger(R.integer.sky_intensity);
+        double weatherLatitude = decimal(res.getString(R.string.weather_latitude), 23.0);
+        double weatherLongitude = decimal(res.getString(R.string.weather_longitude), 82.5);
+        String weatherPlace = res.getString(R.string.weather_place);
         boolean applied = false;
 
         File dir = dir(ctx);
@@ -152,6 +161,9 @@ final class Config {
             homeSettings = bool(json, "show_home_settings_shortcut", homeSettings);
             background = color(json, "background_color", background);
             skyIntensity = integer(json, "sky_intensity", skyIntensity, 0, 100);
+            weatherLatitude = decimal(json, "weather_latitude", weatherLatitude, -90, 90);
+            weatherLongitude = decimal(json, "weather_longitude", weatherLongitude, -180, 180);
+            weatherPlace = string(json, "weather_place", weatherPlace);
         }
         // A theme push or reset invalidates choices made on the TV. On first use, remember the
         // current theme without clearing choices from an older launcher version.
@@ -169,7 +181,8 @@ final class Config {
         return new Config(dock, hidden, tileOverrides, logoTileApps, liveTv, liveTvAction, panelService, panelAction, inputAction,
                 Math.max(1, columns), Math.max(0, rowsBelow), animations, advancedEffects,
                 shamsi, showGreeting, moduleCards, reducedMotion, vpn, homeSettings, background,
-                Math.max(0, Math.min(100, skyIntensity)), wallpaper, applied);
+                Math.max(0, Math.min(100, skyIntensity)), weatherLatitude, weatherLongitude,
+                weatherPlace, wallpaper, applied);
     }
 
     private static void syncThemeChoices(SharedPreferences choices, File dir, File config) {
@@ -251,6 +264,12 @@ final class Config {
         } catch (IllegalArgumentException e) {
             return fallback;
         }
+    }
+
+    private static double decimal(String value, double fallback) { try { return Double.parseDouble(value.trim()); } catch (Exception ignored) { return fallback; } }
+    private static double decimal(JSONObject o, String key, double fallback, double min, double max) {
+        Object v=o.opt(key); if (!(v instanceof Number)) return fallback;
+        double d=((Number)v).doubleValue(); return Double.isFinite(d)&&d>=min&&d<=max?d:fallback;
     }
 
     private static List<String> stringList(JSONObject o, String key, List<String> fallback) {
