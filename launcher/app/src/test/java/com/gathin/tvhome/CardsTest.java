@@ -33,7 +33,7 @@ public class CardsTest {
 
     // ---- labels ----------------------------------------------------------------------------------
 
-    @Test
+    @Test(timeout = 5000)
     public void labelAcceptsTheSpecAlphabet() {
         assertNull(Cards.checkLabel("Retro"));
         assertNull(Cards.checkLabel("NES & SNES games"));
@@ -41,7 +41,7 @@ public class CardsTest {
         assertNull(Cards.checkLabel("123456789012345678901234"));   // 24 characters
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void labelRejectsLengthAndCharacters() {
         assertNotNull(Cards.checkLabel(null));
         assertNotNull(Cards.checkLabel(""));
@@ -59,7 +59,7 @@ public class CardsTest {
         assertNotNull(Cards.checkLabel("?2130968576"));                 // a compiled ?attr reference
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void captionIsOptionalAndBounded() {
         assertNull(Cards.checkCaption(null));
         assertNull(Cards.checkCaption(""));
@@ -72,7 +72,7 @@ public class CardsTest {
         assertNotNull(Cards.checkCaption("@2131820545"));
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void foldDropsCaseSpacesAndPunctuation() {
         assertEquals("retro", Cards.fold("Retro"));
         assertEquals("livetv", Cards.fold("Live TV"));
@@ -82,7 +82,7 @@ public class CardsTest {
         assertEquals("netflx", Cards.fold("Netflіx"));   // non ASCII letters never match anything
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void reservedWordsAreSubstringsOrWholeNames() {
         Set<String> ui = Cards.englishUiNames();
         assertTrue(Cards.isReserved(Cards.fold("Verified Retro"), ui));
@@ -103,14 +103,14 @@ public class CardsTest {
         assertFalse(Cards.isReserved(Cards.fold("Retro Settings Panel"), ui));   // equality, not substring
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void translatedUiNamesCountToo() {
         Set<String> ui = new HashSet<>(Arrays.asList(Cards.fold("Einstellungen"), Cards.fold("Eingänge")));
         assertTrue(Cards.isReserved(Cards.fold("Einstellungen"), ui));
         assertFalse(Cards.isReserved(Cards.fold("Settings panel"), ui));
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void labelTakenByAnotherPackageOnly() {
         Map<String, Set<String>> names = new HashMap<>();
         names.put("retro", new HashSet<>(Arrays.asList("io.github.udhaykumarbala.retro")));
@@ -123,7 +123,7 @@ public class CardsTest {
 
     // ---- accent and digests ----------------------------------------------------------------------
 
-    @Test
+    @Test(timeout = 5000)
     public void accentAcceptsWrittenAndCompiledForms() {
         assertEquals(0xFFE8A33D, Cards.parseAccent("#E8A33D"));
         assertEquals(0xFFE8A33D, Cards.parseAccent("#e8a33d"));
@@ -138,7 +138,7 @@ public class CardsTest {
         assertEquals(0, Cards.parseAccent("#ffffffffffffffffffffff"));
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void digestFormatting() {
         assertEquals("00ff10", Cards.hex(new byte[]{0, (byte) 0xff, 0x10}));
         assertEquals("7f3a 91c0 b2e4", Cards.shortDigest(DIGEST_A));
@@ -150,7 +150,7 @@ public class CardsTest {
 
     // ---- parser ----------------------------------------------------------------------------------
 
-    @Test
+    @Test(timeout = 5000)
     public void parsesTheReferenceCard() throws Exception {
         Cards.Declared d = Cards.parse(xml(doc().tag("card", attrs("spec", "1", "label", "Retro",
                 "caption", "NES games", "accent", "#E8A33D")).end()));
@@ -160,7 +160,7 @@ public class CardsTest {
         assertEquals(0xFFE8A33D, d.accent);
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void parsesTheCompiledForms() throws Exception {
         // aapt2 stores spec as an integer and accent as a colour; the parser hands back "1" and "#ffe8a33d".
         Cards.Declared d = Cards.parse(xml(doc().tag("card", attrs("spec", "1", "label", "Retro",
@@ -170,7 +170,7 @@ public class CardsTest {
         assertEquals(0xFFE8A33D, d.accent);
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void parserIgnoresChildrenAndUnknownAttributes() throws Exception {
         Cards.Declared d = Cards.parse(xml(doc().tag("card", attrs("spec", "1", "label", "Retro", "note", "x"))
                 .tag("extra", attrs("value", "x")).close().text("hello").end()));
@@ -178,7 +178,7 @@ public class CardsTest {
         assertEquals(0, d.accent);
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void parserRejectsWrongRootMissingSpecAndReferences() {
         rejects(doc().tag("module", attrs("spec", "1", "label", "Retro")).end(), "root element");
         rejects(doc().tag("card", attrs("label", "Retro")).end(), "spec");
@@ -190,33 +190,33 @@ public class CardsTest {
         rejects(doc().end(), "no <card>");
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void parserRejectsTwoRootElements() {
         rejects(doc().tag("card", attrs("spec", "1", "label", "Retro")).close()
                 .tag("card", attrs("spec", "1", "label", "Other")).end(), "more than one root");
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void unsupportedSpecIsParsedThenRejectedByTheCaller() throws Exception {
         Cards.Declared d = Cards.parse(xml(doc().tag("card", attrs("spec", "2", "label", "Retro")).end()));
         assertEquals(2, d.spec);
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void parserRejectsDeepNesting() {
         Doc d = doc().tag("card", attrs("spec", "1", "label", "Retro"));
         for (int i = 0; i < 4; i++) d.tag("a", attrs());
         rejects(d.end(), "deeper");
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void parserRejectsTooManyEvents() {
         Doc d = doc().tag("card", attrs("spec", "1", "label", "Retro"));
         for (int i = 0; i < 40; i++) d.tag("a", attrs()).close();
         rejects(d.end(), "events");
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void parserRejectsLongValuesBeforeLookingAtThem() {
         char[] big = new char[40 * 1024];
         Arrays.fill(big, 'A');
@@ -225,7 +225,7 @@ public class CardsTest {
         rejects(doc().tag("card", attrs("spec", "1234", "label", "Retro")).end(), "spec");
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void parserRejectsTooManyAttributes() {
         List<String> kv = new ArrayList<>(Arrays.asList("spec", "1", "label", "Retro"));
         for (int i = 0; i < 20; i++) kv.addAll(Arrays.asList("x" + i, "y"));
@@ -245,7 +245,7 @@ public class CardsTest {
 
     // ---- app label, clashes, ordering ------------------------------------------------------------
 
-    @Test
+    @Test(timeout = 5000)
     public void cleanLabelStripsFormattingAndBounds() {
         assertEquals("Netflix", Cards.cleanLabel("Netflix\u202E", "io.example"));
         assertEquals("a b", Cards.cleanLabel("a\n\nb", "io.example"));
@@ -278,7 +278,7 @@ public class CardsTest {
         return m;
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void resolveClashesKeepsTheOwnersDecision() {
         Cards.Card decided = card("io.example.retro", "Games", Cards.State.SHOWN);
         Cards.Card newcomer = card("io.example.late", "games", Cards.State.NEW);
@@ -290,7 +290,7 @@ public class CardsTest {
         assertEquals(Arrays.asList(hidden), Cards.resolveClashes(Arrays.asList(hidden, newcomer), recordsFor("io.example.retro", 100)));
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void resolveClashesOldestDecisionWins() {
         Cards.Card older = card("io.example.b", "Games", Cards.State.SHOWN);
         Cards.Card newer = card("io.example.a", "Games", Cards.State.SHOWN);
@@ -301,7 +301,7 @@ public class CardsTest {
         assertEquals(Arrays.asList(newer), kept);
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void resolveClashesDropsTwoPendingAndLeavesTheRest() {
         Cards.Card p1 = card("io.example.a", "Games", Cards.State.NEW);
         Cards.Card p2 = card("io.example.b", "GAMES", Cards.State.RESIGNED);
@@ -311,7 +311,7 @@ public class CardsTest {
         assertTrue(Cards.resolveClashes(new ArrayList<>(), new TreeMap<>()).isEmpty());
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void shownFiltersOrdersAndCaps() {
         List<Cards.Card> all = new ArrayList<>();
         all.add(card("io.example.hidden", "Aardvark", Cards.State.HIDDEN));
@@ -328,7 +328,7 @@ public class CardsTest {
         for (Cards.Card c : shown) assertEquals(Cards.State.SHOWN, c.state);
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void firstPendingIsByPackage() {
         assertNull(Cards.firstPending(new ArrayList<>()));
         List<Cards.Card> all = Arrays.asList(
@@ -342,7 +342,7 @@ public class CardsTest {
 
     // ---- character checks ------------------------------------------------------------------------
 
-    @Test
+    @Test(timeout = 5000)
     public void packageNames() {
         assertTrue(Cards.isPackageName("io.example.a"));
         assertTrue(Cards.isPackageName("com.netflix.ninja"));
@@ -362,7 +362,7 @@ public class CardsTest {
         assertFalse(Cards.isPackageName("io." + new String(big)));
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void characterClasses() {
         assertTrue(Cards.isText(""));
         assertTrue(Cards.isText("Kid's TV+ 2.0-beta & more"));
@@ -379,7 +379,7 @@ public class CardsTest {
         assertFalse(Cards.isDigest(DIGEST_A + "0"));
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void decodeRecordIsExact() {
         String line = "{\"package\":\"io.example.a\",\"signer_sha256\":\"" + DIGEST_A
                 + "\",\"label\":\"retro\",\"decision\":\"show\",\"first_seen\":1,\"decided_at\":2}";
@@ -404,7 +404,7 @@ public class CardsTest {
 
     // ---- decision file (cards.json) --------------------------------------------------------------
 
-    @Test
+    @Test(timeout = 5000)
     public void storeRoundTrip() {
         Map<String, Cards.Record> in = new TreeMap<>();
         in.put("io.github.udhaykumarbala.retro", new Cards.Record("io.github.udhaykumarbala.retro", DIGEST_B, "retro", "show", 1700000000000L, 1700000001000L));
@@ -424,7 +424,7 @@ public class CardsTest {
         assertEquals(1700000003000L, out.get("io.example.spoof").decidedAt);
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void emptyStoreRoundTrip() {
         String text = Cards.encode(new TreeMap<>());
         assertEquals("{\"version\":2,\"records\":[\n]}\n", text);
@@ -433,7 +433,7 @@ public class CardsTest {
         assertTrue(out.isEmpty());
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void decodeRejectsAnythingElse() {
         String good = Cards.encode(one("io.example.a", DIGEST_A, "show"));
         assertNull(Cards.decode(null));
@@ -459,7 +459,7 @@ public class CardsTest {
         assertNull(Cards.decode(pair.replace("io.example.b", "io.example.a")));
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void decodeCapsSizeAndCount() {
         Map<String, Cards.Record> many = new TreeMap<>();
         for (int i = 0; i < Cards.MAX_RECORDS + 1; i++) {
@@ -483,7 +483,7 @@ public class CardsTest {
         assertNull(Cards.decode(new String(huge)));
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void encodeRefusesAnInvalidRecord() {
         try {
             Cards.encode(one("io.example.a", "nothex", "show"));
@@ -497,7 +497,7 @@ public class CardsTest {
         }
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void quarantineMovesTheBadFileAside() throws Exception {
         File dir = File.createTempFile("cards", "dir");
         assertTrue(dir.delete() && dir.mkdir());
@@ -518,7 +518,7 @@ public class CardsTest {
         assertTrue(bad.delete() && dir.delete());
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void captionCannotClaimEndorsement() {
         assertNull(Cards.checkCaption("NES games"));
         assertNotNull(Cards.checkCaption("Official Netflix app"));
@@ -526,7 +526,7 @@ public class CardsTest {
         assertNotNull(Cards.checkCaption("ver-ified"));   // folding removes the hyphen
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void relabelledCardIsPendingAgain() {
         // A card the owner decided on, whose label then changed, is treated like a new card: it does
         // not win a name clash, and the clash rule drops both undecided cards.
@@ -537,7 +537,7 @@ public class CardsTest {
         assertEquals(renamed, Cards.firstPending(Arrays.asList(card("io.example.a", "A", Cards.State.SHOWN), renamed)));
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void isFoldedIsStrict() {
         assertTrue(Cards.isFolded("retro"));
         assertTrue(Cards.isFolded("nes2"));

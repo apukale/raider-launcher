@@ -2,6 +2,8 @@
 
 Hold OK on an app tile and choose **Use app logo** or **Use banner** to switch its artwork. The choice is saved per app on the TV; `app.netmirror.newtv` defaults to its launcher logo.
 
+The screensaver can use locally stored photos from Bing's daily photo feed, Picsum, or both. Bing photos refresh daily and Picsum photos refresh weekly over unmetered Wi-Fi; downloads run sequentially in small batches (up to 8 Bing or 10 Picsum images per job). Choose the source and a combined photo storage limit of 100 MB, 200 MB (default), or 500 MB in Launcher Settings > Screensaver. Both sources share the selected limit. When space is needed, the oldest Picsum photos are removed first, followed by Bing photos older than the 8 most recent Bing days. Downloads stop if the data partition has less than 2 GB free. Photos are used only by the screensaver, with captions shown from each source.
+
 Version 2.5 adds an on-TV **Clear app cache** action. For broader cache access on a build that allows it, grant:
 
 ```sh

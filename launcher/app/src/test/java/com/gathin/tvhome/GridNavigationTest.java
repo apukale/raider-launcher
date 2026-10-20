@@ -5,21 +5,21 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class GridNavigationTest {
-    @Test public void hebrewDockStartsOnTheRightAndStopsAtTheLeft() {
+    @Test(timeout = 5000) public void hebrewDockStartsOnTheRightAndStopsAtTheLeft() {
         assertTrue(GridNavigation.atHorizontalEdge(0, 11, 4, true, false));
         assertFalse(GridNavigation.atHorizontalEdge(0, 11, 4, true, true));
         assertTrue(GridNavigation.atHorizontalEdge(3, 11, 4, true, true));
         assertFalse(GridNavigation.atHorizontalEdge(3, 11, 4, true, false));
     }
 
-    @Test public void incompleteHebrewLastRowDoesNotWrapIntoEmptySpace() {
+    @Test(timeout = 5000) public void incompleteHebrewLastRowDoesNotWrapIntoEmptySpace() {
         assertTrue(GridNavigation.atHorizontalEdge(8, 11, 4, true, false));
         assertTrue(GridNavigation.atHorizontalEdge(10, 11, 4, true, true));
         assertFalse(GridNavigation.atHorizontalEdge(9, 11, 4, true, true));
         assertFalse(GridNavigation.atHorizontalEdge(9, 11, 4, true, false));
     }
 
-    @Test public void originalLeftToRightBoundariesArePreserved() {
+    @Test(timeout = 5000) public void originalLeftToRightBoundariesArePreserved() {
         assertTrue(GridNavigation.atHorizontalEdge(0, 11, 4, false, true));
         assertTrue(GridNavigation.atHorizontalEdge(3, 11, 4, false, false));
         assertTrue(GridNavigation.atHorizontalEdge(10, 11, 4, false, false));
@@ -27,7 +27,7 @@ public class GridNavigationTest {
         assertFalse(GridNavigation.atHorizontalEdge(1, 11, 4, false, false));
     }
 
-    @Test public void singleColumnHasBothHorizontalEdges() {
+    @Test(timeout = 5000) public void singleColumnHasBothHorizontalEdges() {
         assertTrue(GridNavigation.atHorizontalEdge(1, 3, 1, true, true));
         assertTrue(GridNavigation.atHorizontalEdge(1, 3, 1, true, false));
         assertTrue(GridNavigation.atHorizontalEdge(1, 3, 1, false, true));

@@ -39,6 +39,7 @@ import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.TextPaint;
 import android.text.TextUtils;
+import android.text.style.ImageSpan;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -62,6 +63,8 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -103,6 +106,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private View btnInputs;
     private TextView btnWifi;
     private TextView shamsiDate;
+    private TextView homeDate;
+    private boolean homeCalendarOn;
+    private final Runnable calendarTransition=()->updateHomeCalendar(true);
+    private boolean calendarReceiverRegistered;
+    private final BroadcastReceiver calendarTimeReceiver=new BroadcastReceiver(){@Override public void onReceive(Context c,Intent i){updateHomeCalendar(true);}};
     private boolean shamsi;
     /** Optional time-of-day backdrop (config.xml, sky_intensity); 0 keeps it hidden. */
     private SkyView sky;
@@ -199,6 +207,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        PhotoStore.schedule(this, !PhotoStore.hasPhotos(this));
         setContentView(R.layout.activity_main);
         density = getResources().getDisplayMetrics().density;
         // config.xml, overlaid by config.json from a pushed theme (see Config and tools/theme.sh).
@@ -225,8 +234,22 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ambient.forceHasOverlappingRendering(false);
         heroName = findViewById(R.id.heroName);
         greeting = findViewById(R.id.greeting);
+        if (!cfg.showGreeting) {
+            greeting.setVisibility(View.GONE);
+            View clock = findViewById(R.id.clock);
+            ViewGroup.LayoutParams clockLp = clock.getLayoutParams();
+            if (clockLp instanceof ViewGroup.MarginLayoutParams) {
+                ((ViewGroup.MarginLayoutParams) clockLp).topMargin = 0;
+                clock.setLayoutParams(clockLp);
+            }
+        }
         btnWifi = findViewById(R.id.btnWifi);
         shamsiDate = findViewById(R.id.shamsiDate);
+        homeDate = findViewById(R.id.date);
+        homeDate.setEllipsize(null);
+        homeCalendarOn = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE).getBoolean("home_hindu_calendar", true);
+        homeDate.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->updateHomeCalendar(false));
+        homeDate.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener(){public void onViewAttachedToWindow(View v){updateHomeCalendar(true);}public void onViewDetachedFromWindow(View v){handler.removeCallbacks(calendarTransition);}});
         shamsi = cfg.shamsiDate;
         if (shamsi) {
             shamsiDate.setVisibility(View.VISIBLE);
@@ -433,6 +456,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onResume() {
         super.onResume();
+        homeCalendarOn=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE).getBoolean("home_hindu_calendar",true);
         if (wallpaperView == null && wallpaperFile != null) showWallpaper(wallpaperFile);
         promptsPaused = false;
         if (rebuildOnResume) {
@@ -441,6 +465,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         rebuildOnResume = false;
         updateGreeting();
+        updateHomeCalendar(true);
+        if (!calendarReceiverRegistered) {
+            IntentFilter f=new IntentFilter();f.addAction(Intent.ACTION_TIME_CHANGED);f.addAction(Intent.ACTION_TIMEZONE_CHANGED);f.addAction(Intent.ACTION_DATE_CHANGED);
+            if(Build.VERSION.SDK_INT>=33)registerReceiver(calendarTimeReceiver,f,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(calendarTimeReceiver,f);
+            calendarReceiverRegistered=true;
+        }
         updateWifiLabel();
         updateInputsButton();
         sky.update();
@@ -472,7 +502,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == LAUNCHER_SETTINGS_REQUEST && resultCode == RESULT_OK) recreate();
+        if (requestCode == LAUNCHER_SETTINGS_REQUEST && resultCode == RESULT_OK) {
+            if (data != null && data.getBooleanExtra("open_module_cards", false)) {
+                reloadTiles();
+                root.post(this::showModuleCards);
+            } else recreate();
+        }
     }
 
     /** Rebuilds the tiles (and the module cards), then puts focus back where it was. */
@@ -550,6 +585,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroName.animate().cancel();
         ambient.animate().cancel();
         handler.removeCallbacks(minuteTick);
+        handler.removeCallbacks(calendarTransition);
+        if(calendarReceiverRegistered){try{unregisterReceiver(calendarTimeReceiver);}catch(IllegalArgumentException ignored){}calendarReceiverRegistered=false;}
         // Nothing of ours stays on screen over another app; an undecided prompt simply returns next time.
         if (cardPrompt != null) cardPrompt.dismiss();
         if (openPopup != null) openPopup.dismiss();
@@ -932,6 +969,27 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (shamsi) shamsiDate.setText(Shamsi.today());
     }
 
+    private void updateHomeCalendar(boolean rearm) {
+        if(homeDate==null)return;
+        Calendar c=Calendar.getInstance();long ms=System.currentTimeMillis();double now=PanchangDisplay.jdNow();
+        String date=new SimpleDateFormat(getString(R.string.date_format),Locale.getDefault()).format(new Date(ms));
+        if(!homeCalendarOn){handler.removeCallbacks(calendarTransition);homeDate.setText(date);return;}
+        Panchang.Result r=PanchangDisplay.day(c);String monthTithi=r.month+" "+Panchang.currentPaksha(now)+" "+Panchang.currentTithiName(now)+" till "+PanchangDisplay.time(Panchang.tithiEndJd(now));
+        double rs=Panchang.rahuStartJd(c.get(Calendar.YEAR),c.get(Calendar.MONTH)+1,c.get(Calendar.DAY_OF_MONTH)),re=Panchang.rahuEndJd(c.get(Calendar.YEAR),c.get(Calendar.MONTH)+1,c.get(Calendar.DAY_OF_MONTH));
+        String moon="Moon in "+Panchang.moonRashi(now)+" till "+PanchangDisplay.time(Panchang.moonRashiEndJd(now));
+        String rahu=now<re?"RAHU KALAM "+PanchangDisplay.time(rs)+" – "+PanchangDisplay.time(re):"";
+        String nak=Panchang.currentNakshatra(now)+" till "+PanchangDisplay.time(Panchang.nakshatraEndJd(now));
+        java.util.ArrayList<String> parts=new java.util.ArrayList<>();parts.add(date);parts.add(monthTithi);if(!r.festival.isEmpty())parts.add(r.festival);parts.add(moon);if(!rahu.isEmpty())parts.add(rahu);parts.add(nak);
+        float width=homeDate.getWidth()>0?homeDate.getWidth():getResources().getDisplayMetrics().widthPixels;Paint paint=homeDate.getPaint();String text=joinCalendar(parts);
+        while(parts.size()>2&&paint.measureText(text)>width){parts.remove(parts.size()-1);text=joinCalendar(parts);}
+        SpannableString styled=new SpannableString(text);int festivalAt=r.festival.isEmpty()?-1:text.indexOf(r.festival,date.length());if(festivalAt>=0)styled.setSpan(new android.text.style.ForegroundColorSpan(0xFFFFD28A),festivalAt,festivalAt+r.festival.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        int moonAt=text.indexOf("Moon in ");if(moonAt>=0){PanchangDisplay.MoonDrawable icon=new PanchangDisplay.MoonDrawable(now);int size=Math.max(1,(int)homeDate.getTextSize());icon.setBounds(0,0,size,size);styled.setSpan(new ImageSpan(icon,ImageSpan.ALIGN_BOTTOM),moonAt,moonAt+1,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);}
+        int rahuAt=text.indexOf("RAHU KALAM");if(rahuAt>=0&&now>=rs)styled.setSpan(new android.text.style.ForegroundColorSpan(0xCCD9B273),rahuAt,text.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        homeDate.setText(styled);
+        if(rearm){handler.removeCallbacks(calendarTransition);long delay=PanchangDisplay.transitionDelayMs(c,now);handler.postDelayed(calendarTransition,delay);}
+    }
+    private static String joinCalendar(List<String> parts){StringBuilder b=new StringBuilder();for(String p:parts){if(b.length()>0)b.append("  ·  ");b.append(p);}return b.toString();}
+
     /** Shows the Wi-Fi network name on the button when we can read it, otherwise the connection type. */
     private void updateWifiLabel() {
         String text = getString(R.string.wifi);
@@ -1230,13 +1288,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         PopupWindow popup = glassPopup(panel, (int) (200 * density));
         addSettingsMenuRow(rows, popup, R.string.launcher_settings, () -> startActivityForResult(
                 new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST));
-        if (moduleCards) addSettingsMenuRow(rows, popup, R.string.module_cards, this::showModuleCards);
+        addSettingsMenuRow(rows, popup, R.string.start_screensaver_now, this::startScreensaver);
         addSettingsMenuRow(rows, popup, R.string.restart_tv, this::confirmRestartTv);
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max((int) (200 * density), panel.getMeasuredWidth()));
         dropIn(popup, panel, anchor, Gravity.END);
         rows.getChildAt(0).requestFocus();
     }
+
+    private void startScreensaver() { startActivity(new Intent(this, ScreensaverActivity.class)); }
 
     private void confirmRestartTv() {
         new android.app.AlertDialog.Builder(this)

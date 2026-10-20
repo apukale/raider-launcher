@@ -190,7 +190,9 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             String label = Cards.cleanLabel(String.valueOf(ri.loadLabel(pm)), pkg);
             boolean logo = useLogo(pkg);
             Drawable banner = logo ? null : loadBanner(pm, ri);
-            Drawable icon = ri.loadIcon(pm);
+            boolean artworkAsLogo = !logo && !explicitBanner(pkg) && isNonBannerArtwork(banner);
+            if (artworkAsLogo) logo = true;
+            Drawable icon = artworkAsLogo ? banner : ri.loadIcon(pm);
             TileOverride override = tileOverrides.get(pkg);
             if (override != null) {
                 try {
@@ -270,6 +272,18 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         android.content.SharedPreferences p = ctx.getSharedPreferences("app_layout", Context.MODE_PRIVATE);
         if (p.getStringSet("banner_tiles", Collections.emptySet()).contains(pkg)) return false;
         return p.getStringSet("logo_tiles", Collections.emptySet()).contains(pkg) || configuredLogo.contains(pkg);
+    }
+
+    private boolean explicitBanner(String pkg) {
+        return ctx.getSharedPreferences("app_layout", Context.MODE_PRIVATE)
+                .getStringSet("banner_tiles", Collections.emptySet()).contains(pkg);
+    }
+
+    private static boolean isNonBannerArtwork(Drawable banner) {
+        if (banner instanceof AdaptiveIconDrawable) return true;
+        if (banner == null) return false;
+        int width = banner.getIntrinsicWidth(), height = banner.getIntrinsicHeight();
+        return width > 0 && height > 0 && (float) width / height < 1.5f;
     }
 
     private Drawable compact(Drawable source, int width, int height) {

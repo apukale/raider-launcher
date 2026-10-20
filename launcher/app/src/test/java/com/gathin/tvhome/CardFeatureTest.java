@@ -29,14 +29,14 @@ public class CardFeatureTest {
         CardFeature.reset();
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void aWorkingStepReturnsItsValue() {
         assertEquals("ok", CardFeature.run(() -> "ok", "fallback"));
         assertTrue(CardFeature.working());
         assertTrue(reported.isEmpty());
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void anExceptionGivesTheFallbackAndSwitchesCardsOff() {
         List<String> none = Collections.emptyList();
         List<String> tiles = CardFeature.run(() -> {
@@ -50,7 +50,7 @@ public class CardFeatureTest {
         assertEquals(1, reported.size());
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void aClassThatFailsToInitialiseIsCaught() {
         assertEquals("fallback", CardFeature.run(() -> {
             throw new ExceptionInInitializerError(new RuntimeException("regex rejected by this runtime"));
@@ -64,7 +64,7 @@ public class CardFeatureTest {
         assertEquals(2, reported.size());
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void outOfMemoryIsNotSwallowed() {
         try {
             CardFeature.run(() -> {
@@ -76,7 +76,7 @@ public class CardFeatureTest {
         assertTrue(CardFeature.working());
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void aFailingReporterDoesNotMatter() {
         CardFeature.reporter = t -> {
             throw new RuntimeException("log unavailable");

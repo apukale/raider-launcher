@@ -15,6 +15,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Process;
+import android.os.Build;
 import android.os.StatFs;
 import android.os.storage.StorageManager;
 import android.provider.Settings.Global;
@@ -22,6 +23,7 @@ import android.provider.Settings;
 import android.text.InputType;
 import android.text.format.Formatter;
 import android.view.WindowManager;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -60,6 +62,8 @@ public final class LauncherSettingsActivity extends Activity {
     private int columns;
     private boolean animations;
     private boolean advancedEffects;
+    private TextView screensaverStyleChoice, photoSourceChoice, photoStorageChoice, photoIntervalChoice, calendarChoice, homeCalendarChoice, refreshPhotosChoice, startAfterChoice;
+    private final Runnable photoStatusPoll = new Runnable() { public void run() { updatePhotoSummary(); mainHandler.postDelayed(this, 2500); } };
 
     @Override
     protected void onCreate(Bundle state) {
@@ -138,6 +142,27 @@ public final class LauncherSettingsActivity extends Activity {
                             setResult(RESULT_OK);
                         }).setNegativeButton(android.R.string.cancel, null).show());
         findViewById(R.id.unhideAppsChoice).setOnClickListener(v -> showHiddenApps());
+        TextView moduleCards = findViewById(R.id.moduleCardsChoice);
+        if (!config.moduleCards) moduleCards.setVisibility(View.GONE);
+        moduleCards.setOnClickListener(v -> { setResult(RESULT_OK, new Intent().putExtra("open_module_cards", true)); finish(); });
+        screensaverStyleChoice=findViewById(R.id.screensaverStyleChoice);
+        screensaverStyleChoice.setOnClickListener(v -> chooseScreensaverStyle());
+        photoSourceChoice=findViewById(R.id.photoSourceChoice);
+        photoSourceChoice.setOnClickListener(v -> choosePhotoSource());
+        photoStorageChoice=findViewById(R.id.photoStorageChoice);
+        photoStorageChoice.setOnClickListener(v -> choosePhotoStorage());
+        photoIntervalChoice=findViewById(R.id.photoIntervalChoice);
+        photoIntervalChoice.setOnClickListener(v -> choosePhotoInterval());
+        calendarChoice=findViewById(R.id.calendarChoice);
+        calendarChoice.setOnClickListener(v -> { boolean on=choices.getBoolean("dream_calendar",true);choices.edit().putBoolean("dream_calendar",!on).apply();refresh(); });
+        homeCalendarChoice=findViewById(R.id.homeCalendarChoice);
+        homeCalendarChoice.setOnClickListener(v -> { boolean on=choices.getBoolean("home_hindu_calendar",true);choices.edit().putBoolean("home_hindu_calendar",!on).apply();refresh(); });
+        refreshPhotosChoice=findViewById(R.id.refreshPhotosChoice);
+        refreshPhotosChoice.setOnClickListener(v -> { PhotoStore.schedule(this,true); Toast.makeText(this,R.string.photo_refresh_scheduled,Toast.LENGTH_SHORT).show();updatePhotoSummary();mainHandler.postDelayed(photoStatusPoll,2500); });
+        startAfterChoice=findViewById(R.id.startAfterChoice);
+        if (Build.VERSION.SDK_INT < 23 || !Settings.System.canWrite(this)) startAfterChoice.setVisibility(View.GONE);
+        else startAfterChoice.setOnClickListener(v -> chooseStartAfter());
+        findViewById(R.id.startScreensaverChoice).setOnClickListener(v -> startActivity(new Intent(this,ScreensaverActivity.class)));
         refresh();
         columnChoices[Math.max(0, Math.min(columns - 4, 3))].requestFocus();
     }
@@ -146,7 +171,20 @@ public final class LauncherSettingsActivity extends Activity {
     protected void onResume() {
         super.onResume();
         updateStorageSummary();
+        updatePhotoSummary();
+        updateScreensaverRows();
     }
+
+    @Override protected void onPause(){mainHandler.removeCallbacks(photoStatusPoll);super.onPause();}
+
+    private void refreshScreensaverLabels(){updateScreensaverRows();}
+    private void updateScreensaverRows(){if(screensaverStyleChoice==null)return;boolean photos=choices.getBoolean("dream_photos",false);screensaverStyleChoice.setText(getString(R.string.screensaver_style,getString(photos?R.string.screensaver_photos:R.string.screensaver_clock_only)));String src=PhotoStore.chosenSource(this);int srcLabel=PhotoStore.SOURCE_BING.equals(src)?R.string.photo_source_bing:PhotoStore.SOURCE_PICSUM.equals(src)?R.string.photo_source_picsum:R.string.photo_source_both;photoSourceChoice.setText(getString(R.string.photo_source,getString(srcLabel)));photoStorageChoice.setText(getString(R.string.photo_storage,(int)(PhotoStore.cap(this)/(1024L*1024L))));long ms=choices.getLong("photo_interval_ms",60_000L);int mins=ms<=30_000?30:ms<=60_000?1:ms<=120_000?2:5;photoIntervalChoice.setText(getString(R.string.photo_interval,getString(R.string.screensaver_minutes,mins)));calendarChoice.setText(getString(R.string.hindu_calendar,getString(choices.getBoolean("dream_calendar",true)?R.string.on:R.string.off)));homeCalendarChoice.setText(getString(R.string.home_hindu_calendar,getString(choices.getBoolean("home_hindu_calendar",true)?R.string.on:R.string.off)));if(startAfterChoice.getVisibility()==View.VISIBLE){int timeout=Settings.System.getInt(getContentResolver(),Settings.System.SCREEN_OFF_TIMEOUT,600000);int current=Math.max(1,Math.round(timeout/60000f));startAfterChoice.setText(getString(R.string.start_after,getString(R.string.screensaver_minutes,current)));}}
+    private void updatePhotoSummary(){if(refreshPhotosChoice!=null)refreshPhotosChoice.setText(getString(R.string.refresh_photos,PhotoStore.summary(this)));}
+    private void chooseScreensaverStyle(){String[] labels={getString(R.string.screensaver_clock_only),getString(R.string.screensaver_photos)};new AlertDialog.Builder(this).setTitle(R.string.screensaver_settings).setSingleChoiceItems(labels,choices.getBoolean("dream_photos",false)?1:0,(d,w)->{choices.edit().putBoolean("dream_photos",w==1).apply();d.dismiss();refreshScreensaverLabels();}).setNegativeButton(android.R.string.cancel,null).show();}
+    private void choosePhotoSource(){String[] values={PhotoStore.SOURCE_BING,PhotoStore.SOURCE_PICSUM,PhotoStore.SOURCE_BOTH};int[] labels={R.string.photo_source_bing,R.string.photo_source_picsum,R.string.photo_source_both};String current=PhotoStore.chosenSource(this);int selected=PhotoStore.SOURCE_BING.equals(current)?0:PhotoStore.SOURCE_PICSUM.equals(current)?1:2;String[] shown={getString(labels[0]),getString(labels[1]),getString(labels[2])};new AlertDialog.Builder(this).setTitle(R.string.photo_source_title).setSingleChoiceItems(shown,selected,(d,w)->{choices.edit().putString("photo_source",values[w]).apply();d.dismiss();updateScreensaverRows();updatePhotoSummary();PhotoStore.schedule(this,false);}).setNegativeButton(android.R.string.cancel,null).show();}
+    private void choosePhotoStorage(){int[] values={100,200,500};String[] labels={"100 MB","200 MB","500 MB"};int current=(int)(PhotoStore.cap(this)/(1024L*1024L)),selected=current==100?0:current==500?2:1;new AlertDialog.Builder(this).setTitle(R.string.photo_storage_title).setSingleChoiceItems(labels,selected,(d,w)->{choices.edit().putInt("photo_storage_mb",values[w]).apply();d.dismiss();PhotoStore.enforceCap(this);updateScreensaverRows();updatePhotoSummary();}).setNegativeButton(android.R.string.cancel,null).show();}
+    private void choosePhotoInterval(){int[] values={30_000,60_000,120_000,300_000};String[] labels={"30 s","1 min","2 min","5 min"};long current=choices.getLong("photo_interval_ms",60_000L);int selected=1;for(int i=0;i<values.length;i++)if(values[i]==current)selected=i;new AlertDialog.Builder(this).setTitle(R.string.photo_interval).setSingleChoiceItems(labels,selected,(d,w)->{choices.edit().putLong("photo_interval_ms",values[w]).apply();d.dismiss();refreshScreensaverLabels();}).setNegativeButton(android.R.string.cancel,null).show();}
+    private void chooseStartAfter(){int[] values={5,10,15,30};String[] labels={"5 min","10 min","15 min","30 min"};int selected=0;int now=Settings.System.getInt(getContentResolver(),Settings.System.SCREEN_OFF_TIMEOUT,600000);for(int i=0;i<values.length;i++)if(Math.abs(now-values[i]*60000)<60000)selected=i;new AlertDialog.Builder(this).setTitle(R.string.start_after_title).setSingleChoiceItems(labels,selected,(d,w)->{if(Settings.System.canWrite(this))Settings.System.putInt(getContentResolver(),Settings.System.SCREEN_OFF_TIMEOUT,values[w]*60000);d.dismiss();updateScreensaverRows();}).setNegativeButton(android.R.string.cancel,null).show();}
 
     private void setAdvanced(boolean enabled) {
         advancedEffects = enabled;
@@ -168,6 +206,8 @@ public final class LauncherSettingsActivity extends Activity {
         followThemeChoice.setSelected(!hasOnTvChoices());
         dnsChoice.setText(getString(R.string.network_dns_current, currentDnsValue()));
         defaultHomeChoice.setText(getString(R.string.default_home_current, currentHomeLabel()));
+        updateScreensaverRows();
+        updatePhotoSummary();
     }
 
     private boolean hasOnTvChoices() {

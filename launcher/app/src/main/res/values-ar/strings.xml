@@ -32,7 +32,7 @@
     <string name="card_prompt_names">اسم البطاقة «%1$s»، واسم التطبيق «%2$s».</string>
     <string name="card_prompt_resigned">تم تحديث %1$s بمفتاح توقيع مختلف، لذا لم يعد اختيارك السابق ساريًا. اختر من جديد بشأن بطاقته.</string>
     <string name="card_prompt_relabelled">غيّر %1$s اسم بطاقته منذ أن اخترت. اختر من جديد بشأنها.</string>
-    <string name="card_prompt_hint">يمكنك تغيير هذا لاحقًا: اضغط مطولًا على OK فوق الإعدادات ثم اختر بطاقات التطبيقات.</string>
+    <string name="card_prompt_hint">يمكنك تغيير هذا لاحقًا من إعدادات المشغّل ← بطاقات التطبيقات.</string>
     <string name="card_prompt_identity">%1$s، المفتاح %2$s</string>
     <string name="card_keep_hidden">إبقاؤها مخفية</string>
     <string name="card_show">عرض البطاقة</string>

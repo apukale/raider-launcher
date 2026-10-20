@@ -32,7 +32,7 @@
     <string name="card_prompt_names">La carte s\'appelle « %1$s ». L\'appli s\'appelle « %2$s ».</string>
     <string name="card_prompt_resigned">%1$s a été mise à jour avec une autre clé de signature, votre choix précédent ne s\'applique plus. Choisissez à nouveau pour sa carte.</string>
     <string name="card_prompt_relabelled">%1$s a changé le nom de sa carte depuis votre choix. Choisissez à nouveau.</string>
-    <string name="card_prompt_hint">Vous pourrez changer d\'avis plus tard : maintenez OK sur Paramètres.</string>
+    <string name="card_prompt_hint">Vous pourrez modifier ce choix dans Paramètres du lanceur → Cartes des modules.</string>
     <string name="card_prompt_identity">%1$s, clé %2$s</string>
     <string name="card_keep_hidden">Garder masquée</string>
     <string name="card_show">Afficher la carte</string>

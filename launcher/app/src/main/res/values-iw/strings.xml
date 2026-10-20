@@ -32,7 +32,7 @@
     <string name="card_prompt_names">שם הכרטיס: «%1$s». שם האפליקציה: «%2$s».</string>
     <string name="card_prompt_resigned">האפליקציה %1$s עודכנה עם מפתח חתימה שונה, ולכן הבחירה הקודמת כבר אינה תקפה. יש לבחור מחדש אם להציג את הכרטיס שלה.</string>
     <string name="card_prompt_relabelled">האפליקציה %1$s שינתה את שם הכרטיס שלה מאז הבחירה הקודמת. יש לבחור מחדש אם להציג אותו.</string>
-    <string name="card_prompt_hint">אפשר לשנות זאת בהמשך: לחיצה ממושכת על OK כאשר כפתור ההגדרות מסומן.</string>
+    <string name="card_prompt_hint">אפשר לשנות זאת בהמשך בהגדרות המפעיל ← כרטיסי הרחבות.</string>
     <string name="card_prompt_identity">%1$s, מפתח %2$s</string>
     <string name="card_keep_hidden">להשאיר מוסתר</string>
     <string name="card_show">להציג כרטיס</string>

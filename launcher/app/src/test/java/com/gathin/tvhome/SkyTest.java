@@ -9,7 +9,7 @@ import static org.junit.Assert.assertTrue;
 /** Plain JVM tests for the sunset palette: anchors, interpolation and clamping. */
 public class SkyTest {
 
-    @Test
+    @Test(timeout = 5000)
     public void nightLooksTheSameAtBothEndsOfTheDay() {
         Sky.Palette first = Sky.at(0);
         Sky.Palette last = Sky.at(1439);
@@ -19,7 +19,7 @@ public class SkyTest {
         assertEquals(0, last.sun);
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void glowPeaksAtSunriseAndSunset() {
         assertTrue(Sky.at(450).sun > Sky.at(780).sun);       // 07:30 sunrise vs 13:00 day
         assertTrue(Sky.at(1140).sun > Sky.at(1260).sun);     // 19:00 sunset vs 21:00 dusk
@@ -28,14 +28,14 @@ public class SkyTest {
         assertEquals(0, Sky.at(1400).sun);
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void theGlowTracksTheSunFromLeftToRight() {
         assertTrue(Sky.at(390).sunX < Sky.at(780).sunX);
         assertTrue(Sky.at(780).sunX < Sky.at(1140).sunX);
         assertTrue(Sky.at(780).sunX > 0.4f && Sky.at(780).sunX < 0.6f);   // midday is near the centre
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void coloursInterpolateBetweenAnchors() {
         Sky.Palette dawn = Sky.at(390);
         Sky.Palette sunrise = Sky.at(450);
@@ -45,7 +45,7 @@ public class SkyTest {
         assertNotEquals(sunrise.top, half.top);
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void timeIsClampedAndAnsweredEveryMinuteOfTheDay() {
         assertEquals(Sky.at(0).top, Sky.at(-30).top);
         assertEquals(Sky.at(1440).top, Sky.at(4000).top);

@@ -49,6 +49,7 @@ final class Config {
     final boolean advancedEffects;
     final int rowsBelowDock;
     final boolean shamsiDate;
+    final boolean showGreeting;
     final boolean moduleCards;
     /** Calmer motion for weak GPUs (config.xml, reduced_motion): stiff spring, short fades, no replay. */
     final boolean reducedMotion;
@@ -67,7 +68,7 @@ final class Config {
                    String liveTvPackage, String liveTvAction,
                    String sourcePanelService, String sourcePanelAction, String inputAction,
                    int columns, int rowsBelowDock, boolean animations, boolean advancedEffects,
-                   boolean shamsiDate, boolean moduleCards, boolean reducedMotion, String vpnApp,
+                   boolean shamsiDate, boolean showGreeting, boolean moduleCards, boolean reducedMotion, String vpnApp,
                    boolean showHomeSettingsShortcut, int backgroundColor, int skyIntensity,
                    File wallpaper, boolean overlayApplied) {
         this.dockApps = Collections.unmodifiableList(dockApps);
@@ -84,6 +85,7 @@ final class Config {
         this.animations = animations;
         this.advancedEffects = advancedEffects;
         this.shamsiDate = shamsiDate;
+        this.showGreeting = showGreeting;
         this.moduleCards = moduleCards;
         this.reducedMotion = reducedMotion;
         this.vpnApp = vpnApp;
@@ -115,6 +117,7 @@ final class Config {
         boolean animations = res.getBoolean(R.bool.animations);
         boolean advancedEffects = res.getBoolean(R.bool.advanced_effects);
         boolean shamsi = res.getBoolean(R.bool.shamsi_date);
+        boolean showGreeting = res.getBoolean(R.bool.show_greeting);
         boolean moduleCards = res.getBoolean(R.bool.module_cards);
         boolean reducedMotion = res.getBoolean(R.bool.reduced_motion);
         String vpn = res.getString(R.string.vpn_app).trim();
@@ -142,6 +145,7 @@ final class Config {
             animations = bool(json, "animations", animations);
             advancedEffects = bool(json, "advanced_effects", advancedEffects);
             shamsi = bool(json, "shamsi_date", shamsi);
+            showGreeting = bool(json, "show_greeting", showGreeting);
             moduleCards = bool(json, "module_cards", moduleCards);
             reducedMotion = bool(json, "reduced_motion", reducedMotion);
             vpn = string(json, "vpn_app", vpn);
@@ -164,7 +168,7 @@ final class Config {
 
         return new Config(dock, hidden, tileOverrides, logoTileApps, liveTv, liveTvAction, panelService, panelAction, inputAction,
                 Math.max(1, columns), Math.max(0, rowsBelow), animations, advancedEffects,
-                shamsi, moduleCards, reducedMotion, vpn, homeSettings, background,
+                shamsi, showGreeting, moduleCards, reducedMotion, vpn, homeSettings, background,
                 Math.max(0, Math.min(100, skyIntensity)), wallpaper, applied);
     }
 
