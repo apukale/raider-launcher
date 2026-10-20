@@ -389,12 +389,34 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             int firstButton = btnInputs.getVisibility() == View.VISIBLE ? R.id.btnInputs : R.id.btnWifi;
             int leftButton = rtlMenuBar ? R.id.btnSettings : firstButton;
             int rightButton = rtlMenuBar ? firstButton : R.id.btnSettings;
-            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) return v.getId() == leftButton;
-            return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == rightButton;
+            boolean calendarReachable = homeCalendarStack != null && homeCalendarStack.getVisibility() == View.VISIBLE && homeCalendarStack.isFocusable();
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && v.getId() == leftButton) {
+                // LTR: the Hindu calendar block sits left of the pills; LEFT from the first pill goes there.
+                if (!rtlMenuBar && calendarReachable) homeCalendarStack.requestFocus();
+                return true;
+            }
+            if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == rightButton) {
+                if (rtlMenuBar && calendarReachable) homeCalendarStack.requestFocus();
+                return true;
+            }
+            return false;
         };
         btnInputs.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
+        // Centre the pill bar on the date/weather line above the clock.
+        View pillBar = findViewById(R.id.topButtons), dateText = findViewById(R.id.date);
+        if (pillBar != null && dateText != null && dateText.getParent() instanceof View) {
+            View dateRow = (View) dateText.getParent();
+            dateRow.addOnLayoutChangeListener((q0, q1, q2, q3, q4, q5, q6, q7, q8) -> {
+                int pillH = pillBar.getHeight();
+                if (pillH == 0 || dateRow.getHeight() == 0 || !(dateRow.getParent() instanceof View)) return;
+                int centre = ((View) dateRow.getParent()).getTop() + dateRow.getTop() + dateRow.getHeight() / 2;
+                android.view.ViewGroup.MarginLayoutParams pillLp = (android.view.ViewGroup.MarginLayoutParams) pillBar.getLayoutParams();
+                int wanted = centre - pillH / 2;
+                if (pillLp.topMargin != wanted) { pillLp.topMargin = wanted; pillBar.post(() -> pillBar.setLayoutParams(pillLp)); }
+            });
+        }
         if (advancedEffects) {
             for (View button : new View[]{btnInputs, btnWifi, btnSettings}) {
                 button.setOnFocusChangeListener((view, focused) -> view.animate()

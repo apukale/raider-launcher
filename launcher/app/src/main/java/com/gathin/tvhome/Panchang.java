@@ -111,11 +111,11 @@ public final class Panchang {
         if(nextSign==sign) lunarMonth="Adhika "+lunarMonth;
         Calendar cal=new GregorianCalendar(TimeZone.getTimeZone("UTC")); cal.setTimeInMillis((long)((jd-2440587.5)*86400000));
         int gy=cal.get(Calendar.YEAR); boolean yearStarted=jd>=chaitraStartJd(gy);
-        int vs=gy+(yearStarted?57:56), saka=gy-(yearStarted?78:79);
+        int saka=gy-(yearStarted?78:79);
         String tname=shukla?TITHI[local-1]:(local==15?"Amavasya":TITHI[local-1]);
         String paksha=shukla?"Shukla":"Krishna";
         String festival=festival(lunarMonth.replace("Adhika ",""),shukla,local);
-        return new Result(jd,lunarMonth,lunarMonth.replace("Ashvin","Ashwina"),paksha,local,ti,tname,NAK[ni],NAK_HI[ni],vs,saka,festival);
+        return new Result(jd,lunarMonth,lunarMonth.replace("Ashvin","Ashwina"),paksha,local,ti,tname,NAK[ni],NAK_HI[ni],saka,festival);
     }
     /** First sunrise after the Amanta new moon in sidereal Pisces: Chaitra Shukla Pratipada. */
     public static double chaitraStartJd(int year){
@@ -197,7 +197,7 @@ public final class Panchang {
         switch(key){case "Chaitra S1":return "Ugadi / Gudi Padwa";case "Chaitra S9":return "Ram Navami";case "Chaitra S15":return "Hanuman Jayanti";case "Vaishakha S3":return "Akshaya Tritiya";case "Ashadha S15":return "Guru Purnima";case "Shravana S15":return "Raksha Bandhan";case "Shravana K8":return "Krishna Janmashtami";case "Bhadrapada S4":return "Ganesh Chaturthi";case "Ashvin S1":return "Navaratri begins";case "Ashvin S10":return "Dussehra / Vijayadashami";case "Ashvin S15":return "Sharad Purnima";case "Ashvin K4":return "Karva Chauth";case "Ashvin K13":return "Dhanteras";case "Ashvin K14":return "Naraka Chaturdashi";case "Ashvin K15":return "Diwali / Lakshmi Puja";case "Kartika S1":return "Govardhan Puja";case "Kartika S2":return "Bhai Dooj";case "Kartika S15":return "Kartika Purnima";case "Pausha S11":return "Vaikuntha Ekadashi";case "Magha S5":return "Vasant Panchami";case "Magha K14":return "Maha Shivaratri";case "Phalguna S15":return "Holika Dahan";case "Phalguna K1":return "Holi";default:return t==15?(s?"Purnima":"Amavasya"):"";}
     }
     public static final class Result {
-        public final double sunriseJd; public final String month,monthDisplay,paksha,tithiName,nakshatra,nakshatraHindi,festival; public final int tithi,tithiNumber,vikramSamvat,shakaSamvat;
-        Result(double j,String m,String md,String p,int t,int n,String tn,String nk,String nh,int vs,int ss,String f){sunriseJd=j;month=m;monthDisplay=md;paksha=p;tithi=t;tithiNumber=n;tithiName=tn;nakshatra=nk;nakshatraHindi=nh;vikramSamvat=vs;shakaSamvat=ss;festival=f;}
+        public final double sunriseJd; public final String month,monthDisplay,paksha,tithiName,nakshatra,nakshatraHindi,festival; public final int tithi,tithiNumber,shakaSamvat;
+        Result(double j,String m,String md,String p,int t,int n,String tn,String nk,String nh,int ss,String f){sunriseJd=j;month=m;monthDisplay=md;paksha=p;tithi=t;tithiNumber=n;tithiName=tn;nakshatra=nk;nakshatraHindi=nh;shakaSamvat=ss;festival=f;}
     }
 }
