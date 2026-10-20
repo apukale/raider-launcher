@@ -726,6 +726,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     public void onTileFocused(int position, View card) {
         lastFocused = position;
         lastFocusedKey = adapter.keyAt(position);
+        // After HOME the grid is rebuilt and the first tile can be focused before it is laid out; place the glass after layout.
+        if (card.getWidth() == 0 || card.isLayoutRequested() || grid.isLayoutRequested()) {
+            card.post(() -> { if (card.isFocused() && card.getWidth() > 0) onTileFocused(position, card); });
+            return;
+        }
         // Tile rect in root coordinates, using layout positions (ignores the scale animation).
         Rect r = new Rect(0, 0, card.getWidth(), card.getHeight());
         root.offsetDescendantRectToMyCoords(card, r);

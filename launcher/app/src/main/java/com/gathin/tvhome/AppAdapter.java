@@ -476,8 +476,11 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         h.name.setAlpha(focused ? 1f : 0f);
         h.card.setScaleX(focused && animations ? focusScale() : 1f);
         h.card.setScaleY(focused && animations ? focusScale() : 1f);
-        h.card.setTranslationY(focused && advancedEffects ? -4f * ctx.getResources().getDisplayMetrics().density : 0f);
-        h.card.setTranslationZ(focused && advancedEffects ? 8f * ctx.getResources().getDisplayMetrics().density : 0f);
+        // Same end state as the focus listener: centre pivot, no lift, no shadow (the glass ring is centred on the layout bounds).
+        centrePivot(h.card);
+        h.card.setTranslationY(0f);
+        h.card.setTranslationZ(0f);
+        h.card.setElevation(0f);
         h.banner.setScaleX(focused && advancedEffects ? 1.035f : 1f);
         h.banner.setScaleY(focused && advancedEffects ? 1.035f : 1f);
         if (e.banner != null) {
@@ -501,8 +504,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         h.card.setAlpha(moving ? 0.78f : 1f);
         h.card.setScaleX(focused && animations ? focusScale() : moving ? 1.08f : 1f);
         h.card.setScaleY(focused && animations ? focusScale() : moving ? 1.08f : 1f);
-        h.card.setTranslationZ(moving ? 18f * ctx.getResources().getDisplayMetrics().density
-                : (focused && advancedEffects ? 8f * ctx.getResources().getDisplayMetrics().density : 0f));
+        h.card.setTranslationZ(moving ? 18f * ctx.getResources().getDisplayMetrics().density : 0f);
         h.card.setOnLongClickListener(v -> { listener.onTileLongPressed(h.getBindingAdapterPosition(), v); return true; });
     }
 
@@ -633,6 +635,13 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         notifyDataSetChanged();
     }
 
+    /** Pivot at the tile centre; skipped until the tile has a size so an explicit 0,0 pivot never sticks. */
+    static void centrePivot(View tile) {
+        if (tile.getWidth() <= 0 || tile.getHeight() <= 0) return;
+        tile.setPivotX(tile.getWidth() / 2f);
+        tile.setPivotY(tile.getHeight() / 2f);
+    }
+
     float focusScale() {
         return !animations ? 1f : advancedEffects ? 1.12f : 1.10f;
     }
@@ -706,6 +715,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                boolean reducedMotion) {
             super(v);
             card = v.findViewById(R.id.card);
+            // Keep the scale pivot at the centre whenever the tile is (re)laid out; a pivot set before layout would be 0,0.
+            card.addOnLayoutChangeListener((pv, p1, p2, p3, p4, p5, p6, p7, p8) -> centrePivot(pv));
             banner = v.findViewById(R.id.banner);
             icon = v.findViewById(R.id.icon);
             label = v.findViewById(R.id.label);
@@ -745,8 +756,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
             card.setOnFocusChangeListener((view, focused) -> {
                 // Scale about the tile centre so the glass ring (centred on the tile) wraps it exactly.
-                view.setPivotX(view.getWidth() / 2f);
-                view.setPivotY(view.getHeight() / 2f);
+                centrePivot(view);
                 view.animate().cancel();
                 banner.animate().cancel();
                 name.animate().cancel();
