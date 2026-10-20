@@ -134,6 +134,7 @@ final class Config {
         double weatherLongitude = decimal(firstNonEmpty(BuildConfig.WEATHER_LONGITUDE, res.getString(R.string.weather_longitude)), Double.NaN);
         String weatherPlace = firstNonEmpty(BuildConfig.WEATHER_PLACE, res.getString(R.string.weather_place));
         boolean applied = false;
+        WeatherLocation.migrate(ctx);
 
         File dir = dir(ctx);
         File file = dir != null ? new File(dir, FILE_NAME) : null;
@@ -178,6 +179,9 @@ final class Config {
         // A theme can also switch the wallpaper off while the file is still there.
         if (json != null && json.has("wallpaper") && !bool(json, "wallpaper", true)) wallpaper = null;
 
+        double[] city = WeatherLocation.override(ctx);
+        if (city != null) { weatherLatitude = city[0]; weatherLongitude = city[1]; weatherPlace = WeatherLocation.cityName(ctx); }
+        Panchang.setLocation(weatherLatitude, weatherLongitude);
         return new Config(dock, hidden, tileOverrides, logoTileApps, liveTv, liveTvAction, panelService, panelAction, inputAction,
                 Math.max(1, columns), Math.max(0, rowsBelow), animations, advancedEffects,
                 shamsi, showGreeting, moduleCards, reducedMotion, vpn, homeSettings, background,

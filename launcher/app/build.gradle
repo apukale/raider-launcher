@@ -15,8 +15,8 @@ android {
         applicationId 'com.gathin.tvhome'
         minSdk 26
         targetSdk 34
-        versionCode 23
-        versionName '2.11.9'
+        versionCode 24
+        versionName '2.11.10'
         ['NASA_API_KEY', 'PEXELS_API_KEY', 'PIXABAY_API_KEY', 'WEATHER_LATITUDE', 'WEATHER_LONGITUDE', 'WEATHER_PLACE'].each { k -> buildConfigField 'String', k, '"' + (localProps.getProperty(k, '').replace('\\', '\\\\').replace('"', '\\"')) + '"' }
         buildConfigField 'String', 'UNSPLASH_ACCESS_KEY', '"' + (localProps.getProperty('UNSPLASH_ACCESS_KEY', '').replace('\\', '\\\\').replace('"', '\\"')) + '"'
     }

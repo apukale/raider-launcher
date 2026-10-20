@@ -3,4 +3,7 @@
     <item name="nightNowChoice" type="id" />
     <item name="fontChoice" type="id" />
     <item name="inputNamesChoice" type="id" />
+    <item name="weatherCityChoice" type="id" />
+    <item name="weatherDefaultChoice" type="id" />
+    <item name="weatherUnitsChoice" type="id" />
 </resources>

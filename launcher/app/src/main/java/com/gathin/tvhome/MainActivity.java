@@ -690,7 +690,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         Calendar c=Calendar.getInstance();int y=c.get(Calendar.YEAR),m=c.get(Calendar.MONTH)+1,d=c.get(Calendar.DAY_OF_MONTH);
         long rise=(long)((Panchang.sunriseJd(y,m,d)-2440587.5)*86400000d),set=(long)((Panchang.sunsetJd(y,m,d)-2440587.5)*86400000d);boolean night=System.currentTimeMillis()<rise||System.currentTimeMillis()>set;
         String label=data.temperature+"\u00B0 \u00B7 "+data.high+"\u00B0/"+data.low+"\u00B0"+(data.precipitation>=40?" \u00B7 "+data.precipitation+"%":"");
-        homeWeather.setText(label);homeWeather.setContentDescription(config.weatherPlace+" weather: "+label);int size=(int)(homeWeather.getTextSize()*1.25f);WeatherIconDrawable icon=new WeatherIconDrawable(WeatherData.iconGroup(data.code),night,0xA6FFFFFF);icon.setBounds(0,0,size,size);homeWeather.setCompoundDrawables(icon,null,null,null);homeWeather.setCompoundDrawablePadding((int)(5*getResources().getDisplayMetrics().density));homeWeather.setVisibility(View.VISIBLE);
+        homeWeather.setText(label);homeWeather.setContentDescription(WeatherLocation.place(this,config)+" weather: "+label);int size=(int)(homeWeather.getTextSize()*1.25f);WeatherIconDrawable icon=new WeatherIconDrawable(WeatherData.iconGroup(data.code),night,0xA6FFFFFF);icon.setBounds(0,0,size,size);homeWeather.setCompoundDrawables(icon,null,null,null);homeWeather.setCompoundDrawablePadding((int)(5*getResources().getDisplayMetrics().density));homeWeather.setVisibility(View.VISIBLE);
     }
 
     @Override

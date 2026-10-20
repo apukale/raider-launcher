@@ -6,6 +6,11 @@ import java.util.TimeZone;
 
 /** Offline, intentionally low precision panchang calculations. No Android dependencies. */
 public final class Panchang {
+    /** Observer used for sunrise, sunset, moonrise and Rahu Kalam. Default is a neutral reference point on the IST meridian (82.5°E); the TV replaces it with the weather city set in Launcher settings. */
+    static final double REF_LAT=23.0, REF_LON=82.5;
+    static volatile double siteLat=REF_LAT, siteLon=REF_LON;
+    static void setLocation(double lat,double lon){if(Double.isNaN(lat)||Double.isNaN(lon)){siteLat=REF_LAT;siteLon=REF_LON;}else{siteLat=lat;siteLon=lon;}}
+
     private Panchang() {}
     private static final java.util.LinkedHashMap<Integer, Double> CHAITRA_CACHE = new java.util.LinkedHashMap<Integer, Double>(8, 0.75f, true) {
         @Override protected boolean removeEldestEntry(java.util.Map.Entry<Integer, Double> eldest) { return size() > 8; }
@@ -85,14 +90,14 @@ public final class Panchang {
     /** UTC JD of local sunrise (IST), NOAA apparent upper limb. */
     public static double sunriseJd(int year,int month,int day) {
         double localNoon=julianDay(year,month,day,12,0)-5.5/24.0;
-        double n=Math.round(localNoon-2451545.0009+82.5/360.0);
-        double jstar=2451545.0009-82.5/360.0+n;
+        double n=Math.round(localNoon-2451545.0009+siteLon/360.0);
+        double jstar=2451545.0009-siteLon/360.0+n;
         double m=norm(357.5291+0.98560028*(jstar-2451545));
         double c=1.9148*sin(m)+0.0200*sin(2*m)+0.0003*sin(3*m);
         double lambda=norm(m+c+180+102.9372);
         double jtransit=jstar+0.0053*sin(m)-0.0069*sin(2*lambda);
         double decl=Math.asin(Math.sin(lambda*DEG)*Math.sin(23.44*DEG));
-        double lat=23.0*DEG, h=-0.833*DEG;
+        double lat=siteLat*DEG, h=-0.833*DEG;
         double cosH=(Math.sin(h)-Math.sin(lat)*Math.sin(decl))/(Math.cos(lat)*Math.cos(decl));
         double ha=Math.acos(Math.max(-1,Math.min(1,cosH)))/(2*Math.PI);
         return jtransit-ha;
@@ -161,10 +166,10 @@ public final class Panchang {
     }
     public static double sunsetJd(int year,int month,int day){
         double rise=sunriseJd(year,month,day), localNoon=julianDay(year,month,day,12,0)-5.5/24.0;
-        double n=Math.round(localNoon-2451545.0009+82.5/360.0), js=2451545.0009-82.5/360.0+n;
+        double n=Math.round(localNoon-2451545.0009+siteLon/360.0), js=2451545.0009-siteLon/360.0+n;
         double m=norm(357.5291+0.98560028*(js-2451545)), c=1.9148*sin(m)+0.0200*sin(2*m)+0.0003*sin(3*m), lambda=norm(m+c+180+102.9372);
         double transit=js+0.0053*sin(m)-0.0069*sin(2*lambda), decl=Math.asin(Math.sin(lambda*DEG)*Math.sin(23.44*DEG));
-        double lat=23.0*DEG,h=-0.833*DEG,cosH=(Math.sin(h)-Math.sin(lat)*Math.sin(decl))/(Math.cos(lat)*Math.cos(decl));
+        double lat=siteLat*DEG,h=-0.833*DEG,cosH=(Math.sin(h)-Math.sin(lat)*Math.sin(decl))/(Math.cos(lat)*Math.cos(decl));
         return 2*transit-rise;
     }
     public static double rahuStartJd(int year,int month,int day){Calendar c=new GregorianCalendar(TimeZone.getTimeZone("UTC"));c.clear();c.set(year,month-1,day);int dow=c.get(Calendar.DAY_OF_WEEK);int part=dow==Calendar.MONDAY?2:dow==Calendar.SATURDAY?3:dow==Calendar.FRIDAY?4:dow==Calendar.WEDNESDAY?5:dow==Calendar.THURSDAY?6:dow==Calendar.TUESDAY?7:8;double r=sunriseJd(year,month,day),s=sunsetJd(year,month,day);return r+(part-1)*(s-r)/8.0;}
@@ -185,7 +190,7 @@ public final class Panchang {
     public static double abhijitStartJd(double rise,double set){return (rise+set)/2-(set-rise)/30.0;}
     public static double abhijitEndJd(double rise,double set){return (rise+set)/2+(set-rise)/30.0;}
     private static double siderealTime(double jd){double t=(jd-2451545.0)/36525.0;return norm(280.46061837+360.98564736629*(jd-2451545.0)+0.000387933*t*t-t*t*t/38710000.0);}
-    private static double moonAltitude(double jd){double lon=moonLongitude(jd)*DEG,lat=moonLatitude(jd)*DEG;double eps=23.4393*DEG;double ra=Math.atan2(Math.sin(lon)*Math.cos(eps)-Math.tan(lat)*Math.sin(eps),Math.cos(lon));double dec=Math.asin(Math.sin(lat)*Math.cos(eps)+Math.cos(lat)*Math.sin(eps)*Math.sin(lon));double ha=(siderealTime(jd)+82.5-Math.toDegrees(ra))*DEG;double parallax=0.9507;double h0=(0.7275*parallax-0.5667)*DEG;return Math.asin(Math.sin(23.0*DEG)*Math.sin(dec)+Math.cos(23.0*DEG)*Math.cos(dec)*Math.cos(ha))-h0;}
+    private static double moonAltitude(double jd){double lon=moonLongitude(jd)*DEG,lat=moonLatitude(jd)*DEG;double eps=23.4393*DEG;double ra=Math.atan2(Math.sin(lon)*Math.cos(eps)-Math.tan(lat)*Math.sin(eps),Math.cos(lon));double dec=Math.asin(Math.sin(lat)*Math.cos(eps)+Math.cos(lat)*Math.sin(eps)*Math.sin(lon));double ha=(siderealTime(jd)+siteLon-Math.toDegrees(ra))*DEG;double parallax=0.9507;double h0=(0.7275*parallax-0.5667)*DEG;return Math.asin(Math.sin(siteLat*DEG)*Math.sin(dec)+Math.cos(siteLat*DEG)*Math.cos(dec)*Math.cos(ha))-h0;}
     public static double[] moonriseMoonset(int y,int m,int d){double start=julianDay(y,m,d,0,0)-5.5/24.0,end=start+1.25,prev=moonAltitude(start);double[] out={Double.NaN,Double.NaN};for(int i=1;i<=180;i++){double a=start+(end-start)*(i-1)/180,b=start+(end-start)*i/180,cur=moonAltitude(b);if((prev<=0&&cur>0)||(prev>=0&&cur<0)){double lo=a,hi=b;boolean up=cur>prev;for(int n=0;n<32;n++){double mid=(lo+hi)/2;if((moonAltitude(mid)>0)==up)hi=mid;else lo=mid;}double root=(lo+hi)/2;if(up&&Double.isNaN(out[0])&&root<=start+1){out[0]=root;if(!Double.isNaN(out[1])&&out[1]<root)out[1]=Double.NaN;}if(!up&&!Double.isNaN(out[0])&&root>out[0]&&Double.isNaN(out[1]))out[1]=root;}prev=cur;}return out;}
     public static final class DayEvents {public final Result base;public final double sunset,moonrise,moonset,tithiEnd,nakshatraEnd,yogaEnd,karanaEnd,moonRashiEnd,sunRashiEnd,rahuStart,rahuEnd,yamagandaStart,yamagandaEnd,gulikaStart,gulikaEnd,abhijitStart,abhijitEnd;public DayEvents(int y,int m,int d){base=forDate(y,m,d);double rise=base.sunriseJd;sunset=sunsetJd(y,m,d);double[] moon=moonriseMoonset(y,m,d);moonrise=moon[0];moonset=moon[1];tithiEnd=tithiEndJd(rise);nakshatraEnd=nakshatraEndJd(rise);yogaEnd=yogaEndJd(rise);karanaEnd=karanaEndJd(rise);moonRashiEnd=moonRashiEndJd(rise);sunRashiEnd=solarRashiEndJd(rise);Calendar c=new GregorianCalendar(TimeZone.getTimeZone("UTC"));c.setTimeInMillis((long)((rise-2440587.5)*86400000));int dow=c.get(Calendar.DAY_OF_WEEK);int[] rahu={8,2,7,5,6,4,3};int rp=rahu[dow-1],yp=weekdayPart(dow,true);rahuStart=intervalStart(rise,sunset,rp);rahuEnd=intervalEnd(rise,sunset,rp);yamagandaStart=intervalStart(rise,sunset,yp);yamagandaEnd=intervalEnd(rise,sunset,yp);int gp=dow;int part=new int[]{7,6,5,4,3,2,1}[gp-1];gulikaStart=intervalStart(rise,sunset,part);gulikaEnd=intervalEnd(rise,sunset,part);abhijitStart=abhijitStartJd(rise,sunset);abhijitEnd=abhijitEndJd(rise,sunset);}}
     public static int clampDay(int year,int month,int day){Calendar c=new GregorianCalendar(TimeZone.getTimeZone("UTC"));c.clear();c.set(year,month-1,1);return Math.min(Math.max(1,day),c.getActualMaximum(Calendar.DAY_OF_MONTH));}
