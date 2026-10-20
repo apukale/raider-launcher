@@ -33,7 +33,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /** Weather detail screen: today, hourly strip and a 7-day toggle over a dimmed, cached map of India.
- *  Forecast from Open-Meteo, map tiles from CARTO (OpenStreetMap data), rain radar from RainViewer. All free, no key. */
+ *  Forecast from Open-Meteo, map tiles from OpenStreetMap (darkened on the TV), rain radar from RainViewer. All free, no key. */
 public class WeatherActivity extends Activity {
     private static final String TAG="TvHomeWeather";
     private static final int Z=5, X0=18, Y0=12, NX=7, NY=4, TILE=256;
@@ -48,7 +48,7 @@ public class WeatherActivity extends Activity {
 
     @Override protected void onCreate(Bundle b){super.onCreate(b);Config cfg=Config.load(this);lat=WeatherLocation.lat(this,cfg);lon=WeatherLocation.lon(this,cfg);place=WeatherLocation.place(this,cfg);if(place==null)place="";fahrenheit=WeatherLocation.fahrenheit(this);accent=RaiderTheme.accent(this);build();
         NightEffects.dim(root,NightState.isActive(getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE),System.currentTimeMillis()));toggle.requestFocus();
-        if(!WeatherLocation.valid(lat,lon)){subtitle.setText("No location set. Pick a city in Launcher settings > Weather.");}else{String cached=cachedJson();if(cached!=null)render(cached,false);io.execute(this::loadForecast);}
+        if(!WeatherLocation.valid(lat,lon)){subtitle.setText("Set city in Launcher settings > Weather");}else{String cached=cachedJson();if(cached!=null)render(cached,false);io.execute(this::loadForecast);}
         io.execute(this::loadMap);}
     @Override protected void onDestroy(){destroyed=true;io.shutdownNow();if(mapView!=null)mapView.setImageDrawable(null);if(map!=null){map.recycle();map=null;}super.onDestroy();}
 
@@ -71,7 +71,7 @@ public class WeatherActivity extends Activity {
         FrameLayout body=new FrameLayout(this);LinearLayout.LayoutParams bl=new LinearLayout.LayoutParams(dp(560),0,1);bl.topMargin=dp(16);col.addView(body,bl);
         todayPane=new LinearLayout(this);todayPane.setOrientation(LinearLayout.VERTICAL);body.addView(todayPane,new FrameLayout.LayoutParams(-1,-1));
         weekPane=new LinearLayout(this);weekPane.setOrientation(LinearLayout.VERTICAL);weekPane.setVisibility(View.GONE);body.addView(weekPane,new FrameLayout.LayoutParams(-1,-1));
-        TextView attribution=text("Forecast: Open-Meteo.com \u00B7 Map: \u00A9 OpenStreetMap contributors \u00A9 CARTO \u00B7 Radar: RainViewer.com",13,R.font.outfit_light,0x99FFFFFF);LinearLayout.LayoutParams al=new LinearLayout.LayoutParams(-2,-2);al.topMargin=dp(8);col.addView(attribution,al);}
+        TextView attribution=text("Forecast: Open-Meteo.com \u00B7 Map: \u00A9 OpenStreetMap contributors \u00B7 Radar: RainViewer.com",13,R.font.outfit_light,0x99FFFFFF);LinearLayout.LayoutParams al=new LinearLayout.LayoutParams(-2,-2);al.topMargin=dp(8);col.addView(attribution,al);}
     private void showPane(){todayPane.setVisibility(week?View.GONE:View.VISIBLE);weekPane.setVisibility(week?View.VISIBLE:View.GONE);toggle.setText(week?"Today":"7-day forecast");}
 
     // ---- forecast ----
@@ -129,8 +129,9 @@ public class WeatherActivity extends Activity {
 
     // ---- map + radar ----
     private void loadMap(){try{Bitmap bmp=Bitmap.createBitmap(NX*TILE,NY*TILE,Bitmap.Config.RGB_565);Canvas c=new Canvas(bmp);c.drawColor(0xFF0E0F1A);BitmapFactory.Options o=new BitmapFactory.Options();o.inPreferredConfig=Bitmap.Config.RGB_565;int ok=0;
-        File dir=new File(getCacheDir(),"maptiles");if(!dir.isDirectory()&&!dir.mkdirs())Log.w(TAG,"map cache dir missing");
-        for(int y=0;y<NY&&!destroyed;y++)for(int x=0;x<NX&&!destroyed;x++){try{File f=new File(dir,"dark_"+Z+"_"+(X0+x)+"_"+(Y0+y)+".png");byte[] data;if(f.length()>0)data=readFile(f);else{data=get("https://basemaps.cartocdn.com/dark_all/"+Z+"/"+(X0+x)+"/"+(Y0+y)+".png",524288);try(FileOutputStream out=new FileOutputStream(f)){out.write(data);}}Bitmap t=BitmapFactory.decodeByteArray(data,0,data.length,o);if(t!=null){c.drawBitmap(t,x*TILE,y*TILE,null);t.recycle();ok++;}}catch(Exception e){Log.w(TAG,"map tile "+(X0+x)+","+(Y0+y)+" failed "+e);}}
+        File dir=new File(getCacheDir(),"maptiles");if(!dir.isDirectory()&&!dir.mkdirs())Log.w(TAG,"map cache dir missing");File[] old=dir.listFiles((dd,name)->name.startsWith("dark_"));if(old!=null)for(File f:old)if(!f.delete())Log.w(TAG,"could not delete "+f.getName());
+        Paint dark=new Paint(Paint.FILTER_BITMAP_FLAG);dark.setColorFilter(new android.graphics.ColorMatrixColorFilter(new float[]{-0.1645f,-0.3229f,-0.0627f,0,140f,-0.1645f,-0.3229f,-0.0627f,0,140f,-0.1450f,-0.2850f,-0.0550f,0,150f,0,0,0,1,0}));
+        for(int y=0;y<NY&&!destroyed;y++)for(int x=0;x<NX&&!destroyed;x++){try{File f=new File(dir,"osm_"+Z+"_"+(X0+x)+"_"+(Y0+y)+".png");byte[] data;if(f.length()>0)data=readFile(f);else{data=get("https://tile.openstreetmap.org/"+Z+"/"+(X0+x)+"/"+(Y0+y)+".png",524288);try(FileOutputStream out=new FileOutputStream(f)){out.write(data);}}Bitmap t=BitmapFactory.decodeByteArray(data,0,data.length,o);if(t!=null){c.drawBitmap(t,x*TILE,y*TILE,dark);t.recycle();ok++;}}catch(Exception e){Log.w(TAG,"map tile "+(X0+x)+","+(Y0+y)+" failed "+e);}}
         String radar=drawRadar(c);
         if(WeatherLocation.valid(lat,lon))drawMarker(c);
         if(destroyed){bmp.recycle();return;}final int tiles=ok;final String note=radar;Log.i(TAG,"map tiles "+tiles+"/"+(NX*NY)+", radar: "+note);
@@ -144,7 +145,7 @@ public class WeatherActivity extends Activity {
         if(!place.isEmpty()){Paint t=new Paint(Paint.ANTI_ALIAS_FLAG);t.setColor(0xFFFFFFFF);t.setTextSize(22);t.setTypeface(Fonts.of(this,Fonts.PANCHANG,R.font.outfit_medium));t.setShadowLayer(4,0,1,0xFF000000);c.drawText(place,(float)px+16,(float)py-14,t);}}
     private static byte[] readFile(File f)throws IOException{try(InputStream in=new java.io.FileInputStream(f)){return readAll(in,1048576);}}
     private static byte[] readAll(InputStream in,int max)throws IOException{ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] b=new byte[8192];int n,total=0;while((n=in.read(b))!=-1){total+=n;if(total>max)throw new IOException("Response too large");out.write(b,0,n);}return out.toByteArray();}
-    private static boolean allowed(URL u){String h=u.getHost();return "https".equalsIgnoreCase(u.getProtocol())&&(h.equals("api.open-meteo.com")||h.equals("basemaps.cartocdn.com")||h.endsWith(".basemaps.cartocdn.com")||h.equals("api.rainviewer.com")||h.equals("tilecache.rainviewer.com"));}
-    private static byte[] get(String value,int max)throws IOException{URL u=new URL(value);if(!allowed(u))throw new IOException("Host not allowed");HttpURLConnection c=(HttpURLConnection)u.openConnection();c.setInstanceFollowRedirects(false);c.setConnectTimeout(10000);c.setReadTimeout(15000);c.setRequestProperty("User-Agent","RaiderLauncher/"+BuildConfig.VERSION_NAME+" (Android TV)");
+    private static boolean allowed(URL u){String h=u.getHost();return "https".equalsIgnoreCase(u.getProtocol())&&(h.equals("api.open-meteo.com")||h.equals("tile.openstreetmap.org")||h.equals("api.rainviewer.com")||h.equals("tilecache.rainviewer.com"));}
+    private static byte[] get(String value,int max)throws IOException{URL u=new URL(value);if(!allowed(u))throw new IOException("Host not allowed");HttpURLConnection c=(HttpURLConnection)u.openConnection();c.setInstanceFollowRedirects(false);c.setConnectTimeout(10000);c.setReadTimeout(15000);c.setRequestProperty("User-Agent","RaiderLauncher/"+BuildConfig.VERSION_NAME+" (Android TV; github.com/apukale/raider-launcher)");
         try{int code=c.getResponseCode();if(code!=200)throw new IOException("HTTP "+code);try(InputStream in=c.getInputStream()){return readAll(in,max);}}finally{c.disconnect();}}
 }

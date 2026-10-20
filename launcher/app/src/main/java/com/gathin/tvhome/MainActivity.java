@@ -528,7 +528,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weatherEnabled=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE).getBoolean("weather_on_home",true);
         handler.removeCallbacks(weatherRefresh);
         PhotoStore.scheduleIfMissingThrottled(this);
-        if(weatherEnabled){WeatherData cached=WeatherClient.cached(this);long fetched=WeatherClient.fetchedAt(this),age=System.currentTimeMillis()-fetched;if(cached!=null&&age>=0&&age<WeatherClient.FRESH_MS)showWeather(cached);else homeWeather.setVisibility(View.GONE);if(fetched==0||age<0||age>=WeatherClient.REFRESH_MS)requestWeather(true);handler.postDelayed(weatherRefresh,WeatherClient.REFRESH_MS);}
+        if(weatherEnabled&&!WeatherLocation.valid(WeatherLocation.lat(this,config),WeatherLocation.lon(this,config))){homeWeather.setText("Set city in Launcher settings");homeWeather.setCompoundDrawables(null,null,null,null);homeWeather.setVisibility(View.VISIBLE);}
+        else if(weatherEnabled){WeatherData cached=WeatherClient.cached(this);long fetched=WeatherClient.fetchedAt(this),age=System.currentTimeMillis()-fetched;if(cached!=null&&age>=0&&age<WeatherClient.FRESH_MS)showWeather(cached);else homeWeather.setVisibility(View.GONE);if(fetched==0||age<0||age>=WeatherClient.REFRESH_MS)requestWeather(true);handler.postDelayed(weatherRefresh,WeatherClient.REFRESH_MS);}
         else homeWeather.setVisibility(View.GONE);
         updateNightTheme(true);
         if (!calendarReceiverRegistered) {
