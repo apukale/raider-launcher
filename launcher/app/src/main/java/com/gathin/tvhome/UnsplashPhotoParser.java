@@ -13,9 +13,14 @@ final class UnsplashPhotoParser {
         final String regularUrl;
         final String author;
         final String downloadLocation;
-        Entry(String id, String rawUrl, String regularUrl, String author, String downloadLocation) {
+        final String description;
+        final String altDescription;
+        final String tags;
+        Entry(String id, String rawUrl, String regularUrl, String author, String downloadLocation,
+              String description, String altDescription, String tags) {
             this.id = id; this.rawUrl = rawUrl; this.regularUrl = regularUrl;
             this.author = author; this.downloadLocation = downloadLocation;
+            this.description = description; this.altDescription = altDescription; this.tags = tags;
         }
     }
 
@@ -35,10 +40,30 @@ final class UnsplashPhotoParser {
             String regular = urls.optString("regular", "");
             String author = user.optString("name", "");
             String download = links.optString("download_location", "");
+            String description = item.optString("description", "");
+            String altDescription = item.optString("alt_description", "");
+            StringBuilder tags = new StringBuilder();
+            JSONArray tagItems = item.optJSONArray("tags");
+            if (tagItems != null) for (int j = 0; j < tagItems.length(); j++) {
+                JSONObject tag = tagItems.optJSONObject(j);
+                if (tag != null) appendTag(tags, tag.optString("title", ""));
+            }
+            JSONArray previewItems = item.optJSONArray("tags_preview");
+            if (previewItems != null) for (int j = 0; j < previewItems.length(); j++) {
+                Object preview = previewItems.opt(j);
+                if (preview instanceof JSONObject) appendTag(tags, ((JSONObject) preview).optString("title", ""));
+                else if (preview instanceof String) appendTag(tags, (String) preview);
+            }
             if (!id.isEmpty() && !raw.isEmpty() && !regular.isEmpty() && !download.isEmpty())
-                out.add(new Entry(id, raw, regular, author, download));
+                out.add(new Entry(id, raw, regular, author, download, description, altDescription, tags.toString()));
         }
         return out;
+    }
+
+    private static void appendTag(StringBuilder tags, String value) {
+        if (value == null || value.isEmpty()) return;
+        if (tags.length() > 0) tags.append(' ');
+        tags.append(value);
     }
 
     static String sizedUrl(String raw) {

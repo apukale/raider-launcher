@@ -15,7 +15,7 @@ final class PhotoSources {
     static Set<String> parse(String value) {
         LinkedHashSet<String> out = new LinkedHashSet<>();
         if (value == null || value.trim().isEmpty()) {
-            addAll(out);
+            addDefault(out);
             return out;
         }
         if ("both".equals(value.trim())) {
@@ -43,6 +43,11 @@ final class PhotoSources {
     private static void addAll(Set<String> out) {
         out.add(BING);
         out.add(PICSUM);
+        out.add(UNSPLASH);
+    }
+
+    private static void addDefault(Set<String> out) {
+        out.add(BING);
         out.add(UNSPLASH);
     }
 }

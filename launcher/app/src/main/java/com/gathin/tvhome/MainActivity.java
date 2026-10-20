@@ -482,6 +482,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onResume() {
         super.onResume();
+        PhotoStore.migratePhotoContent(this);
         registerNightReceiver();
         homeCalendarOn=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE).getBoolean("home_hindu_calendar",true);
         applyHomeCalendarTextSize();
@@ -1043,7 +1044,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (shamsi) shamsiDate.setText(Shamsi.today());
     }
 
-    private void applyPillLabels(){if(btnInputs==null||btnWifi==null)return;TextView settings=findViewById(R.id.btnSettings);for(TextView button:new TextView[]{(TextView)btnInputs,btnWifi,settings}){if(button==null)continue;String label=button.getContentDescription()==null?String.valueOf(button.getText()):String.valueOf(button.getContentDescription());if(button.getId()==R.id.btnInputs)label=getString(R.string.inputs);else if(button.getId()==R.id.btnWifi&&label.isEmpty())label=getString(R.string.wifi);else if(button.getId()==R.id.btnSettings)label=getString(R.string.settings);button.setContentDescription(label);button.setText(pillLabels?label:"");button.setPadding(pillLabels?dp(16):0,0,pillLabels?dp(20):0,0);button.setCompoundDrawablesRelativeWithIntrinsicBounds(pillLabels?button.getCompoundDrawablesRelative()[0]:null,null,null,null);button.setMinWidth(pillLabels?0:dp(42));button.setMaxWidth(pillLabels?Integer.MAX_VALUE:dp(42));}}
+    private int wifiIconRes;
+    /** Icon + text, or a compact icon-only capsule. Icons are reloaded from resources every time, so hiding the text never loses them. */
+    private void applyPillLabels(){if(btnInputs==null||btnWifi==null)return;TextView settings=findViewById(R.id.btnSettings);TextView[] buttons={(TextView)btnInputs,btnWifi,settings};int[] icons={R.drawable.ic_input,wifiIconRes!=0?wifiIconRes:R.drawable.ic_wifi,R.drawable.ic_settings};for(int i=0;i<buttons.length;i++){TextView button=buttons[i];if(button==null)continue;String label;if(button.getId()==R.id.btnInputs)label=getString(R.string.inputs);else if(button.getId()==R.id.btnSettings)label=getString(R.string.settings);else{CharSequence d=button.getContentDescription();label=d!=null&&d.length()>0?String.valueOf(d):(button.getText()!=null&&button.getText().length()>0?String.valueOf(button.getText()):getString(R.string.wifi));}button.setContentDescription(label);android.graphics.drawable.Drawable icon=getDrawable(icons[i]);if(icon!=null)icon=icon.mutate();if(pillLabels){if(button!=btnWifi||button.getText()==null||button.getText().length()==0)button.setText(label);button.setPaddingRelative(dp(16),0,dp(20),0);button.setCompoundDrawablePadding(dp(9));button.setMinWidth(0);button.setMinimumWidth(0);button.setMaxWidth(button==btnWifi?dp(180):Integer.MAX_VALUE);button.setCompoundDrawablesRelativeWithIntrinsicBounds(icon,null,null,null);}else{int size=dp(26),width=dp(48);button.setText("");if(icon!=null)icon.setBounds(0,0,size,size);int side=Math.max(0,(width-size)/2);button.setPaddingRelative(side,0,side,0);button.setCompoundDrawablePadding(0);button.setMinWidth(width);button.setMinimumWidth(width);button.setMaxWidth(width);button.setCompoundDrawablesRelative(icon,null,null,null);}}}
     private int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
 
     private void updateHomeCalendar(boolean rearm) {
@@ -1123,6 +1126,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         } else {
             btnWifi.setText(text);
         }
+        wifiIconRes = icon;
         btnWifi.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, 0, 0, 0);
         applyPillLabels();
     }
