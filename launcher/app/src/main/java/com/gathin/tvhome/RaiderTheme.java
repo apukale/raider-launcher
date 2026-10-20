@@ -34,11 +34,23 @@ final class RaiderTheme {
         GradientDrawable d = new GradientDrawable(); d.setShape(GradientDrawable.RECTANGLE); d.setCornerRadius(30f); d.setColor(on ? color : 0xFF3A3C5A); return d;
     }
     static ColorStateList accentStateList(int color) { return new ColorStateList(new int[][]{new int[]{android.R.attr.state_focused}, new int[]{}}, new int[]{color, 0xFFF4F1EA}); }
+    static boolean isToggle(android.graphics.drawable.Drawable d){return d instanceof ToggleDrawable;}
+    /** Current value of a settings row, drawn right-aligned (wraps, never ellipsized), followed by an optional toggle or chevron. */
+    static final class ValueDrawable extends android.graphics.drawable.Drawable {
+        final android.graphics.drawable.Drawable trailing; private final android.text.StaticLayout layout; private final int textWidth, gap;
+        ValueDrawable(Context c, CharSequence text, int color, android.graphics.drawable.Drawable trailing, int maxWidth){this.trailing=trailing;android.text.TextPaint p=new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG);p.setColor(color);p.setTextSize(16*c.getResources().getDisplayMetrics().scaledDensity);p.setTypeface(c.getResources().getFont(R.font.outfit_regular));CharSequence t=text==null?"":text;int w=t.length()==0?0:(int)Math.ceil(Math.min(maxWidth,android.text.Layout.getDesiredWidth(t,p)));textWidth=w;gap=(w>0&&trailing!=null)?dp(c,12):0;layout=android.text.StaticLayout.Builder.obtain(t,0,t.length(),p,Math.max(1,w)).setAlignment(android.text.Layout.Alignment.ALIGN_OPPOSITE).setIncludePad(false).build();}
+        @Override public int getIntrinsicWidth(){return textWidth+gap+(trailing==null?0:trailing.getIntrinsicWidth());}
+        @Override public int getIntrinsicHeight(){int h=textWidth>0?layout.getHeight():0;return Math.max(h,trailing==null?0:trailing.getIntrinsicHeight());}
+        @Override public void draw(Canvas canvas){android.graphics.Rect b=getBounds();if(textWidth>0){canvas.save();canvas.translate(b.left,b.top+(b.height()-layout.getHeight())/2f);layout.draw(canvas);canvas.restore();}if(trailing!=null){int tw=trailing.getIntrinsicWidth(),th=trailing.getIntrinsicHeight();int left=b.right-tw,top=b.top+(b.height()-th)/2;trailing.setBounds(left,top,left+tw,top+th);trailing.draw(canvas);}}
+        @Override public void setAlpha(int a){}
+        @Override public void setColorFilter(android.graphics.ColorFilter f){}
+        @Override public int getOpacity(){return android.graphics.PixelFormat.TRANSLUCENT;}
+    }
+    /** Focus styling: accent outline + soft glow drawn inside the view's own bounds; no scale, so nothing is clipped. */
     static void applyFocusAnimation(View view) {
         view.setOnFocusChangeListener((v, focused) -> {
             int color = accent(v.getContext());
             v.setBackground(focusBackground(v.getContext(),color, focused));
-            v.animate().scaleX(focused ? 1.03f : 1f).scaleY(focused ? 1.03f : 1f).setDuration(150L).start();
         });
     }
 }
