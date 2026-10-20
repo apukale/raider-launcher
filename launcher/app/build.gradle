@@ -15,8 +15,8 @@ android {
         applicationId 'com.gathin.tvhome'
         minSdk 26
         targetSdk 34
-        versionCode 20
-        versionName '2.11.6'
+        versionCode 21
+        versionName '2.11.7'
         ['NASA_API_KEY', 'PEXELS_API_KEY', 'PIXABAY_API_KEY'].each { k -> buildConfigField 'String', k, '"' + (localProps.getProperty(k, '').replace('\\', '\\\\').replace('"', '\\"')) + '"' }
         buildConfigField 'String', 'UNSPLASH_ACCESS_KEY', '"' + (localProps.getProperty('UNSPLASH_ACCESS_KEY', '').replace('\\', '\\\\').replace('"', '\\"')) + '"'
     }
@@ -40,6 +40,7 @@ android {
 
 dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    implementation 'androidx.palette:palette:1.0.0'
     implementation 'androidx.dynamicanimation:dynamicanimation:1.0.0'
     // Test only (never in the APK): plain JVM tests for the module card validators, src/test.
     testImplementation 'junit:junit:4.13.2'

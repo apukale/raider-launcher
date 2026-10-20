@@ -675,6 +675,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Schedule, or the manual Start now / Stop now override until its expiry.
         boolean night = NightState.isActive(p, nowMs);
         NightTheme.applyHome(root, night, originalHomeBackground);
+        NightEffects.apply(this, root, night);
         long next = NightState.nextChangeMillis(p, nowMs);
         if (schedule && next != Long.MAX_VALUE) {
             handler.postDelayed(nightBoundary, Math.max(0L, next - nowMs + 500L));
