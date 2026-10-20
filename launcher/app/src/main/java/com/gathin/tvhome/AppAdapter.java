@@ -15,6 +15,9 @@ import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.AdaptiveIconDrawable;
+import android.graphics.drawable.ColorDrawable;
 import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.view.KeyEvent;
@@ -67,12 +70,17 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         final String name;
         /** Ambient glow colour; 0 until sampled from the banner, or the card's accent from the start. */
         int ambient;
+        final boolean logo;
 
-        Entry(String label, ComponentName component, Drawable banner, Drawable icon) {
-            this(APP, label, component, banner, icon, null, 0);
+        Entry(String label, ComponentName component, Drawable banner, Drawable icon, boolean logo) {
+            this(APP, label, component, banner, icon, null, 0, logo);
         }
 
         Entry(int kind, String label, ComponentName component, Drawable banner, Drawable icon, String caption, int accent) {
+            this(kind, label, component, banner, icon, caption, accent, false);
+        }
+
+        Entry(int kind, String label, ComponentName component, Drawable banner, Drawable icon, String caption, int accent, boolean logo) {
             this.kind = kind;
             this.label = label;
             this.component = component;
@@ -81,6 +89,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             this.icon = icon;
             this.name = caption == null ? label : label + " \u00B7 " + caption;
             this.ambient = accent;
+            this.logo = logo;
         }
     }
 
@@ -116,6 +125,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private final List<String> favourites;
     /** Never shown as tiles (res/values/config.xml, hidden_apps). */
     private final Set<String> configuredHidden;
+    private final Set<String> configuredLogo;
     /** Appearance overrides keyed by target package; entries never change component identity. */
     private final Map<String, TileOverride> tileOverrides = new HashMap<>();
     private final Set<String> hidden = new HashSet<>();
@@ -133,6 +143,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         this.dockSize = dockSize;
         this.favourites = cfg.dockApps;
         this.configuredHidden = new HashSet<>(cfg.hiddenApps);
+        this.configuredLogo = new HashSet<>(cfg.logoTileApps);
         for (String value : cfg.tileOverrides) {
             int equals = value.indexOf('=');
             if (equals <= 0) continue;
@@ -177,12 +188,13 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             Cards.Card card = cardByPkg.get(pkg);
             if (card != null && !card.component.equals(component)) continue;   // the card stands in for this tile
             String label = Cards.cleanLabel(String.valueOf(ri.loadLabel(pm)), pkg);
-            Drawable banner = loadBanner(pm, ri);
+            boolean logo = useLogo(pkg);
+            Drawable banner = logo ? null : loadBanner(pm, ri);
             Drawable icon = ri.loadIcon(pm);
             TileOverride override = tileOverrides.get(pkg);
             if (override != null) {
                 try {
-                    ResolvedAppearance appearance = loadOverride(pm, override, label, banner, icon);
+                    ResolvedAppearance appearance = loadOverride(pm, override, label, banner, icon, !logo);
                     label = appearance.label;
                     banner = appearance.banner;
                     icon = appearance.icon;
@@ -192,11 +204,14 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             }
             if (card != null) {
                 fresh.add(new Entry(Entry.CARD, override == null ? card.label : label,
-                        component, banner, icon, card.caption, card.accent));
+                        component, logo ? renderLogo(icon) : compact(banner, tileWidth(), tileHeightPx(tileWidth())),
+                        logo ? null : compact(icon, iconSize(), iconSize()), card.caption, card.accent,
+                        logo));
             } else {
                 // Same cleaner as the card prompt: an app label with a bidi override or line separator must not
                 // redraw the tile name as something else (#117).
-                fresh.add(new Entry(label, component, banner, icon));
+                fresh.add(new Entry(label, component, logo ? renderLogo(icon) : compact(banner, tileWidth(), tileHeightPx(tileWidth())),
+                        logo ? null : compact(icon, iconSize(), iconSize()), logo));
             }
         }
         Collections.sort(fresh, (a, b) -> {
@@ -232,11 +247,97 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                 && pm.resolveActivity(new Intent(Settings.ACTION_HOME_SETTINGS), 0) != null) {
             fresh.add(new Entry(Entry.HOME_SETTINGS, ctx.getString(R.string.home_settings),
                     new ComponentName(ctx, HomeSettingsActivity.class), null,
-                    ctx.getDrawable(R.drawable.ic_home_settings), null, 0));
+                    compact(ctx.getDrawable(R.drawable.ic_home_settings), iconSize(), iconSize()), null, 0));
         }
         items.clear();
         items.addAll(fresh);
         notifyDataSetChanged();
+    }
+
+    private int tileWidth() {
+        DisplayMetrics dm = ctx.getResources().getDisplayMetrics();
+        int width = dm.widthPixels;
+        if (ctx instanceof Activity) {
+            View grid = ((Activity) ctx).findViewById(R.id.grid);
+            if (grid != null && grid.getWidth() > 0) width = grid.getWidth() - grid.getPaddingLeft() - grid.getPaddingRight();
+        }
+        return tileWidthPx(width, dockSize, dm.density);
+    }
+
+    private int iconSize() { return Math.round(48 * ctx.getResources().getDisplayMetrics().density); }
+
+    private boolean useLogo(String pkg) {
+        android.content.SharedPreferences p = ctx.getSharedPreferences("app_layout", Context.MODE_PRIVATE);
+        if (p.getStringSet("banner_tiles", Collections.emptySet()).contains(pkg)) return false;
+        return p.getStringSet("logo_tiles", Collections.emptySet()).contains(pkg) || configuredLogo.contains(pkg);
+    }
+
+    private Drawable compact(Drawable source, int width, int height) {
+        if (source == null || width <= 0 || height <= 0) return source;
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        Rect old = new Rect(source.getBounds());
+        source.setBounds(0, 0, bitmap.getWidth(), bitmap.getHeight());
+        source.draw(canvas);
+        source.setBounds(old);
+        bitmap.setDensity(ctx.getResources().getDisplayMetrics().densityDpi);
+        return new BitmapDrawable(ctx.getResources(), bitmap);
+    }
+
+    /** Builds logo-mode artwork once as an opaque tile bitmap; no app drawable is retained by the entry. */
+    private Drawable renderLogo(Drawable icon) {
+        int width = tileWidth();
+        int height = tileHeightPx(width);
+        if (width <= 0 || height <= 0) return null;
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        if (icon instanceof AdaptiveIconDrawable) {
+            AdaptiveIconDrawable adaptive = (AdaptiveIconDrawable) icon;
+            Drawable background = adaptive.getBackground();
+            if (background instanceof ColorDrawable) {
+                canvas.drawColor(((ColorDrawable) background).getColor());
+            } else if (background != null) {
+                drawInBounds(background, canvas, 0, 0, width, height);
+            } else {
+                canvas.drawColor(Color.BLACK);
+            }
+            Drawable foreground = adaptive.getForeground();
+            if (foreground != null) {
+                float inset = AdaptiveIconDrawable.getExtraInsetFraction();
+                float safeFraction = Math.max(0.01f, 1f - 2f * inset);
+                int intrinsicWidth = foreground.getIntrinsicWidth();
+                int intrinsicHeight = foreground.getIntrinsicHeight();
+                if (intrinsicWidth <= 0) intrinsicWidth = Math.max(width, height);
+                if (intrinsicHeight <= 0) intrinsicHeight = intrinsicWidth;
+                float scale = Math.min(height * 0.85f / (intrinsicHeight * safeFraction),
+                        width * 0.90f / (intrinsicWidth * safeFraction));
+                float drawWidth = intrinsicWidth * scale;
+                float drawHeight = intrinsicHeight * scale;
+                // Enlarge past the tile edge so the transparent adaptive-icon padding is cropped away.
+                drawInBounds(foreground, canvas, (width - drawWidth) / 2f, (height - drawHeight) / 2f,
+                        (width + drawWidth) / 2f, (height + drawHeight) / 2f);
+            }
+        } else {
+            canvas.drawColor(icon == null ? Color.rgb(32, 32, 32) : logoColor(icon));
+            if (icon != null) {
+                int iw = icon.getIntrinsicWidth(), ih = icon.getIntrinsicHeight();
+                if (iw <= 0) iw = iconSize();
+                if (ih <= 0) ih = iconSize();
+                float scale = Math.min(height * 0.70f / ih, width * 0.70f / iw);
+                float dw = iw * scale, dh = ih * scale;
+                drawInBounds(icon, canvas, (width - dw) / 2f, (height - dh) / 2f,
+                        (width + dw) / 2f, (height + dh) / 2f);
+            }
+        }
+        bitmap.setDensity(ctx.getResources().getDisplayMetrics().densityDpi);
+        return new BitmapDrawable(ctx.getResources(), bitmap);
+    }
+
+    private static void drawInBounds(Drawable drawable, Canvas canvas, float left, float top, float right, float bottom) {
+        Rect old = new Rect(drawable.getBounds());
+        drawable.setBounds(Math.round(left), Math.round(top), Math.round(right), Math.round(bottom));
+        drawable.draw(canvas);
+        drawable.setBounds(old);
     }
 
     private Drawable loadBanner(PackageManager pm, ResolveInfo ri) {
@@ -276,7 +377,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     /** Load source resources directly so Android does not add suspended/disabled badging. */
     private ResolvedAppearance loadOverride(PackageManager pm, TileOverride override, String fallbackLabel,
-                                             Drawable fallbackBanner, Drawable fallbackIcon) throws Exception {
+                                             Drawable fallbackBanner, Drawable fallbackIcon, boolean includeBanner) throws Exception {
         int flags = PackageManager.MATCH_DISABLED_COMPONENTS | PackageManager.MATCH_DISABLED_UNTIL_USED_COMPONENTS;
         ApplicationInfo app = pm.getApplicationInfo(override.sourcePackage, flags);
         Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
@@ -291,19 +392,21 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         CharSequence sourceLabel = pm.getApplicationLabel(app);
         if (resolved != null) {
             ActivityInfo activity = resolved.activityInfo;
-            if (activity.banner != 0) bannerId = activity.banner;
-            else bannerId = app.banner;
+            if (includeBanner) {
+                if (activity.banner != 0) bannerId = activity.banner;
+                else bannerId = app.banner;
+            }
             if (activity.icon != 0) iconId = activity.icon;
             sourceLabel = activity.loadLabel(pm);
         } else {
-            bannerId = app.banner;
+            if (includeBanner) bannerId = app.banner;
         }
         Drawable banner = rawDrawable(resources, bannerId);
         Drawable icon = rawDrawable(resources, iconId);
-        if (banner == null && resolved != null) {
+        if (includeBanner && banner == null && resolved != null) {
             try { banner = resolved.activityInfo.loadBanner(pm); } catch (Exception ignored) { }
         }
-        if (banner == null) {
+        if (includeBanner && banner == null) {
             try { banner = app.loadBanner(pm); } catch (Exception ignored) { }
         }
         if (icon == null && resolved != null) {
@@ -368,13 +471,16 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             h.banner.setVisibility(View.VISIBLE);
             h.icon.setVisibility(View.GONE);
             h.label.setVisibility(View.GONE);
+            h.card.setBackgroundResource(R.drawable.tile_bg);
         } else {
             h.banner.setImageDrawable(null);
             h.banner.setVisibility(View.GONE);
             h.icon.setImageDrawable(e.icon);
             h.icon.setVisibility(View.VISIBLE);
+            h.icon.setTranslationY(e.logo ? 7f * ctx.getResources().getDisplayMetrics().density : 0f);
             h.label.setText(e.label);
             h.label.setVisibility(View.VISIBLE);
+            h.card.setBackgroundResource(R.drawable.tile_bg);
         }
         h.card.setOnClickListener(v -> launch(e));
         boolean moving = e.component.flattenToShortString().equals(movingKey);
@@ -384,6 +490,29 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         h.card.setTranslationZ(moving ? 18f * ctx.getResources().getDisplayMetrics().density
                 : (focused && advancedEffects ? 8f * ctx.getResources().getDisplayMetrics().density : 0f));
         h.card.setOnLongClickListener(v -> { listener.onTileLongPressed(h.getBindingAdapterPosition(), v); return true; });
+    }
+
+    private static int logoColor(Drawable icon) {
+        int color = vividColor(icon);
+        return Color.rgb((int)(Color.red(color) * .58f), (int)(Color.green(color) * .58f), (int)(Color.blue(color) * .58f));
+    }
+
+    boolean logoAt(int position) {
+        if (position < 0 || position >= items.size()) return false;
+        Entry e = items.get(position);
+        return e.logo || e.banner == null;
+    }
+
+    void setLogoChoice(String pkg, boolean logo) {
+        android.content.SharedPreferences p = ctx.getSharedPreferences("app_layout", Context.MODE_PRIVATE);
+        Set<String> logos = new HashSet<>(p.getStringSet("logo_tiles", Collections.emptySet()));
+        Set<String> banners = new HashSet<>(p.getStringSet("banner_tiles", Collections.emptySet()));
+        if (logo) {
+            banners.remove(pkg); logos.add(pkg);
+        } else {
+            logos.remove(pkg); banners.add(pkg);
+        }
+        p.edit().putStringSet("logo_tiles", logos).putStringSet("banner_tiles", banners).apply();
     }
 
     /** Opens the tile's activity by explicit component, with no extras: a card can name nothing else. */
@@ -415,6 +544,13 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     @Override
     public long getItemId(int position) {
         return items.get(position).component.flattenToShortString().hashCode();
+    }
+
+    @Override
+    public void onViewRecycled(@NonNull Holder h) {
+        h.banner.setImageDrawable(null);
+        h.icon.setImageDrawable(null);
+        super.onViewRecycled(h);
     }
 
     /** Stable key for the app at a position (its component), or null. */
@@ -472,6 +608,15 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         int current = positionOf(key);
         if (old >= 0) notifyItemChanged(old);
         if (current >= 0 && current != old) notifyItemChanged(current);
+    }
+
+    void clearArtwork() {
+        for (Entry e : items) {
+            if (e.banner instanceof BitmapDrawable) e.banner.setCallback(null);
+            if (e.icon instanceof BitmapDrawable) e.icon.setCallback(null);
+        }
+        items.clear();
+        notifyDataSetChanged();
     }
 
     float focusScale() {

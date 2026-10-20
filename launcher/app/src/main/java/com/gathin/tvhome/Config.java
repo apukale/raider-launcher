@@ -38,6 +38,7 @@ final class Config {
     final List<String> dockApps;
     final List<String> hiddenApps;
     final List<String> tileOverrides;
+    final List<String> logoTileApps;
     final String liveTvPackage;
     final String liveTvAction;
     final String sourcePanelService;
@@ -62,7 +63,7 @@ final class Config {
     /** Whether the overlay file was present and parsed. */
     final boolean overlayApplied;
 
-    private Config(List<String> dockApps, List<String> hiddenApps, List<String> tileOverrides,
+    private Config(List<String> dockApps, List<String> hiddenApps, List<String> tileOverrides, List<String> logoTileApps,
                    String liveTvPackage, String liveTvAction,
                    String sourcePanelService, String sourcePanelAction, String inputAction,
                    int columns, int rowsBelowDock, boolean animations, boolean advancedEffects,
@@ -72,6 +73,7 @@ final class Config {
         this.dockApps = Collections.unmodifiableList(dockApps);
         this.hiddenApps = Collections.unmodifiableList(hiddenApps);
         this.tileOverrides = Collections.unmodifiableList(tileOverrides);
+        this.logoTileApps = Collections.unmodifiableList(logoTileApps);
         this.liveTvPackage = liveTvPackage;
         this.liveTvAction = liveTvAction;
         this.sourcePanelService = sourcePanelService;
@@ -102,6 +104,7 @@ final class Config {
         List<String> dock = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.dock_apps)));
         List<String> hidden = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.hidden_apps)));
         List<String> tileOverrides = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.tile_overrides)));
+        List<String> logoTileApps = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.logo_tile_apps)));
         String liveTv = res.getString(R.string.live_tv_package).trim();
         String liveTvAction = res.getString(R.string.live_tv_action).trim();
         String panelService = res.getString(R.string.source_panel_service).trim();
@@ -128,6 +131,7 @@ final class Config {
             dock = stringList(json, "dock_apps", dock);
             hidden = stringList(json, "hidden_apps", hidden);
             tileOverrides = stringList(json, "tile_overrides", tileOverrides);
+            logoTileApps = stringList(json, "logo_tile_apps", logoTileApps);
             liveTv = string(json, "live_tv_package", liveTv);
             liveTvAction = string(json, "live_tv_action", liveTvAction);
             panelService = string(json, "source_panel_service", panelService);
@@ -158,7 +162,7 @@ final class Config {
         // A theme can also switch the wallpaper off while the file is still there.
         if (json != null && json.has("wallpaper") && !bool(json, "wallpaper", true)) wallpaper = null;
 
-        return new Config(dock, hidden, tileOverrides, liveTv, liveTvAction, panelService, panelAction, inputAction,
+        return new Config(dock, hidden, tileOverrides, logoTileApps, liveTv, liveTvAction, panelService, panelAction, inputAction,
                 Math.max(1, columns), Math.max(0, rowsBelow), animations, advancedEffects,
                 shamsi, moduleCards, reducedMotion, vpn, homeSettings, background,
                 Math.max(0, Math.min(100, skyIntensity)), wallpaper, applied);

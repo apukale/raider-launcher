@@ -92,6 +92,13 @@
             android:text="@string/network_dns" />
 
         <TextView
+            android:id="@+id/clearCacheChoice"
+            style="@style/SettingsRow"
+            android:layout_height="72dp"
+            android:layout_marginTop="18dp"
+            android:text="@string/clear_app_cache" />
+
+        <TextView
             android:id="@+id/defaultHomeChoice"
             style="@style/SettingsRow"
             android:layout_marginTop="18dp"

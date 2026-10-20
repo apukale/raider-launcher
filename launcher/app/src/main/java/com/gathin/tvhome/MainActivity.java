@@ -91,6 +91,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private FrameLayout root;
     private GlassView glass;
     private View ambient;
+    private View wallpaperView;
+    private File wallpaperFile;
     private TextView heroName;
     private int ambientColor = -1;
     private ValueAnimator ambientAnimator;
@@ -386,13 +388,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             opts.inJustDecodeBounds = true;
             android.graphics.BitmapFactory.decodeFile(file.getPath(), opts);
             int sample = 1;
-            while (opts.outWidth / (sample * 2) >= dm.widthPixels && opts.outHeight / (sample * 2) >= dm.heightPixels) sample *= 2;
+            while (opts.outWidth / (sample * 2) > dm.widthPixels || opts.outHeight / (sample * 2) > dm.heightPixels) sample *= 2;
             opts.inJustDecodeBounds = false;
             opts.inSampleSize = sample;
             opts.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565;   // no alpha needed, half the memory
             android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeFile(file.getPath(), opts);
             if (bmp == null) return;
             android.widget.ImageView wall = new android.widget.ImageView(this);
+            wallpaperFile = file;
+            wallpaperView = wall;
             wall.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
             wall.setImageBitmap(bmp);
             root.addView(wall, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -429,6 +433,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onResume() {
         super.onResume();
+        if (wallpaperView == null && wallpaperFile != null) showWallpaper(wallpaperFile);
         promptsPaused = false;
         if (rebuildOnResume) {
             tilesReady = false;
@@ -440,6 +445,28 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         updateInputsButton();
         sky.update();
         handler.postDelayed(minuteTick, MINUTE_MS);
+    }
+
+    @Override
+    public void onTrimMemory(int level) {
+        super.onTrimMemory(level);
+        if (level < TRIM_MEMORY_UI_HIDDEN) return;
+        String focusedKey = lastFocusedKey;
+        int focusedPosition = lastFocused;
+        if (adapter != null) adapter.clearArtwork();
+        lastFocusedKey = focusedKey;
+        lastFocused = focusedPosition;
+        if (wallpaperView instanceof android.widget.ImageView) {
+            ((android.widget.ImageView) wallpaperView).setImageDrawable(null);
+            if (root != null) root.removeView(wallpaperView);
+            wallpaperView = null;
+        }
+        if (ambient != null) {
+            ambient.animate().cancel();
+            ambient.setBackground(null);
+            ambientColor = -1;
+        }
+        rebuildOnResume = true;
     }
 
     @Override
@@ -792,7 +819,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         String pkg = adapter.packageAt(position);
         android.app.AlertDialog dialog = new android.app.AlertDialog.Builder(this)
                 .setTitle(R.string.app_actions)
-                .setItems(new CharSequence[]{getString(R.string.move_app), getString(R.string.hide_app), getString(R.string.app_info)}, (d, which) -> {
+                .setItems(new CharSequence[]{getString(R.string.move_app), getString(R.string.hide_app),
+                        getString(adapter.logoAt(position) ? R.string.use_banner : R.string.use_app_logo),
+                        getString(R.string.app_info)}, (d, which) -> {
             if (which == 0) {
                 movingTile = true;
                 movingPosition = adapter.positionOf(key);
@@ -805,6 +834,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 Set<String> hidden = new HashSet<>(p.getStringSet("hidden", Collections.emptySet()));
                 hidden.add(pkg);
                 p.edit().putStringSet("hidden", hidden).apply();
+                reloadApps(false);
+            } else if (which == 2) {
+                adapter.setLogoChoice(pkg, !adapter.logoAt(adapter.positionOf(key)));
                 reloadApps(false);
             } else {
                 try { startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg))); } catch (Exception ignored) { }
@@ -1199,10 +1231,26 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         addSettingsMenuRow(rows, popup, R.string.launcher_settings, () -> startActivityForResult(
                 new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST));
         if (moduleCards) addSettingsMenuRow(rows, popup, R.string.module_cards, this::showModuleCards);
+        addSettingsMenuRow(rows, popup, R.string.restart_tv, this::confirmRestartTv);
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max((int) (200 * density), panel.getMeasuredWidth()));
         dropIn(popup, panel, anchor, Gravity.END);
         rows.getChildAt(0).requestFocus();
+    }
+
+    private void confirmRestartTv() {
+        new android.app.AlertDialog.Builder(this)
+                .setMessage(R.string.restart_tv_confirm)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                    if (!PowerMenuService.openPowerDialog()) {
+                        new android.app.AlertDialog.Builder(this)
+                                .setMessage(R.string.restart_tv_service_missing)
+                                .setPositiveButton(android.R.string.ok, null)
+                                .show();
+                    }
+                })
+                .show();
     }
 
     private void addSettingsMenuRow(LinearLayout rows, PopupWindow popup, int title, Runnable action) {

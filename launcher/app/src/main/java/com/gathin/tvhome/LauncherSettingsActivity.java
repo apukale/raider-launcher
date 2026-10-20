@@ -2,6 +2,8 @@ package com.gathin.tvhome;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.AppOpsManager;
+import android.app.usage.StorageStatsManager;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -9,19 +11,29 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Process;
+import android.os.StatFs;
+import android.os.storage.StorageManager;
 import android.provider.Settings.Global;
 import android.provider.Settings;
 import android.text.InputType;
+import android.text.format.Formatter;
 import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 /** Remote-friendly settings owned by the launcher; system settings stay one row away. */
 public final class LauncherSettingsActivity extends Activity {
@@ -42,6 +54,9 @@ public final class LauncherSettingsActivity extends Activity {
     private TextView followThemeChoice;
     private TextView dnsChoice;
     private TextView defaultHomeChoice;
+    private TextView clearCacheChoice;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private boolean clearingCache;
     private int columns;
     private boolean animations;
     private boolean advancedEffects;
@@ -108,6 +123,9 @@ public final class LauncherSettingsActivity extends Activity {
         });
         dnsChoice = findViewById(R.id.dnsChoice);
         dnsChoice.setOnClickListener(v -> showDnsChoices());
+        clearCacheChoice = findViewById(R.id.clearCacheChoice);
+        clearCacheChoice.setOnClickListener(v -> clearAppCache());
+        clearCacheChoice.setText(R.string.storage_summary_unavailable);
         findViewById(R.id.tvSettingsChoice).setOnClickListener(v ->
                 open(new Intent(Settings.ACTION_SETTINGS)));
         findViewById(R.id.resetOrderChoice).setOnClickListener(v ->
@@ -122,6 +140,12 @@ public final class LauncherSettingsActivity extends Activity {
         findViewById(R.id.unhideAppsChoice).setOnClickListener(v -> showHiddenApps());
         refresh();
         columnChoices[Math.max(0, Math.min(columns - 4, 3))].requestFocus();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        updateStorageSummary();
     }
 
     private void setAdvanced(boolean enabled) {
@@ -157,6 +181,179 @@ public final class LauncherSettingsActivity extends Activity {
         } catch (ActivityNotFoundException | SecurityException e) {
             Toast.makeText(this, R.string.not_available, Toast.LENGTH_LONG).show();
         }
+    }
+
+    private static final class StorageSnapshot {
+        final long freeBytes;
+        final long totalBytes;
+        final Long cacheBytes;
+
+        StorageSnapshot(long freeBytes, long totalBytes, Long cacheBytes) {
+            this.freeBytes = freeBytes;
+            this.totalBytes = totalBytes;
+            this.cacheBytes = cacheBytes;
+        }
+    }
+
+    private void updateStorageSummary() {
+        new Thread(() -> {
+            StorageSnapshot snapshot = readStorageSnapshot();
+            mainHandler.post(() -> {
+                if (isFinishing() || clearCacheChoice == null || clearingCache) return;
+                clearCacheChoice.setText(storageSummary(snapshot));
+            });
+        }, "launcher-storage-stats").start();
+    }
+
+    private StorageSnapshot readStorageSnapshot() {
+        long freeBytes = -1L;
+        long totalBytes = -1L;
+        try {
+            StorageStatsManager storageStatsManager = getSystemService(StorageStatsManager.class);
+            if (storageStatsManager != null) {
+                freeBytes = storageStatsManager.getFreeBytes(StorageManager.UUID_DEFAULT);
+                totalBytes = storageStatsManager.getTotalBytes(StorageManager.UUID_DEFAULT);
+            }
+        } catch (Throwable ignored) {
+            // Some TV builds do not expose storage stats consistently; use the data partition below.
+        }
+        if (freeBytes < 0 || totalBytes < 0) {
+            try {
+                StatFs stat = new StatFs(Environment.getDataDirectory().getAbsolutePath());
+                if (freeBytes < 0) freeBytes = stat.getAvailableBytes();
+                if (totalBytes < 0) totalBytes = stat.getTotalBytes();
+            } catch (Throwable ignored) {
+                // Keep whichever values were available.
+            }
+        }
+        return new StorageSnapshot(freeBytes, totalBytes, readCacheBytes());
+    }
+
+    private Long readCacheBytes() {
+        try {
+            AppOpsManager appOps = getSystemService(AppOpsManager.class);
+            if (appOps == null || appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS,
+                    Process.myUid(), getPackageName()) != AppOpsManager.MODE_ALLOWED) {
+                return null;
+            }
+            StorageStatsManager stats = getSystemService(StorageStatsManager.class);
+            if (stats == null) return null;
+            return stats.queryStatsForUser(StorageManager.UUID_DEFAULT, Process.myUserHandle())
+                    .getCacheBytes();
+        } catch (SecurityException ignored) {
+            return null;
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private String storageSummary(StorageSnapshot snapshot) {
+        String cache = snapshot.cacheBytes == null
+                ? getString(R.string.cache_size_unavailable)
+                : Formatter.formatShortFileSize(this, snapshot.cacheBytes);
+        if (snapshot.freeBytes < 0 || snapshot.totalBytes < 0) {
+            return getString(R.string.storage_free_unavailable, cache);
+        }
+        return getString(R.string.storage_summary,
+                Formatter.formatShortFileSize(this, snapshot.freeBytes),
+                Formatter.formatShortFileSize(this, snapshot.totalBytes), cache);
+    }
+
+    private void clearAppCache() {
+        if (clearingCache) return;
+        clearingCache = true;
+        clearCacheChoice.setText(R.string.clearing_cache);
+        new Thread(() -> {
+            StorageSnapshot before = readStorageSnapshot();
+            boolean cleared = tryFreeStorageAndNotify();
+            if (!cleared) cleared = tryAllocateStorage();
+            // Allow package manager cache deletion to settle before measuring the result.
+            try {
+                Thread.sleep(1000L);
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+            }
+            StorageSnapshot after = readStorageSnapshot();
+            final boolean attempted = cleared;
+            mainHandler.post(() -> {
+                clearingCache = false;
+                if (isFinishing()) return;
+                clearCacheChoice.setText(storageSummary(after));
+                showCacheClearResult(before, after, attempted);
+            });
+        }, "launcher-clear-cache").start();
+    }
+
+    private boolean tryFreeStorageAndNotify() {
+        try {
+            if (checkSelfPermission("android.permission.CLEAR_APP_CACHE")
+                    != PackageManager.PERMISSION_GRANTED) return false;
+            PackageManager pm = getPackageManager();
+            for (Method method : pm.getClass().getMethods()) {
+                Class<?>[] params = method.getParameterTypes();
+                if ("freeStorageAndNotify".equals(method.getName()) && params.length == 2
+                        && (params[0] == long.class || params[0] == Long.class)) {
+                    method.invoke(pm, Long.MAX_VALUE, null);
+                    return true;
+                }
+            }
+        } catch (Throwable ignored) {
+            // Hidden API enforcement varies by TV firmware. Try the public allocation API next.
+        }
+        return false;
+    }
+
+    private boolean tryAllocateStorage() {
+        try {
+            StorageManager storageManager = getSystemService(StorageManager.class);
+            if (storageManager == null) return false;
+            UUID volume = StorageManager.UUID_DEFAULT;
+            long bytes = storageManager.getAllocatableBytes(volume);
+            storageManager.allocateBytes(volume, bytes);
+            return true;
+        } catch (IOException | SecurityException ignored) {
+            return false;
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    private void showCacheClearResult(StorageSnapshot before, StorageSnapshot after, boolean attempted) {
+        long beforeFree = before.freeBytes;
+        long afterFree = after.freeBytes;
+        long delta = beforeFree >= 0 && afterFree >= 0 ? afterFree - beforeFree : 0L;
+        boolean negligible = !attempted || beforeFree < 0 || afterFree < 0 || delta < 1024L * 1024L;
+        String message;
+        if (negligible) {
+            message = (beforeFree >= 0 && afterFree >= 0)
+                    ? getString(R.string.cache_clear_no_change,
+                    Formatter.formatShortFileSize(this, beforeFree),
+                    Formatter.formatShortFileSize(this, afterFree))
+                    : getString(R.string.cache_clearing_unavailable);
+        } else {
+            message = getString(R.string.cache_clear_result,
+                    Formatter.formatShortFileSize(this, delta),
+                    Formatter.formatShortFileSize(this, beforeFree),
+                    Formatter.formatShortFileSize(this, afterFree));
+        }
+        new AlertDialog.Builder(this).setTitle(R.string.clear_app_cache).setMessage(message)
+                .setNeutralButton(R.string.open_storage_settings,
+                        (dialog, which) -> openStorageSettings())
+                .setPositiveButton(android.R.string.ok, null).show();
+    }
+
+    private void openStorageSettings() {
+        String[] actions = {Settings.ACTION_INTERNAL_STORAGE_SETTINGS,
+                Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS, Settings.ACTION_SETTINGS};
+        for (String action : actions) {
+            try {
+                startActivity(new Intent(action));
+                return;
+            } catch (ActivityNotFoundException | SecurityException ignored) {
+                // Try the next supported settings screen on this TV.
+            }
+        }
+        Toast.makeText(this, R.string.not_available, Toast.LENGTH_LONG).show();
     }
 
     private String currentHomeLabel() {

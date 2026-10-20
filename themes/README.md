@@ -29,6 +29,7 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `dock_apps` | list of package names | The dock row, in order; missing apps are skipped |
 | `hidden_apps` | list of package names | Never shown as tiles |
 | `tile_overrides` | list of `target.package=source.package|Label` strings | Use the source package's banner/icon and, when `Label` is omitted, its app label. An explicit label replaces it. The target app remains the tile's launch target; missing sources fall back to the target's own appearance. |
+| `logo_tile_apps` | list of package names | Start these apps in icon logo mode, with a colour sampled from the icon. The built-in default is `app.netmirror.newtv`; users can override the choice per app from its long-press menu. |
 | `live_tv_package`, `live_tv_action` | string | The Live TV app and, if it has no leanback entry, the action to start it with |
 | `source_panel_service`, `source_panel_action` | string | The TV's own source panel, for sets with no TvInputManager |
 | `input_action` | string | Action sent with an HDMI/AV row's channel URI when nothing handles the standard `VIEW` (XGIMI: `com.xgimi.action.hdmiPlayer`) |
