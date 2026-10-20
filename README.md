@@ -1,3 +1,5 @@
+Raider Launcher, a fork of [CleanYourTV](https://github.com/Gathin23/cleanyourtv) by Gathin23. Tested on a TCL Android TV 11 set.
+
 <p align="center">
   <a href="https://cleanyour.tv"><img src="https://raw.githubusercontent.com/Gathin23/cleanyourtv/main/docs/banner.png" alt="CleanYourTV. Your TV, minus the ads." width="800"></a>
 </p>
