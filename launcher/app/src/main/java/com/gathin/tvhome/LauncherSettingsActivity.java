@@ -232,7 +232,7 @@ public final class LauncherSettingsActivity extends Activity {
         String[] names = {"Home", "Screensaver", "Calendar", "Weather", "Apps", "Network / DNS", "Night mode", "Kids lock", "About"};
         int[] icons = {R.drawable.ic_cat_home,R.drawable.ic_cat_screensaver,R.drawable.ic_cat_calendar,R.drawable.ic_cat_weather,R.drawable.ic_cat_apps,R.drawable.ic_cat_network,R.drawable.ic_cat_night,R.drawable.ic_cat_kids,R.drawable.ic_cat_about};
         railItems=new View[names.length]; categoryCards=new View[names.length];
-        LinearLayout legacy=(LinearLayout)LayoutInflater.from(this).inflate(R.layout.legacy_launcher_settings,null,false);
+        View legacy=LayoutInflater.from(this).inflate(R.layout.legacy_launcher_settings,null,false); // root is a ScrollView; only findViewById is used
         int[][] groups={{R.id.animationsChoice,R.id.advancedChoice,R.id.followThemeChoice,R.id.pillLabelsChoice,R.id.moduleCardsChoice,R.id.resetOrderChoice,R.id.unhideAppsChoice,R.id.defaultHomeChoice,R.id.accentChoice},{R.id.screensaverStyleChoice,R.id.photoIntervalChoice,R.id.photoSourceChoice,R.id.photoStorageChoice,R.id.refreshPhotosChoice,R.id.startAfterChoice,R.id.startScreensaverChoice},{R.id.homeCalendarChoice,R.id.calendarTextSizeChoice,R.id.calendarChoice},{R.id.weatherChoice},{R.id.clearCacheChoice,R.id.tvSettingsChoice},{R.id.dnsChoice},{R.id.nightModeChoice,R.id.nightStartsChoice,R.id.nightEndsChoice},{},{}};
         for(int category=0;category<names.length;category++){
             final int index=category;
