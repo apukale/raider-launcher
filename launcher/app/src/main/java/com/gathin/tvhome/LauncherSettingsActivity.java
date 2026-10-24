@@ -1,7 +1,6 @@
 package com.gathin.tvhome;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.AppOpsManager;
 import android.app.usage.StorageStatsManager;
 import android.content.ActivityNotFoundException;
@@ -26,7 +25,6 @@ import android.text.Spanned;
 import android.text.style.AbsoluteSizeSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.format.Formatter;
-import android.view.WindowManager;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.graphics.drawable.GradientDrawable;
@@ -140,12 +138,8 @@ public final class LauncherSettingsActivity extends Activity {
             if (advancedEffects) {
                 setAdvanced(false);
             } else {
-                new AlertDialog.Builder(this)
-                        .setTitle(R.string.advanced_effects)
-                        .setMessage(R.string.advanced_effects_warning)
-                        .setPositiveButton(R.string.enable, (dialog, which) -> setAdvanced(true))
-                        .setNegativeButton(android.R.string.cancel, null)
-                        .show();
+                SettingsPicker.buttons(this, getString(R.string.advanced_effects), getString(R.string.advanced_effects_warning), null,
+                        getString(android.R.string.cancel), null, null, null, getString(R.string.enable), () -> setAdvanced(true));
             }
         });
         followThemeChoice = findViewById(R.id.followThemeChoice);
@@ -172,14 +166,12 @@ public final class LauncherSettingsActivity extends Activity {
         findViewById(R.id.tvSettingsChoice).setOnClickListener(v ->
                 open(new Intent(Settings.ACTION_SETTINGS)));
         findViewById(R.id.resetOrderChoice).setOnClickListener(v ->
-                new AlertDialog.Builder(this).setTitle(R.string.reset_order)
-                        .setMessage(R.string.reset_order_confirm)
-                        .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                SettingsPicker.confirm(this, getString(R.string.reset_order), getString(R.string.reset_order_confirm), () -> {
                             getSharedPreferences("app_layout", MODE_PRIVATE).edit()
                                     .remove("custom_order").remove("ordered_components").apply();
                             Toast.makeText(this, R.string.reset_order, Toast.LENGTH_SHORT).show();
                             setResult(RESULT_OK);
-                        }).setNegativeButton(android.R.string.cancel, null).show());
+                        }));
         findViewById(R.id.unhideAppsChoice).setOnClickListener(v -> showHiddenApps());
         TextView moduleCards = findViewById(R.id.moduleCardsChoice);
         if (!config.moduleCards) moduleCards.setVisibility(View.GONE);
@@ -269,7 +261,7 @@ public final class LauncherSettingsActivity extends Activity {
         w=small.getWidth();h=small.getHeight();int[] pixels=new int[w*h];small.getPixels(pixels,0,w,0,0,w,h);small.recycle();BoxBlur.blur(pixels,w,h,8,2);Bitmap blurred=Bitmap.createBitmap(w,h,Bitmap.Config.RGB_565);blurred.setPixels(pixels,0,w,0,0,w,h);settingsBackground=blurred;}catch(Throwable t){SettingsStyle.photoAccent=0;}}
     private void applyAccentToRows(View view){if(view.isFocusable())view.setBackground(SettingsStyle.focus(this,SettingsStyle.accent(this),view.hasFocus()));if(view instanceof android.view.ViewGroup){android.view.ViewGroup group=(android.view.ViewGroup)view;for(int i=0;i<group.getChildCount();i++)applyAccentToRows(group.getChildAt(i));}}
     private View findFocusable(View view){if(view.isFocusable()&&view.getVisibility()==View.VISIBLE)return view;if(view instanceof android.view.ViewGroup){android.view.ViewGroup group=(android.view.ViewGroup)view;for(int i=0;i<group.getChildCount();i++){View found=findFocusable(group.getChildAt(i));if(found!=null)return found;}}return null;}
-    private void chooseAccent(){String[] names={"Marigold","Teal","Rose","Silver"};new AlertDialog.Builder(this).setTitle("Accent colour").setSingleChoiceItems(names,Math.max(0,java.util.Arrays.asList(names).indexOf(choices.getString("accent_color","Marigold"))),(d,w)->{choices.edit().putString("accent_color",names[w]).apply();d.dismiss();for(int i=0;i<railItems.length;i++)railItems[i].setBackground(SettingsStyle.focus(this,SettingsStyle.accent(this),i==selectedCategory));applyAccentToRows(categoryContent);TextView chip=findViewById(R.id.versionChip);chip.setBackground(SettingsStyle.pill(this,SettingsStyle.accent(this)));}).setNegativeButton(android.R.string.cancel,null).show();}
+    private void chooseAccent(){String[] names={"Marigold","Teal","Rose","Silver"};SettingsPicker.single(this,"Accent colour",names,Math.max(0,java.util.Arrays.asList(names).indexOf(choices.getString("accent_color","Marigold"))),w->{choices.edit().putString("accent_color",names[w]).apply();for(int i=0;i<railItems.length;i++)railItems[i].setBackground(SettingsStyle.focus(this,SettingsStyle.accent(this),i==selectedCategory));applyAccentToRows(categoryContent);TextView chip=findViewById(R.id.versionChip);chip.setBackground(SettingsStyle.pill(this,SettingsStyle.accent(this)));});}
     @Override public boolean dispatchKeyEvent(KeyEvent event){if(event.getAction()==KeyEvent.ACTION_DOWN){int key=event.getKeyCode();View cur=getCurrentFocus();boolean onHeader=clearCacheHeader!=null&&clearCacheHeader.isFocused();boolean inContent=cur!=null&&inside(categoryContent,cur);View first=findFocusable(categoryCards[selectedCategory]);
         if(key==KeyEvent.KEYCODE_BACK){if(fontsCard!=null&&categoryCards[1]==fontsCard&&inContent){hideFonts();return true;}if(inContent||onHeader){railItems[selectedCategory].requestFocus();return true;}finish();return true;}
         if(onHeader){if(key==KeyEvent.KEYCODE_DPAD_DOWN){View back=headerReturn;headerReturn=null;if(back!=null&&back.isShown()&&back.isFocusable())back.requestFocus();else if(first!=null)first.requestFocus();return true;}if(key==KeyEvent.KEYCODE_DPAD_LEFT){railItems[selectedCategory].requestFocus();return true;}if(key==KeyEvent.KEYCODE_DPAD_UP||key==KeyEvent.KEYCODE_DPAD_RIGHT)return true;}
@@ -302,22 +294,22 @@ public final class LauncherSettingsActivity extends Activity {
     private void setToggle(View view,boolean on){if(view instanceof TextView){TextView text=(TextView)view;text.setCompoundDrawablePadding(dp(12));text.setCompoundDrawablesRelativeWithIntrinsicBounds(null,null,SettingsStyle.toggle(this,on,SettingsStyle.accent(this)),null);}}
     private String weatherStatus(){long tried=choices.getLong("weather_last_try_at",0);String error=choices.getString("weather_last_error","");if(!error.isEmpty())return WeatherStatus.format(true,error,"",0);WeatherData d=WeatherClient.cached(this);if(tried==0||d==null)return WeatherStatus.format(false,"","",0);java.text.SimpleDateFormat f=new java.text.SimpleDateFormat("h:mm a",java.util.Locale.getDefault());return WeatherStatus.format(true,"",f.format(new java.util.Date(tried)),d.temperature);}
     private String formatNightTime(int total){int hour24=total/NIGHT_MINUTES_PER_HOUR;int hour=hour24%NIGHT_HOURS_PER_HALF_DAY;if(hour==0)hour=NIGHT_HOURS_PER_HALF_DAY;return getString(R.string.night_time_value,Integer.toString(hour),total%NIGHT_MINUTES_PER_HOUR,getString(hour24< NIGHT_HOURS_PER_HALF_DAY?R.string.night_am:R.string.night_pm));}
-    private void chooseNightTime(String key,int fallback){int[] parts={0,0,0};int total=choices.getInt(key,fallback);int h=total/NIGHT_MINUTES_PER_HOUR;parts[0]=h%NIGHT_HOURS_PER_HALF_DAY==0?NIGHT_HOURS_PER_HALF_DAY:h%NIGHT_HOURS_PER_HALF_DAY;parts[1]=total%NIGHT_MINUTES_PER_HOUR;parts[2]=h>=NIGHT_HOURS_PER_HALF_DAY?1:0;LinearLayout panel=new LinearLayout(this);panel.setOrientation(LinearLayout.HORIZONTAL);int pad=dp(NIGHT_PICKER_PADDING_DP);panel.setPadding(pad,pad,pad,pad);TextView[] cells=new TextView[3];final AlertDialog[] dialogRef=new AlertDialog[1];for(int i=0;i<cells.length;i++){final int column=i;TextView cell=new TextView(this);cells[i]=cell;cell.setTextSize(30f);cell.setGravity(android.view.Gravity.CENTER);cell.setFocusable(true);cell.setFocusableInTouchMode(true);cell.setMinWidth(dp(NIGHT_PICKER_CELL_WIDTH_DP));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(NIGHT_PICKER_CELL_HEIGHT_DP),1f);panel.addView(cell,lp);cell.setOnFocusChangeListener((v,focus)->v.setSelected(focus));cell.setOnKeyListener((v,keyCode,event)->{if(event.getAction()!=android.view.KeyEvent.ACTION_DOWN)return false;if(keyCode==android.view.KeyEvent.KEYCODE_DPAD_LEFT||keyCode==android.view.KeyEvent.KEYCODE_DPAD_RIGHT){cells[Math.max(0,Math.min(2,column+(keyCode==android.view.KeyEvent.KEYCODE_DPAD_LEFT?-1:1)))].requestFocus();return true;}if(keyCode==android.view.KeyEvent.KEYCODE_DPAD_UP||keyCode==android.view.KeyEvent.KEYCODE_DPAD_DOWN){int step=keyCode==android.view.KeyEvent.KEYCODE_DPAD_UP?1:-1;if(column==0)parts[0]=Math.floorMod(parts[0]-1+step,NIGHT_HOURS_PER_HALF_DAY)+1;else if(column==1)parts[1]=Math.floorMod(parts[1]+step*NIGHT_MINUTE_STEP,NIGHT_MINUTES_PER_HOUR);else parts[2]=1-parts[2];updateNightPicker(cells,parts);return true;}if(keyCode==android.view.KeyEvent.KEYCODE_DPAD_CENTER||keyCode==android.view.KeyEvent.KEYCODE_ENTER){choices.edit().putInt(key,(parts[0]%NIGHT_HOURS_PER_HALF_DAY+parts[2]*NIGHT_HOURS_PER_HALF_DAY)*NIGHT_MINUTES_PER_HOUR+parts[1]).apply();refresh();if(dialogRef[0]!=null)dialogRef[0].dismiss();return true;}return false;});}updateNightPicker(cells,parts);cells[0].requestFocus();AlertDialog dialog=new AlertDialog.Builder(this).setTitle(R.string.night_time_picker).setView(panel).setPositiveButton(android.R.string.ok,(d,w)->{choices.edit().putInt(key,(parts[0]%NIGHT_HOURS_PER_HALF_DAY+parts[2]*NIGHT_HOURS_PER_HALF_DAY)*NIGHT_MINUTES_PER_HOUR+parts[1]).apply();refresh();}).setNegativeButton(android.R.string.cancel,null).create();dialogRef[0]=dialog;dialog.show();}
+    private void chooseNightTime(String key,int fallback){int[] parts={0,0,0};int total=choices.getInt(key,fallback);int h=total/NIGHT_MINUTES_PER_HOUR;parts[0]=h%NIGHT_HOURS_PER_HALF_DAY==0?NIGHT_HOURS_PER_HALF_DAY:h%NIGHT_HOURS_PER_HALF_DAY;parts[1]=total%NIGHT_MINUTES_PER_HOUR;parts[2]=h>=NIGHT_HOURS_PER_HALF_DAY?1:0;LinearLayout panel=new LinearLayout(this);panel.setOrientation(LinearLayout.HORIZONTAL);int pad=dp(NIGHT_PICKER_PADDING_DP);panel.setPadding(pad,pad,pad,pad);TextView[] cells=new TextView[3];final android.app.Dialog[] dialogRef=new android.app.Dialog[1];for(int i=0;i<cells.length;i++){final int column=i;TextView cell=new TextView(this);cells[i]=cell;cell.setTextSize(30f);cell.setGravity(android.view.Gravity.CENTER);cell.setFocusable(true);cell.setFocusableInTouchMode(true);cell.setMinWidth(dp(NIGHT_PICKER_CELL_WIDTH_DP));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(NIGHT_PICKER_CELL_HEIGHT_DP),1f);panel.addView(cell,lp);cell.setOnFocusChangeListener((v,focus)->v.setSelected(focus));cell.setOnKeyListener((v,keyCode,event)->{if(event.getAction()!=android.view.KeyEvent.ACTION_DOWN)return false;if(keyCode==android.view.KeyEvent.KEYCODE_DPAD_LEFT||keyCode==android.view.KeyEvent.KEYCODE_DPAD_RIGHT){cells[Math.max(0,Math.min(2,column+(keyCode==android.view.KeyEvent.KEYCODE_DPAD_LEFT?-1:1)))].requestFocus();return true;}if(keyCode==android.view.KeyEvent.KEYCODE_DPAD_UP||keyCode==android.view.KeyEvent.KEYCODE_DPAD_DOWN){int step=keyCode==android.view.KeyEvent.KEYCODE_DPAD_UP?1:-1;if(column==0)parts[0]=Math.floorMod(parts[0]-1+step,NIGHT_HOURS_PER_HALF_DAY)+1;else if(column==1)parts[1]=Math.floorMod(parts[1]+step*NIGHT_MINUTE_STEP,NIGHT_MINUTES_PER_HOUR);else parts[2]=1-parts[2];updateNightPicker(cells,parts);return true;}if(keyCode==android.view.KeyEvent.KEYCODE_DPAD_CENTER||keyCode==android.view.KeyEvent.KEYCODE_ENTER){choices.edit().putInt(key,(parts[0]%NIGHT_HOURS_PER_HALF_DAY+parts[2]*NIGHT_HOURS_PER_HALF_DAY)*NIGHT_MINUTES_PER_HOUR+parts[1]).apply();refresh();if(dialogRef[0]!=null)dialogRef[0].dismiss();return true;}return false;});}updateNightPicker(cells,parts);dialogRef[0]=SettingsPicker.form(this,getString(R.string.night_time_picker),panel,getString(android.R.string.cancel),null,null,null,getString(android.R.string.ok),()->{choices.edit().putInt(key,(parts[0]%NIGHT_HOURS_PER_HALF_DAY+parts[2]*NIGHT_HOURS_PER_HALF_DAY)*NIGHT_MINUTES_PER_HOUR+parts[1]).apply();refresh();});}
     private int dp(int value){return (int)(value*getResources().getDisplayMetrics().density+0.5f);}
     private void updateNightPicker(TextView[] cells,int[] parts){cells[0].setText(Integer.toString(parts[0]));cells[1].setText(String.format(java.util.Locale.ROOT,"%02d",parts[1]));cells[2].setText(getString(parts[2]==0?R.string.night_am:R.string.night_pm));}
-    private void chooseCalendarTextSize(){String[] labels={getString(R.string.calendar_size_small),getString(R.string.calendar_size_medium),getString(R.string.calendar_size_large)};new AlertDialog.Builder(this).setTitle(R.string.calendar_text_size_title).setSingleChoiceItems(labels,choices.getInt("home_calendar_text_size",2),(d,w)->{choices.edit().putInt("home_calendar_text_size",w).apply();d.dismiss();updateScreensaverRows();}).setNegativeButton(android.R.string.cancel,null).show();}
+    private void chooseCalendarTextSize(){String[] labels={getString(R.string.calendar_size_small),getString(R.string.calendar_size_medium),getString(R.string.calendar_size_large)};SettingsPicker.single(this,getString(R.string.calendar_text_size_title),labels,choices.getInt("home_calendar_text_size",2),w->{choices.edit().putInt("home_calendar_text_size",w).apply();updateScreensaverRows();});}
     private void updatePhotoSummary(){updatePhotoSummaryRaw();formatRow(R.id.refreshPhotosChoice);}
     private void updatePhotoSummaryRaw(){if(refreshPhotosChoice!=null){android.content.SharedPreferences p=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE);long at=p.getLong("photo_last_refresh_at",0);String when=at==0?"never":new java.text.SimpleDateFormat("MMM d, h:mm a",java.util.Locale.getDefault()).format(new java.util.Date(at));String error=p.getString("photo_last_error","");refreshPhotosChoice.setText(getString(R.string.refresh_photos,PhotoStore.summary(this))+"\nLast refresh "+when+(error.isEmpty()?"":"\nLast error: "+error));formatRows();}}
     private static final int[] COLUMN_TINTS={0x4D26A69A,0x4D5C6BC0,0x4DEC407A,0x4DFFA726};
     private int screensaverStyleIndex(){if(!choices.getBoolean("dream_photos",true))return 0;return choices.getBoolean("dream_photo_calendar",true)?2:1;}
     private String screensaverStyleLabel(){int i=screensaverStyleIndex();return i==0?getString(R.string.screensaver_clock_only):i==1?"Photos + clock":getString(R.string.screensaver_photos);}
-    private void chooseScreensaverStyle(){String[] labels={getString(R.string.screensaver_clock_only),"Photos + clock",getString(R.string.screensaver_photos)};new AlertDialog.Builder(this).setTitle(R.string.screensaver_settings).setSingleChoiceItems(labels,screensaverStyleIndex(),(d,w)->{choices.edit().putBoolean("dream_photos",w>0).putBoolean("dream_photo_calendar",w==2).apply();d.dismiss();refreshScreensaverLabels();}).setNegativeButton(android.R.string.cancel,null).show();}
+    private void chooseScreensaverStyle(){String[] labels={getString(R.string.screensaver_clock_only),"Photos + clock",getString(R.string.screensaver_photos)};SettingsPicker.single(this,getString(R.string.screensaver_settings),labels,screensaverStyleIndex(),w->{choices.edit().putBoolean("dream_photos",w>0).putBoolean("dream_photo_calendar",w==2).apply();refreshScreensaverLabels();});}
     /** One toggle per photo source; sources whose API key is missing are hidden (and skipped by PhotoStore). */
     private void choosePhotoSource(){java.util.ArrayList<String> keys=new java.util.ArrayList<>();for(String s:PhotoSources.KNOWN)if(ExtraPhotoSources.available(s))keys.add(s);String[] labels=new String[keys.size()];boolean[] checked=new boolean[keys.size()];java.util.Set<String> sel=PhotoStore.selectedSources(this);for(int i=0;i<keys.size();i++){labels[i]=ExtraPhotoSources.label(keys.get(i));checked[i]=sel.contains(keys.get(i));}
-        new AlertDialog.Builder(this).setTitle(R.string.photo_source_title).setMultiChoiceItems(labels,checked,(d,w,on)->{checked[w]=on;java.util.LinkedHashSet<String> v=new java.util.LinkedHashSet<>();for(String s:sel)if(!keys.contains(s))v.add(s);for(int i=0;i<keys.size();i++)if(checked[i])v.add(keys.get(i));boolean any=false;for(String s:v)if(ExtraPhotoSources.available(s))any=true;if(!any){checked[w]=true;((AlertDialog)d).getListView().setItemChecked(w,true);return;}choices.edit().putString("photo_sources",PhotoSources.serialize(v)).remove("photo_source").apply();updateScreensaverRows();updatePhotoSummary();PhotoStore.schedule(this,false);}).setPositiveButton(android.R.string.ok,(d,w)->PhotoStore.schedule(this,true)).show();}
-    private void choosePhotoStorage(){int[] values={100,200,500};String[] labels={"100 MB","200 MB","500 MB"};int current=(int)(PhotoStore.cap(this)/(1024L*1024L)),selected=current==100?0:current==500?2:1;new AlertDialog.Builder(this).setTitle(R.string.photo_storage_title).setSingleChoiceItems(labels,selected,(d,w)->{choices.edit().putInt("photo_storage_mb",values[w]).apply();d.dismiss();PhotoStore.enforceCap(this);updateScreensaverRows();updatePhotoSummary();}).setNegativeButton(android.R.string.cancel,null).show();}
-    private void choosePhotoInterval(){int[] values={30_000,60_000,120_000,300_000};String[] labels={"30 s","1 min","2 min","5 min"};long current=choices.getLong("photo_interval_ms",60_000L);int selected=1;for(int i=0;i<values.length;i++)if(values[i]==current)selected=i;new AlertDialog.Builder(this).setTitle(R.string.photo_interval).setSingleChoiceItems(labels,selected,(d,w)->{choices.edit().putLong("photo_interval_ms",values[w]).apply();d.dismiss();refreshScreensaverLabels();}).setNegativeButton(android.R.string.cancel,null).show();}
-    private void chooseStartAfter(){int[] values={5,10,15,30};String[] labels={"5 min","10 min","15 min","30 min"};int selected=0;int now=Settings.System.getInt(getContentResolver(),Settings.System.SCREEN_OFF_TIMEOUT,600000);for(int i=0;i<values.length;i++)if(Math.abs(now-values[i]*60000)<60000)selected=i;new AlertDialog.Builder(this).setTitle(R.string.start_after_title).setSingleChoiceItems(labels,selected,(d,w)->{if(Settings.System.canWrite(this))Settings.System.putInt(getContentResolver(),Settings.System.SCREEN_OFF_TIMEOUT,values[w]*60000);d.dismiss();updateScreensaverRows();}).setNegativeButton(android.R.string.cancel,null).show();}
+        SettingsPicker.multi(this,getString(R.string.photo_source_title),labels,checked,(w,on)->{java.util.LinkedHashSet<String> v=new java.util.LinkedHashSet<>();for(String s:sel)if(!keys.contains(s))v.add(s);for(int i=0;i<keys.size();i++)if(i==w?on:checked[i])v.add(keys.get(i));boolean any=false;for(String s:v)if(ExtraPhotoSources.available(s))any=true;if(!any)return false;choices.edit().putString("photo_sources",PhotoSources.serialize(v)).remove("photo_source").apply();updateScreensaverRows();updatePhotoSummary();PhotoStore.schedule(this,false);return true;},()->PhotoStore.schedule(this,true));}
+    private void choosePhotoStorage(){int[] values={100,200,500};String[] labels={"100 MB","200 MB","500 MB"};int current=(int)(PhotoStore.cap(this)/(1024L*1024L)),selected=current==100?0:current==500?2:1;SettingsPicker.single(this,getString(R.string.photo_storage_title),labels,selected,w->{choices.edit().putInt("photo_storage_mb",values[w]).apply();PhotoStore.enforceCap(this);updateScreensaverRows();updatePhotoSummary();});}
+    private void choosePhotoInterval(){int[] values={30_000,60_000,120_000,300_000};String[] labels={"30 s","1 min","2 min","5 min"};long current=choices.getLong("photo_interval_ms",60_000L);int selected=1;for(int i=0;i<values.length;i++)if(values[i]==current)selected=i;SettingsPicker.single(this,getString(R.string.photo_interval),labels,selected,w->{choices.edit().putLong("photo_interval_ms",values[w]).apply();refreshScreensaverLabels();});}
+    private void chooseStartAfter(){int[] values={5,10,15,30};String[] labels={"5 min","10 min","15 min","30 min"};int selected=0;int now=Settings.System.getInt(getContentResolver(),Settings.System.SCREEN_OFF_TIMEOUT,600000);for(int i=0;i<values.length;i++)if(Math.abs(now-values[i]*60000)<60000)selected=i;SettingsPicker.single(this,getString(R.string.start_after_title),labels,selected,w->{if(Settings.System.canWrite(this))Settings.System.putInt(getContentResolver(),Settings.System.SCREEN_OFF_TIMEOUT,values[w]*60000);updateScreensaverRows();});}
 
     private void setAdvanced(boolean enabled) {
         advancedEffects = enabled;
@@ -518,10 +510,9 @@ public final class LauncherSettingsActivity extends Activity {
                     Formatter.formatShortFileSize(this, beforeFree),
                     Formatter.formatShortFileSize(this, afterFree));
         }
-        new AlertDialog.Builder(this).setTitle(R.string.clear_app_cache).setMessage(message)
-                .setNeutralButton(R.string.open_storage_settings,
-                        (dialog, which) -> openStorageSettings())
-                .setPositiveButton(android.R.string.ok, null).show();
+        SettingsPicker.buttons(this, getString(R.string.clear_app_cache), message, null,
+                null, null, getString(R.string.open_storage_settings), this::openStorageSettings,
+                getString(android.R.string.ok), null);
     }
 
     private void openStorageSettings() {
@@ -577,7 +568,6 @@ public final class LauncherSettingsActivity extends Activity {
                 }
             }
         }
-        final int checkedIndex = checked;
         CharSequence[] options = new CharSequence[DNS_HOSTS.length + 1];
         options[0] = getString(R.string.dns_off);
         options[1] = getString(R.string.dns_automatic);
@@ -589,19 +579,12 @@ public final class LauncherSettingsActivity extends Activity {
         options[7] = getString(R.string.dns_quad9);
         options[8] = checked == DNS_HOSTS.length
                 ? getString(R.string.dns_manual_current, host) : getString(R.string.dns_manual);
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(R.string.network_dns)
-                .setSingleChoiceItems(options, checked, (choiceDialog, which) -> {
-                    choiceDialog.dismiss();
-                    if (which == DNS_HOSTS.length) showCustomDns();
-                    else if (which == 0) writeDns("off", null);
-                    else if (which == 1) writeDns("opportunistic", null);
-                    else writeDns("hostname", DNS_HOSTS[which]);
-                }).setNegativeButton(android.R.string.cancel, null).create();
-        dialog.setOnShowListener(d -> {
-            dialog.getListView().setSelection(checkedIndex);
-            dialog.getListView().requestFocus();
+        SettingsPicker.single(this, getString(R.string.network_dns), options, checked, which -> {
+            if (which == DNS_HOSTS.length) showCustomDns();
+            else if (which == 0) writeDns("off", null);
+            else if (which == 1) writeDns("opportunistic", null);
+            else writeDns("hostname", DNS_HOSTS[which]);
         });
-        dialog.show();
     }
 
     private void showCustomDns() {
@@ -611,21 +594,20 @@ public final class LauncherSettingsActivity extends Activity {
         input.setHint(R.string.dns_hostname_hint);
         input.setText(Global.getString(getContentResolver(), PRIVATE_DNS_SPECIFIER));
         input.setSelection(input.length());
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(R.string.dns_custom)
-                .setMessage(R.string.dns_custom_hint).setView(input)
-                .setPositiveButton(android.R.string.ok, (d, which) -> {
+        input.setTextColor(0xFFF4F1EA);
+        input.setHintTextColor(0xFFA9ABC7);
+        android.widget.FrameLayout box = new android.widget.FrameLayout(this);
+        box.setPadding(dp(16), dp(4), dp(16), dp(4));
+        box.addView(input, new android.widget.FrameLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT));
+        SettingsPicker.buttons(this, getString(R.string.dns_custom), getString(R.string.dns_custom_hint), box,
+                getString(android.R.string.cancel), null, null, null, getString(android.R.string.ok), () -> {
                     String host = input.getText().toString().trim();
                     if (!validHostname(host)) {
                         Toast.makeText(this, R.string.dns_invalid_hostname, Toast.LENGTH_LONG).show();
                     } else {
                         writeDns("hostname", host);
                     }
-                }).setNegativeButton(android.R.string.cancel, null).create();
-        dialog.setOnShowListener(d -> {
-            input.requestFocus();
-            dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
-        });
-        dialog.show();
+                });
     }
 
     private boolean validHostname(String host) {
@@ -639,8 +621,7 @@ public final class LauncherSettingsActivity extends Activity {
 
     private void writeDns(String mode, String hostname) {
         if (checkSelfPermission("android.permission.WRITE_SECURE_SETTINGS") != PackageManager.PERMISSION_GRANTED) {
-            new AlertDialog.Builder(this).setTitle(R.string.dns_permission_title)
-                    .setMessage(R.string.dns_permission_message).setPositiveButton(android.R.string.ok, null).show();
+            SettingsPicker.notice(this, getString(R.string.dns_permission_title), getString(R.string.dns_permission_message));
             return;
         }
         try {
@@ -649,8 +630,7 @@ public final class LauncherSettingsActivity extends Activity {
             refresh();
             Toast.makeText(this, R.string.dns_saved, Toast.LENGTH_SHORT).show();
         } catch (SecurityException ignored) {
-            new AlertDialog.Builder(this).setTitle(R.string.dns_permission_title)
-                    .setMessage(R.string.dns_permission_message).setPositiveButton(android.R.string.ok, null).show();
+            SettingsPicker.notice(this, getString(R.string.dns_permission_title), getString(R.string.dns_permission_message));
         }
     }
 
@@ -673,13 +653,13 @@ public final class LauncherSettingsActivity extends Activity {
                 labels[i] = pkg;
             }
         }
-        new AlertDialog.Builder(this).setTitle(R.string.unhide_apps).setItems(labels, (dialog, which) -> {
+        SettingsPicker.list(this, getString(R.string.unhide_apps), labels, which -> {
             Set<String> updated = new HashSet<>(layout.getStringSet("hidden", Collections.emptySet()));
             updated.remove(packages.get(which));
             layout.edit().putStringSet("hidden", updated).apply();
             setResult(RESULT_OK);
             showHiddenApps();
-        }).setNegativeButton(android.R.string.cancel, null).show();
+        });
     }
 
     // ---- 2.11.5: per-area fonts (small sub-page of Look) and input names (Apps) ----
@@ -690,17 +670,17 @@ public final class LauncherSettingsActivity extends Activity {
     private void updateFontsEntry(){if(fontsEntry==null)return;String first=Fonts.name(this,Fonts.AREAS[0]);boolean same=true;for(String a:Fonts.AREAS)if(!Fonts.name(this,a).equals(first))same=false;fontsEntry.setText("Fonts: "+(same?first:"Mixed")+"\nHome, settings, screensaver and Panchang");formatRow(R.id.fontChoice);if(same)setValueFace(fontsEntry,Fonts.family(this,Fonts.AREAS[0]));}
     private void buildFontsCard(){fontsCard=new LinearLayout(this);fontsCard.setOrientation(LinearLayout.VERTICAL);fontsCard.setPadding(dp(12),dp(10),dp(12),dp(10));fontsCard.setClipChildren(false);fontsCard.setClipToPadding(false);fontsCard.setBackground(SettingsStyle.card(this));fontsCard.setVisibility(View.GONE);TextView cap=categoryText("Fonts",14,SettingsStyle.accent(this));cap.setPadding(dp(14),dp(8),dp(14),dp(8));cap.setIncludeFontPadding(false);fontsCard.addView(cap);
         for(int i=0;i<Fonts.AREAS.length;i++){final int area=i;fontRowIds[i]=View.generateViewId();TextView t=settingsRow(fontRowIds[i]);t.setOnClickListener(v->chooseFont(area));fontsCard.addView(t,rowParams());}
-        fontsCard.addView(hint("Back returns to Look. Home and Panchang switch the next time they open."));categoryContent.addView(fontsCard,new LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,-2));updateFontRows();}
+        fontsCard.addView(hint("Default is Outfit. Back returns to Look. Home and Panchang switch the next time they open."));categoryContent.addView(fontsCard,new LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,-2));updateFontRows();}
     private void updateFontRows(){if(fontsCard==null)return;for(int i=0;i<Fonts.AREAS.length;i++){TextView t=fontsCard.findViewById(fontRowIds[i]);if(t==null)continue;t.setText(Fonts.AREA_LABELS[i]+": "+Fonts.name(this,Fonts.AREAS[i]));formatRow(fontRowIds[i]);setValueFace(t,Fonts.family(this,Fonts.AREAS[i]));}updateFontsEntry();}
     /** Redraw the row's value in the font it names. */
     private void setValueFace(TextView row,int family){Object tag=row.getTag();if(!(tag instanceof String[]))return;android.graphics.drawable.Drawable end=row.getCompoundDrawablesRelative()[2];android.graphics.drawable.Drawable trailing=end instanceof RaiderTheme.ValueDrawable?((RaiderTheme.ValueDrawable)end).trailing:end;row.setCompoundDrawablesRelativeWithIntrinsicBounds(row.getCompoundDrawablesRelative()[0],null,new RaiderTheme.ValueDrawable(this,((String[])tag)[2],SettingsStyle.value(this),trailing,dp(320),Fonts.regular(this,family)),null);}
-    private void chooseFont(int area){String key=Fonts.AREAS[area];int cur=Fonts.family(this,key);new AlertDialog.Builder(this).setTitle(Fonts.AREA_LABELS[area]+" font").setSingleChoiceItems(Fonts.NAMES,cur,(d,w)->{d.dismiss();if(w==cur)return;choices.edit().putString(Fonts.key(key),Fonts.NAMES[w]).apply();setResult(RESULT_OK);if(Fonts.SETTINGS.equals(key)){getIntent().putExtra("open_fonts",true);recreate();return;}updateFontRows();}).setNegativeButton(android.R.string.cancel,null).show();}
+    private void chooseFont(int area){String key=Fonts.AREAS[area];int cur=Fonts.family(this,key);android.graphics.Typeface[] faces=new android.graphics.Typeface[Fonts.NAMES.length];for(int i=0;i<faces.length;i++)faces[i]=Fonts.regular(this,i);SettingsPicker.single(this,Fonts.AREA_LABELS[area]+" font",Fonts.NAMES,cur,faces,w->{if(w==cur)return;choices.edit().putString(Fonts.key(key),Fonts.NAMES[w]).apply();setResult(RESULT_OK);if(Fonts.SETTINGS.equals(key)){getIntent().putExtra("open_fonts",true);recreate();return;}updateFontRows();});}
     private void showFonts(){if(fontsCard==null||lookCard==null)return;categoryScroll.post(this::fitCurrentCard);lookCard.setVisibility(View.GONE);categoryCards[1]=fontsCard;fontsCard.setVisibility(View.VISIBLE);categoryScroll.scrollTo(0,0);View f=fontsCard.findViewById(fontRowIds[0]);if(f!=null)f.requestFocus();}
     private void hideFonts(){if(fontsCard==null||lookCard==null)return;fontsCard.setVisibility(View.GONE);categoryCards[1]=lookCard;lookCard.setVisibility(View.VISIBLE);if(fontsEntry!=null)fontsEntry.requestFocus();}
     private void addInputNamesRow(LinearLayout card){TextView t=settingsRow(R.id.inputNamesChoice);t.setOnClickListener(v->showInputNamesList());card.addView(t,rowParams());updateInputNamesRow();}
     private void updateInputNamesRow(){TextView t=findViewById(R.id.inputNamesChoice);if(t==null)return;int n=InputNames.count(this);t.setText("Input names: "+(n==0?"None":n+" named"));formatRow(R.id.inputNamesChoice);}
     private void showInputNamesList(){java.util.List<String[]> inputs=InputNames.list(this);String[] items=new String[inputs.size()+1];for(int i=0;i<inputs.size();i++)items[i]=InputNames.display(this,inputs.get(i)[0],inputs.get(i)[1]);items[inputs.size()]="Reset all input names";
-        new AlertDialog.Builder(this).setTitle("Input names").setItems(items,(d,w)->{if(w==inputs.size()){new AlertDialog.Builder(this).setTitle("Reset all input names?").setMessage("Every input goes back to its TV name.").setPositiveButton("Reset",(d2,w2)->{InputNames.clearAll(this);setResult(RESULT_OK);updateInputNamesRow();}).setNegativeButton(android.R.string.cancel,null).show();return;}String[] in=inputs.get(w);InputNames.showRename(this,in[0],in[1],()->{setResult(RESULT_OK);updateInputNamesRow();showInputNamesList();});}).setNegativeButton(android.R.string.cancel,null).show();}
+        SettingsPicker.list(this,"Input names",items,w->{if(w==inputs.size()){SettingsPicker.buttons(this,"Reset all input names?","Every input goes back to its TV name.",null,getString(android.R.string.cancel),null,null,null,"Reset",()->{InputNames.clearAll(this);setResult(RESULT_OK);updateInputNamesRow();});return;}String[] in=inputs.get(w);InputNames.showRename(this,in[0],in[1],()->{setResult(RESULT_OK);updateInputNamesRow();showInputNamesList();});});}
 
     // ---- 2.11.7 look: 56 dp rows with a left icon, 48 dp when a page would otherwise scroll ----
     private int rowHeight=56;private int[] categoryIcons;
@@ -716,7 +696,7 @@ public final class LauncherSettingsActivity extends Activity {
         city.setText("City: "+(usingCity&&!name.isEmpty()?name:"Not set")+"\nSearch by name; also sets the Panchang location");formatRow(R.id.weatherCityChoice);
         def.setText("Use default from build: "+(!usingCity?"In use":WeatherLocation.hasBuildDefault()?WeatherLocation.buildPlace():"None"));formatRow(R.id.weatherDefaultChoice);
         units.setText("Units: "+(WeatherLocation.fahrenheit(this)?"\u00B0F":"\u00B0C"));formatRow(R.id.weatherUnitsChoice);}
-    private void showCitySearch(String initial){android.widget.EditText in=new android.widget.EditText(this);in.setSingleLine(true);in.setHint("City name");in.setText(initial);in.setSelection(in.getText().length());in.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);in.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS);android.widget.FrameLayout box=new android.widget.FrameLayout(this);box.setPadding(dp(20),dp(8),dp(20),0);box.addView(in);
-        AlertDialog d=new AlertDialog.Builder(this).setTitle("Weather city").setView(box).setPositiveButton("Search",(dd,w)->searchCity(in.getText().toString())).setNegativeButton(android.R.string.cancel,null).create();in.setOnEditorActionListener((v,a,e)->{if(a==android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH||a==android.view.inputmethod.EditorInfo.IME_ACTION_DONE){d.dismiss();searchCity(in.getText().toString());return true;}return false;});d.show();in.requestFocus();}
-    private void searchCity(String q){if(q==null||q.trim().length()<2){Toast.makeText(this,"Type at least 2 letters",Toast.LENGTH_SHORT).show();return;}Toast.makeText(this,"Searching\u2026",Toast.LENGTH_SHORT).show();new Thread(()->{java.util.List<WeatherLocation.Place> r;String err=null;try{r=WeatherLocation.search(q);}catch(Exception e){r=java.util.Collections.emptyList();err=e.getClass().getSimpleName();}final java.util.List<WeatherLocation.Place> res=r;final String error=err;runOnUiThread(()->{if(isFinishing())return;if(error!=null){Toast.makeText(this,"City search failed ("+error+")",Toast.LENGTH_LONG).show();return;}if(res.isEmpty()){Toast.makeText(this,"No matches for \u201C"+q.trim()+"\u201D",Toast.LENGTH_SHORT).show();showCitySearch(q);return;}String[] items=new String[res.size()];for(int i=0;i<items.length;i++)items[i]=res.get(i).label;new AlertDialog.Builder(this).setTitle("Choose a city").setItems(items,(dd,w)->{WeatherLocation.useCity(this,res.get(w));setResult(RESULT_OK);updateWeatherRows();Toast.makeText(this,"Weather: "+res.get(w).name,Toast.LENGTH_SHORT).show();}).setNegativeButton(android.R.string.cancel,null).show();});},"city-search").start();}
+    private void showCitySearch(String initial){android.widget.EditText in=new android.widget.EditText(this);in.setSingleLine(true);in.setHint("City name");in.setText(initial);in.setSelection(in.getText().length());in.setTextColor(0xFFF4F1EA);in.setHintTextColor(0xFFA9ABC7);in.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);in.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS);android.widget.FrameLayout box=new android.widget.FrameLayout(this);box.setPadding(dp(16),dp(4),dp(16),dp(4));box.addView(in,new android.widget.FrameLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,android.view.ViewGroup.LayoutParams.WRAP_CONTENT));
+        final android.app.Dialog[] held=new android.app.Dialog[1];in.setOnEditorActionListener((v,a,e)->{if(a==android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH||a==android.view.inputmethod.EditorInfo.IME_ACTION_DONE){if(held[0]!=null)held[0].dismiss();searchCity(in.getText().toString());return true;}return false;});held[0]=SettingsPicker.form(this,"Weather city",box,getString(android.R.string.cancel),null,null,null,"Search",()->searchCity(in.getText().toString()));}
+    private void searchCity(String q){if(q==null||q.trim().length()<2){Toast.makeText(this,"Type at least 2 letters",Toast.LENGTH_SHORT).show();return;}Toast.makeText(this,"Searching\u2026",Toast.LENGTH_SHORT).show();new Thread(()->{java.util.List<WeatherLocation.Place> r;String err=null;try{r=WeatherLocation.search(q);}catch(Exception e){r=java.util.Collections.emptyList();err=e.getClass().getSimpleName();}final java.util.List<WeatherLocation.Place> res=r;final String error=err;runOnUiThread(()->{if(isFinishing())return;if(error!=null){Toast.makeText(this,"City search failed ("+error+")",Toast.LENGTH_LONG).show();return;}if(res.isEmpty()){Toast.makeText(this,"No matches for \u201C"+q.trim()+"\u201D",Toast.LENGTH_SHORT).show();showCitySearch(q);return;}String[] items=new String[res.size()];for(int i=0;i<items.length;i++)items[i]=res.get(i).label;SettingsPicker.list(this,"Choose a city",items,w->{WeatherLocation.useCity(this,res.get(w));setResult(RESULT_OK);updateWeatherRows();Toast.makeText(this,"Weather: "+res.get(w).name,Toast.LENGTH_SHORT).show();});});},"city-search").start();}
 }

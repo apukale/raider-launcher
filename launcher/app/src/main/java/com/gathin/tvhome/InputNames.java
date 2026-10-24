@@ -1,7 +1,6 @@
 package com.gathin.tvhome;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.media.tv.TvInputInfo;
@@ -51,18 +50,20 @@ final class InputNames {
         e.setText(name(a, id));
         e.setHint("e.g. Jio");
         e.setSelection(e.getText().length());
-        int pad = (int) (20 * a.getResources().getDisplayMetrics().density);
+        e.setTextColor(0xFFF4F1EA);
+        e.setHintTextColor(0xFFA9ABC7);
+        int pad = (int) (16 * a.getResources().getDisplayMetrics().density);
         FrameLayout f = new FrameLayout(a);
-        f.setPadding(pad, pad / 2, pad, 0);
-        f.addView(e);
-        new AlertDialog.Builder(a).setTitle("Name for " + label).setView(f)
-                .setPositiveButton("Save", (d, w) -> {
+        f.setPadding(pad, pad / 4, pad, 0);
+        f.addView(e, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT));
+        SettingsPicker.form(a, "Name for " + label, f,
+                a.getString(android.R.string.cancel), null,
+                "Clear", () -> { prefs(a).edit().remove(id).apply(); if (done != null) done.run(); },
+                "Save", () -> {
                     String v = e.getText().toString().trim();
                     if (v.isEmpty()) prefs(a).edit().remove(id).apply();
                     else prefs(a).edit().putString(id, v.length() > 24 ? v.substring(0, 24) : v).apply();
                     if (done != null) done.run();
-                })
-                .setNeutralButton("Clear", (d, w) -> { prefs(a).edit().remove(id).apply(); if (done != null) done.run(); })
-                .setNegativeButton(android.R.string.cancel, null).show();
+                });
     }
 }

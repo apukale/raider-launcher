@@ -991,11 +991,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (position < 0 || position >= adapter.getItemCount()) return;
         final String key = adapter.keyAt(position);
         String pkg = adapter.packageAt(position);
-        android.app.AlertDialog dialog = new android.app.AlertDialog.Builder(this)
-                .setTitle(R.string.app_actions)
-                .setItems(new CharSequence[]{getString(R.string.move_app), getString(R.string.hide_app),
-                        getString(adapter.logoAt(position) ? R.string.use_banner : R.string.use_app_logo),
-                        getString(R.string.app_info)}, (d, which) -> {
+        // A long press opens this menu while OK is still held. The picker swallows that release
+        // so it cannot choose the focused row.
+        SettingsPicker.list(this, getString(R.string.app_actions), new CharSequence[]{
+                getString(R.string.move_app), getString(R.string.hide_app),
+                getString(adapter.logoAt(position) ? R.string.use_banner : R.string.use_app_logo),
+                getString(R.string.app_info)}, which -> {
             if (which == 0) {
                 movingTile = true;
                 movingPosition = adapter.positionOf(key);
@@ -1015,19 +1016,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             } else {
                 try { startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg))); } catch (Exception ignored) { }
             }
-        }).create();
-        // A long press opens this dialog while OK is still held. Ignore that press's release so
-        // it cannot choose the focused menu row.
-        final boolean[] ignoreFirstOkUp = {true};
-        dialog.setOnShowListener(d -> dialog.getListView().setOnKeyListener((v, code, event) -> {
-            if (ignoreFirstOkUp[0] && (code == KeyEvent.KEYCODE_DPAD_CENTER || code == KeyEvent.KEYCODE_ENTER)
-                    && event.getAction() == KeyEvent.ACTION_UP) {
-                ignoreFirstOkUp[0] = false;
-                return true;
-            }
-            return false;
-        }));
-        dialog.show();
+        }, true);
     }
 
     private void moveTileInDirection(int position, int keyCode) {
@@ -1445,18 +1434,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void startScreensaver() { startActivity(new Intent(this, ScreensaverActivity.class)); }
 
     private void confirmRestartTv() {
-        new android.app.AlertDialog.Builder(this)
-                .setMessage(R.string.restart_tv_confirm)
-                .setNegativeButton(android.R.string.cancel, null)
-                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
-                    if (!PowerMenuService.openPowerDialog()) {
-                        new android.app.AlertDialog.Builder(this)
-                                .setMessage(R.string.restart_tv_service_missing)
-                                .setPositiveButton(android.R.string.ok, null)
-                                .show();
-                    }
-                })
-                .show();
+        SettingsPicker.confirm(this, null, getString(R.string.restart_tv_confirm), () -> {
+            if (!PowerMenuService.openPowerDialog()) {
+                SettingsPicker.notice(this, null, getString(R.string.restart_tv_service_missing));
+            }
+        });
     }
 
     private void addSettingsMenuRow(LinearLayout rows, PopupWindow popup, int title, Runnable action) {
