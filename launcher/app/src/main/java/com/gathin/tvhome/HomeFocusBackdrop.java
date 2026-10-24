@@ -35,6 +35,14 @@ final class HomeFocusBackdrop {
 
     void onTile(String key) {
         if (key == null) key = "";
+        if (!PhotosMaster.on(activity)) {
+            shownFor = key;
+            photo.setImageDrawable(null);
+            if (photo.getBackground() == null) photo.setBackground(PhotoGradients.drawable(new java.util.Random().nextInt()));
+            photo.setAlpha(1f);
+            scrim.setAlpha(0f);
+            return;
+        }
         if (key.equals(shownFor) && photo.getDrawable() != null) {
             show();
             return;

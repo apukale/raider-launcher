@@ -73,6 +73,46 @@ public class RaiderThemeTest {
         assertEquals(HomeRecs.MAX, HomeRecs.cap(items).size());
         assertEquals("Title 0", HomeRecs.cap(items).get(0).title);
         assertTrue(HomeRecs.cap(null).isEmpty());
+        java.util.List<HomeRecs.Item> watch = java.util.Collections.singletonList(new HomeRecs.Item("Show", "content://p", "intent:#Intent;end"));
+        java.util.ArrayList<HomeRecs.Item> photos = new java.util.ArrayList<>();
+        photos.add(HomeRecs.photoCard("Dock", "Bing", "/tmp/a.jpg"));
+        photos.add(HomeRecs.photoCard("  ", "Unsplash", "/tmp/b.jpg"));
+        assertEquals("Show", HomeRecs.choose(watch, photos).get(0).title);
+        java.util.List<HomeRecs.Item> fallback = HomeRecs.choose(java.util.Collections.emptyList(), photos);
+        assertEquals(2, fallback.size());
+        assertEquals("Dock", fallback.get(0).title);
+        assertEquals("Unsplash", fallback.get(1).title);
+        assertEquals(HomeRecs.SCREENSAVER, fallback.get(0).intent);
+        java.util.List<HomeRecs.Item> none = HomeRecs.choose(null, java.util.Collections.emptyList());
+        assertEquals(1, none.size());
+        assertEquals(HomeRecs.PLACEHOLDER_TITLE, none.get(0).title);
+        assertEquals(HomeRecs.PHOTOS, none.get(0).intent);
+        assertEquals("Photo", HomeRecs.photoTitle(null, " "));
+    }
+
+    @Test(timeout = 5000) public void photosMasterDefaultsOn() {
+        assertTrue(PhotosMaster.on(false, false));
+        assertTrue(PhotosMaster.on(true, true));
+        assertFalse(PhotosMaster.on(true, false));
+    }
+
+    @Test(timeout = 5000) public void photoGradientsStayInsideThePalette() {
+        int[] first = PhotoGradients.pair(0);
+        assertEquals(PhotoGradients.PAIRS[0][0], first[0]);
+        assertEquals(PhotoGradients.PAIRS[0][1], first[1]);
+        int[] wrapped = PhotoGradients.pair(PhotoGradients.PAIRS.length);
+        assertEquals(first[0], wrapped[0]);
+        int[] negative = PhotoGradients.pair(-1);
+        assertEquals(PhotoGradients.PAIRS[PhotoGradients.PAIRS.length - 1][0], negative[0]);
+    }
+
+    @Test(timeout = 5000) public void advancedPanelFitsA1080pLeanbackScreen() {
+        int viewport = CalendarPanelFit.viewportDp(540);
+        assertEquals(426, viewport);
+        AdvancedPanelFit.Spec spec = AdvancedPanelFit.forViewport(viewport, 24);
+        assertTrue(spec.fits(viewport));
+        assertTrue(spec.rowDp >= 32);
+        assertEquals(7, AdvancedPanelFit.ROWS);
     }
 
     @Test(timeout = 5000) public void calendarPanelFitsA1080pLeanbackScreen() {

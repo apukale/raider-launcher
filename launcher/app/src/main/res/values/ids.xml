@@ -16,6 +16,7 @@
     <item name="kidsChoice" type="id" />
     <item name="homeClockDetail" type="id" />
     <item name="homeRecsChoice" type="id" />
+    <item name="photosMasterChoice" type="id" />
     <item name="resourcesChoice" type="id" />
     <item name="freeRamChoice" type="id" />
     <item name="freeRamHomeChoice" type="id" />

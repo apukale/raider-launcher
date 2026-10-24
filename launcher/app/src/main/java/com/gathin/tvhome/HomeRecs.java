@@ -4,10 +4,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/** Home recommendations preference and the cap for a Watch Next row. */
+/** Home recommendations: Watch Next when the TV has it, screensaver photos otherwise. */
 final class HomeRecs {
     static final String PREF = "home_recommendations";
     static final int MAX = 6;
+    /** Click starts the screensaver on the photo strip. */
+    static final String SCREENSAVER = "raider:screensaver";
+    /** Click opens Launcher Settings on the Photos category. */
+    static final String PHOTOS = "raider:photos";
+    static final String PLACEHOLDER_TITLE = "No recommendations yet";
 
     static final class Item {
         final String title, poster, intent;
@@ -32,5 +37,27 @@ final class HomeRecs {
             if (out.size() >= MAX) break;
         }
         return out;
+    }
+
+    /** Caption, then the source name, then a generic title. */
+    static String photoTitle(String title, String sourceLabel) {
+        if (title != null && !title.trim().isEmpty()) return title.trim();
+        if (sourceLabel != null && !sourceLabel.trim().isEmpty()) return sourceLabel.trim();
+        return "Photo";
+    }
+
+    static Item photoCard(String title, String sourceLabel, String filePath) {
+        return new Item(photoTitle(title, sourceLabel), filePath, SCREENSAVER);
+    }
+
+    /** Watch Next wins. Photos fill the row when it is empty. A placeholder remains when both are empty. */
+    static List<Item> choose(List<Item> watchNext, List<Item> photos) {
+        List<Item> programs = cap(watchNext);
+        if (!programs.isEmpty()) return programs;
+        List<Item> cards = cap(photos);
+        if (!cards.isEmpty()) return cards;
+        ArrayList<Item> one = new ArrayList<>();
+        one.add(new Item(PLACEHOLDER_TITLE, null, PHOTOS));
+        return one;
     }
 }

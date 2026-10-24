@@ -235,6 +235,7 @@ public class WorldClocksActivity extends Activity {
     }
 
     private void nextBackground() {
+        if (!PhotosMaster.on(this)) { changeBackground.setEnabled(true); changeBackground.setAlpha(1f); screenRoot.setBackground(PhotoGradients.drawable(new java.util.Random().nextInt())); return; }
         List<PhotoStore.Photo> photos = PhotoStore.list(this, PhotoStore.chosenSource(this));
         if (photos.isEmpty()) return;
         ArrayList<String> files = new ArrayList<>();
@@ -246,6 +247,7 @@ public class WorldClocksActivity extends Activity {
     }
 
     private void loadBackground() {
+        if (!PhotosMaster.on(this)) { changeBackground.setEnabled(true); changeBackground.setAlpha(1f); screenRoot.setBackground(PhotoGradients.drawable(new java.util.Random().nextInt())); return; }
         List<PhotoStore.Photo> photos = PhotoStore.list(this, PhotoStore.chosenSource(this));
         if (photos.isEmpty()) {
             changeBackground.setEnabled(false);
