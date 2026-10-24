@@ -15,4 +15,8 @@
     <item name="worldDreamChoice" type="id" />
     <item name="kidsChoice" type="id" />
     <item name="homeClockDetail" type="id" />
+    <item name="homeRecsChoice" type="id" />
+    <item name="resourcesChoice" type="id" />
+    <item name="homeRecs" type="id" />
+    <item name="homePhoto" type="id" />
 </resources>

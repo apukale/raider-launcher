@@ -17,14 +17,14 @@ final class SettingsStyle {
     static final int SURFACE = 0xD11C1B1F;      // #1C1B1F at ~82%
     static final int ON_SURFACE = 0xFFE6E1E5;
     static final int SECONDARY = 0xFFCAC4D0;
-    /** Accent taken from the background photo (Palette); 0 = none, use the saved accent (Marigold by default). */
+    /** Accent taken from the background photo (Palette); 0 = none, use the saved theme accent. */
     static int photoAccent = 0;
     private static final PathInterpolator EASE = new PathInterpolator(0f, 0f, 0.2f, 1f);
     private SettingsStyle() {}
 
     static int accent(Context c) {
-        String n = c.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE).getString("accent_color", RaiderTheme.MARIGOLD);
-        if (photoAccent != 0 && RaiderTheme.MARIGOLD.equals(n)) return photoAccent;
+        String n = c.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE).getString("accent_color", RaiderTheme.DEFAULT);
+        if (photoAccent != 0 && RaiderTheme.DEFAULT.equals(RaiderColors.theme(n).id)) return photoAccent;
         return RaiderTheme.accentColor(n);
     }
     /** Lighter accent for right-aligned values. */
@@ -43,7 +43,7 @@ final class SettingsStyle {
         hsv[2] = Math.max(hsv[2], 0.88f);
         return Color.HSVToColor(hsv);
     }
-    static GradientDrawable card(Context c) { GradientDrawable d = new GradientDrawable(); d.setColor(SURFACE); d.setCornerRadius(dp(c, 16)); return d; }
+    static GradientDrawable card(Context c) { GradientDrawable d = new GradientDrawable(); d.setColor(RaiderTheme.theme(c).light ? RaiderTheme.theme(c).surface : SURFACE); d.setCornerRadius(dp(c, 16)); return d; }
     static GradientDrawable pill(Context c, int color) { GradientDrawable d = new GradientDrawable(); d.setColor(SURFACE); d.setCornerRadius(dp(c, 100)); return d; }
     static Drawable scrim() { return new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0x8C000000, 0xB3000000, 0xD9000000}); }
     static Drawable fallbackBackground() { return new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0xFF1C1B1F, 0xFF0E0E11}); }

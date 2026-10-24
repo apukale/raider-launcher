@@ -94,6 +94,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private FrameLayout root;
     private GlassView glass;
     private View ambient;
+    private HomeFocusBackdrop homeBackdrop;
+    private android.widget.LinearLayout homeRecs;
+    private int firstRecId = View.NO_ID;
     private View wallpaperView;
     private File wallpaperFile;
     private TextView heroName;
@@ -239,8 +242,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sourcePanelAction = cfg.sourcePanelAction;
 
         root = findViewById(R.id.root);
-        originalHomeBackground = cfg.backgroundColor;
-        root.setBackgroundColor(cfg.backgroundColor);
+        originalHomeBackground = RaiderTheme.theme(this).background;
+        root.setBackgroundColor(originalHomeBackground);
         if (cfg.wallpaper != null) showWallpaper(cfg.wallpaper);
         sky = findViewById(R.id.sky);
         sky.setIntensity(cfg.skyIntensity);
@@ -249,6 +252,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // The glow is one bitmap, so its alpha can be applied while drawing it. Otherwise every frame of
         // a fade renders it into a full-screen offscreen buffer first.
         ambient.forceHasOverlappingRendering(false);
+        installHomeBackdrop();
         heroName = findViewById(R.id.heroName);
         greeting = findViewById(R.id.greeting);
         if (!cfg.showGreeting) {
@@ -326,10 +330,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         adapter = new AppAdapter(this, this, COLUMNS, cfg);
         grid.setAdapter(adapter);
+        installRecommendations();
+        root.getViewTreeObserver().addOnGlobalFocusChangeListener((oldFocus, newFocus) -> {
+            if (homeBackdrop != null && !insideView(grid, newFocus)) homeBackdrop.hide();
+        });
         grid.addOnChildAttachStateChangeListener(new RecyclerView.OnChildAttachStateChangeListener() {
             @Override public void onChildViewAttachedToWindow(@NonNull View view) {
                 RecyclerView.ViewHolder holder=grid.getChildViewHolder(view); int p=holder.getBindingAdapterPosition();
-                if(p>=COLUMNS && p<2*COLUMNS)view.setNextFocusUpId(R.id.homeCalendarStack);
+                View card = view.findViewById(R.id.card);
+                View target = card != null ? card : view;
+                if (homeRecs != null && homeRecs.getVisibility() == View.VISIBLE && p < COLUMNS && firstRecId != View.NO_ID) target.setNextFocusUpId(firstRecId);
+                else if(p>=COLUMNS && p<2*COLUMNS)target.setNextFocusUpId(R.id.homeCalendarStack);
             }
             @Override public void onChildViewDetachedFromWindow(@NonNull View view) {}
         });
@@ -549,6 +560,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if(weatherEnabled&&!WeatherLocation.valid(WeatherLocation.lat(this,config),WeatherLocation.lon(this,config))){homeWeather.setText("Set city in Launcher settings");homeWeather.setCompoundDrawables(null,null,null,null);homeWeather.setVisibility(View.VISIBLE);}
         else if(weatherEnabled){WeatherData cached=WeatherClient.cached(this);long fetched=WeatherClient.fetchedAt(this),age=System.currentTimeMillis()-fetched;if(cached!=null&&age>=0&&age<WeatherClient.FRESH_MS)showWeather(cached);else homeWeather.setVisibility(View.GONE);if(fetched==0||age<0||age>=WeatherClient.REFRESH_MS)requestWeather(true);handler.postDelayed(weatherRefresh,WeatherClient.REFRESH_MS);}
         else homeWeather.setVisibility(View.GONE);
+        applyHomeChrome();
+        loadRecommendations();
         updateNightTheme(true);
         if (!calendarReceiverRegistered) {
             IntentFilter f=new IntentFilter();f.addAction(Intent.ACTION_TIME_CHANGED);f.addAction(Intent.ACTION_TIMEZONE_CHANGED);f.addAction(Intent.ACTION_DATE_CHANGED);
@@ -582,6 +595,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             ambient.setBackground(null);
             ambientColor = -1;
         }
+        if (homeBackdrop != null) homeBackdrop.hide();
         rebuildOnResume = true;
     }
 
@@ -731,6 +745,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     protected void onDestroy() {
+        if (homeBackdrop != null) homeBackdrop.destroy();
         super.onDestroy();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
@@ -747,10 +762,149 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Home screen: Back otherwise goes nowhere.
     }
 
+    private void installHomeBackdrop() {
+        android.widget.ImageView photo = new android.widget.ImageView(this);
+        photo.setId(R.id.homePhoto);
+        photo.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
+        photo.setAlpha(0f);
+        View scrim = new View(this);
+        scrim.setAlpha(0f);
+        FrameLayout.LayoutParams full = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        int at = Math.max(0, root.indexOfChild(ambient));
+        root.addView(photo, at, full);
+        root.addView(scrim, at + 1, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        homeBackdrop = new HomeFocusBackdrop(this, photo, scrim);
+        homeBackdrop.setScrim(originalHomeBackground);
+    }
+
+    private void applyHomeChrome() {
+        RaiderColors.Theme theme = RaiderTheme.theme(this);
+        originalHomeBackground = theme.background;
+        if (wallpaperView == null) root.setBackgroundColor(theme.background);
+        if (homeBackdrop != null) homeBackdrop.setScrim(theme.background);
+        if (glass != null) glass.setAccent(theme.accent);
+        int ink = theme.onSurface, muted = theme.secondary;
+        paint(R.id.clock, ink);
+        paint(R.id.ampm, muted);
+        paint(R.id.date, muted);
+        paint(R.id.weather, muted);
+        paint(R.id.heroName, ink);
+        paint(R.id.homeCalendarLine1, ink);
+        paint(R.id.homeCalendarTithi, muted);
+        paint(R.id.homeCalendarMoon, muted);
+        paint(R.id.homeCalendarRahu, muted);
+    }
+
+    private void paint(int id, int color) {
+        View view = findViewById(id);
+        if (view instanceof TextView) ((TextView) view).setTextColor(color);
+    }
+
+    private void installRecommendations() {
+        View frame = (View) grid.getParent();
+        if (!(frame.getParent() instanceof android.widget.LinearLayout)) return;
+        android.widget.LinearLayout column = (android.widget.LinearLayout) frame.getParent();
+        homeRecs = new android.widget.LinearLayout(this);
+        homeRecs.setId(R.id.homeRecs);
+        homeRecs.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        homeRecs.setVisibility(View.GONE);
+        android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(8);
+        lp.bottomMargin = dp(4);
+        column.addView(homeRecs, column.indexOfChild(frame), lp);
+    }
+
+    private void loadRecommendations() {
+        android.content.SharedPreferences prefs = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE);
+        if (!HomeRecs.shown(prefs.contains(HomeRecs.PREF), prefs.getBoolean(HomeRecs.PREF, true))) {
+            showRecommendations(java.util.Collections.emptyList());
+            return;
+        }
+        new Thread(() -> {
+            java.util.ArrayList<HomeRecs.Item> found = new java.util.ArrayList<>();
+            try {
+                String[] projection = new String[] {
+                        android.media.tv.TvContract.WatchNextPrograms.COLUMN_TITLE,
+                        android.media.tv.TvContract.WatchNextPrograms.COLUMN_POSTER_ART_URI,
+                        android.media.tv.TvContract.WatchNextPrograms.COLUMN_INTENT_URI
+                };
+                try (android.database.Cursor cursor = getContentResolver().query(
+                        android.media.tv.TvContract.WatchNextPrograms.CONTENT_URI, projection, null, null, null)) {
+                    if (cursor != null) while (cursor.moveToNext() && found.size() < HomeRecs.MAX + 2) {
+                        found.add(new HomeRecs.Item(cursor.getString(0), cursor.getString(1), cursor.getString(2)));
+                    }
+                }
+            } catch (Throwable ignored) {
+                found.clear();
+            }
+            java.util.List<HomeRecs.Item> items = HomeRecs.cap(found);
+            runOnUiThread(() -> { if (!isFinishing()) showRecommendations(items); });
+        }, "home-recs").start();
+    }
+
+    private void showRecommendations(java.util.List<HomeRecs.Item> items) {
+        if (homeRecs == null) return;
+        homeRecs.removeAllViews();
+        firstRecId = View.NO_ID;
+        if (items == null || items.isEmpty()) { homeRecs.setVisibility(View.GONE); return; }
+        RaiderColors.Theme theme = RaiderTheme.theme(this);
+        int width = dp(168), height = dp(94);
+        for (int i = 0; i < items.size(); i++) {
+            HomeRecs.Item item = items.get(i);
+            TextView card = new TextView(this);
+            card.setText(item.title);
+            card.setTextColor(theme.onSurface);
+            card.setTextSize(14);
+            card.setGravity(android.view.Gravity.CENTER);
+            card.setMaxLines(2);
+            card.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            card.setPadding(dp(10), dp(8), dp(10), dp(8));
+            card.setFocusable(true);
+            card.setClickable(true);
+            card.setBackgroundResource(R.drawable.calendar_focus);
+            card.setId(View.generateViewId());
+            if (i == 0) firstRecId = card.getId();
+            card.setNextFocusDownId(R.id.grid);
+            card.setNextFocusUpId(R.id.homeCalendarStack);
+            card.setOnClickListener(v -> openRecommendation(item.intent));
+            android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(width, height);
+            if (i > 0) lp.setMarginStart(dp(10));
+            homeRecs.addView(card, lp);
+        }
+        homeRecs.setVisibility(View.VISIBLE);
+        for (int c = 0; c < grid.getChildCount(); c++) {
+            View child = grid.getChildAt(c);
+            RecyclerView.ViewHolder holder = grid.getChildViewHolder(child);
+            int pos = holder.getBindingAdapterPosition();
+            View card = child.findViewById(R.id.card);
+            if (pos >= 0 && pos < COLUMNS && card != null) card.setNextFocusUpId(firstRecId);
+        }
+    }
+
+    private void openRecommendation(String intentUri) {
+        if (intentUri == null || intentUri.isEmpty()) return;
+        try {
+            startActivity(Intent.parseUri(intentUri, Intent.URI_INTENT_SCHEME));
+        } catch (Exception ignored) {
+            Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private static boolean insideView(View parent, View child) {
+        while (child != null) {
+            if (child == parent) return true;
+            android.view.ViewParent next = child.getParent();
+            child = next instanceof View ? (View) next : null;
+        }
+        return false;
+    }
+
     // ---- glass highlight -------------------------------------------------------------------------
 
     @Override
     public void onTileFocused(int position, View card) {
+        if (homeBackdrop != null) homeBackdrop.onTile(adapter.keyAt(position));
+        if (glass != null) glass.setAccent(RaiderTheme.theme(this).accent);
         lastFocused = position;
         lastFocusedKey = adapter.keyAt(position);
         // After HOME the grid is rebuilt and the first tile can be focused before it is laid out; place the glass after layout.
