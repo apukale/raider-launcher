@@ -20,7 +20,8 @@ import org.json.JSONObject;
  * India (Asia/Kolkata) plus four city slots. India is fixed and is not a preference.
  * A slot's display label is stored apart from its zone id, so the zone can be
  * America/New_York while the label is NYC. The Hindu calendar master does not hide these clocks.
- * Home draws only the clock; this list is for the world clocks screen and the screensaver.
+ * Home draws only the clock. The world clocks screen shows India above the four cities.
+ * The screensaver strip, when enabled, shows those four cities and not India.
  */
 final class WorldClocks {
     static final String INDIA_ZONE = "Asia/Kolkata";
@@ -124,10 +125,17 @@ final class WorldClocks {
         return out;
     }
 
-    /** India first, then each slot whose zone id is real. A blank name uses the zone id. */
+    /** India first, then each city slot. The world clocks screen draws India apart from this list. */
     static List<Clock> entries(BiFunction<String, String, String> prefs) {
         ArrayList<Clock> out = new ArrayList<>();
         out.add(new Clock(INDIA_LABEL, INDIA_ZONE));
+        out.addAll(cities(prefs));
+        return out;
+    }
+
+    /** The four city slots only. The screensaver uses this and never adds India. */
+    static List<Clock> cities(BiFunction<String, String, String> prefs) {
+        ArrayList<Clock> out = new ArrayList<>();
         String[] names = read(prefs, true);
         String[] zones = read(prefs, false);
         for (int i = 0; i < SLOTS; i++) {
@@ -154,14 +162,22 @@ final class WorldClocks {
         return join(read(prefs, true), read(prefs, false), nowMs, "  \u00B7  ");
     }
 
-    /** One city per line for the screensaver. */
+    /** One city per line for the screensaver. India is not included. */
     static String dreamDetail(BiFunction<String, String, String> prefs, long nowMs) {
-        return join(read(prefs, true), read(prefs, false), nowMs, "\n");
+        return joinCities(read(prefs, true), read(prefs, false), nowMs, "\n");
     }
 
     static String join(String[] names, String[] zones, long nowMs, String separator) {
         StringBuilder out = new StringBuilder();
         append(out, INDIA_LABEL, INDIA_ZONE, nowMs, separator);
+        String cities = joinCities(names, zones, nowMs, separator);
+        if (!cities.isEmpty()) out.append(separator).append(cities);
+        return out.toString();
+    }
+
+    /** City slots only, in slot order. Skips a slot whose zone id is not real. */
+    static String joinCities(String[] names, String[] zones, long nowMs, String separator) {
+        StringBuilder out = new StringBuilder();
         int n = names == null ? 0 : Math.min(SLOTS, names.length);
         for (int i = 0; i < n; i++) {
             String name = names[i] == null ? "" : names[i].trim();

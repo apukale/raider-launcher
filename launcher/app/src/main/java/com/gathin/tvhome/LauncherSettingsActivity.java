@@ -257,6 +257,8 @@ public final class LauncherSettingsActivity extends Activity {
         }
         lookCard=(LinearLayout)categoryCards[1];buildFontsCard();
         selectCategory(0,false);if(getIntent().getBooleanExtra("open_fonts",false)){getIntent().removeExtra("open_fonts");selectCategory(1,false);showFonts();}
+        int openCategory=getIntent().getIntExtra(SettingsMenu.OPEN_CATEGORY,-1);
+        if(openCategory>=0&&openCategory<railItems.length){getIntent().removeExtra(SettingsMenu.OPEN_CATEGORY);selectCategory(openCategory,false);if(categoryScroll!=null){final int opened=openCategory;categoryScroll.post(()->{View target=opened==SettingsMenu.CALENDAR?findViewById(R.id.worldCity1Choice):railItems[opened];if(target!=null)target.requestFocus();});}}
         if(categoryScroll!=null)categoryScroll.post(this::fitCalendarCard);
         {View sr=findViewById(R.id.settingsRoot);if(settingsBackground!=null){BitmapDrawable image=new BitmapDrawable(getResources(),settingsBackground);image.setGravity(android.view.Gravity.FILL);image.setFilterBitmap(true);sr.setBackground(new LayerDrawable(new android.graphics.drawable.Drawable[]{image,SettingsStyle.scrim()}));}else sr.setBackgroundColor(RaiderTheme.theme(this).background);}TextView settingsHeader=findViewById(R.id.settingsHeader);if(settingsHeader!=null)settingsHeader.setTextColor(ink());
     }

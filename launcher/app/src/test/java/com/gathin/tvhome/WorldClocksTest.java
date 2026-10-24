@@ -87,7 +87,12 @@ public class WorldClocksTest {
     @Test(timeout = 5000)
     public void dreamDetailIsOneCityPerLine() {
         String text = WorldClocks.dreamDetail(prefs("London", "Europe/London"), NOON_UTC);
-        assertEquals("India 5:30 PM\nLondon 12:00 PM\nNew York 7:00 AM\nLondon 12:00 PM\nDubai 4:00 PM", text);
+        assertEquals("London 12:00 PM\nNew York 7:00 AM\nLondon 12:00 PM\nDubai 4:00 PM", text);
+        assertFalse(text.contains("India"));
+        List<WorldClocks.Clock> cities = WorldClocks.cities(prefs("London", "Europe/London"));
+        assertEquals(4, cities.size());
+        assertEquals("London", cities.get(0).label);
+        assertFalse(cities.get(0).label.equals(WorldClocks.INDIA_LABEL) && cities.get(0).zone.equals(WorldClocks.INDIA_ZONE));
     }
 
     @Test(timeout = 5000)

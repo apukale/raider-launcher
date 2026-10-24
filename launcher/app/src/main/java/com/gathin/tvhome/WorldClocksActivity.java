@@ -42,7 +42,7 @@ public class WorldClocksActivity extends Activity {
             main.postDelayed(this, Math.max(1000L, delay));
         }
     };
-    private LinearLayout screenRoot, clocks;
+    private LinearLayout screenRoot, indiaHost, cityRow;
     private TextView empty;
     private View changeBackground;
     private Bitmap backgroundBitmap;
@@ -142,62 +142,96 @@ public class WorldClocksActivity extends Activity {
         header.addView(back);
         changeBackground = iconButton(R.drawable.ic_wallpaper, "Change background", v -> nextBackground());
         header.addView(changeBackground);
+        TextView cities = text("Cities", 16, R.font.outfit_medium, 0xFFF4F1EA);
+        cities.setContentDescription("Change cities");
+        cities.setFocusable(true);
+        cities.setClickable(true);
+        cities.setPadding(dp(18), dp(10), dp(18), dp(10));
+        cities.setBackground(RaiderTheme.focusBackground(this, RaiderTheme.accent(this), false));
+        RaiderTheme.applyFocusAnimation(cities);
+        cities.setOnClickListener(v -> openClockSettings());
+        cities.setMinHeight(dp(42));
+        cities.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams citiesLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        citiesLp.setMarginStart(dp(12));
+        header.addView(cities, citiesLp);
         root.addView(header);
-        clocks = new LinearLayout(this);
-        clocks.setOrientation(LinearLayout.HORIZONTAL);
-        clocks.setGravity(Gravity.CENTER);
-        clocks.setBaselineAligned(false);
-        LinearLayout.LayoutParams clocksLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1);
-        clocksLp.topMargin = dp(16);
-        root.addView(clocks, clocksLp);
+        indiaHost = new LinearLayout(this);
+        indiaHost.setOrientation(LinearLayout.VERTICAL);
+        indiaHost.setGravity(Gravity.CENTER);
+        root.addView(indiaHost, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
+        cityRow = new LinearLayout(this);
+        cityRow.setOrientation(LinearLayout.HORIZONTAL);
+        cityRow.setGravity(Gravity.CENTER);
+        cityRow.setBaselineAligned(false);
+        LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        rowLp.bottomMargin = dp(8);
+        root.addView(cityRow, rowLp);
         empty = text("No other cities set", 16, R.font.outfit_regular, 0xFFA9ABC7);
         empty.setVisibility(View.GONE);
-        LinearLayout.LayoutParams emptyLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        emptyLp.bottomMargin = dp(8);
-        root.addView(empty, emptyLp);
+        root.addView(empty);
         back.requestFocus();
     }
 
+    private void openClockSettings() {
+        Intent settings = new Intent(this, LauncherSettingsActivity.class);
+        settings.putExtra(SettingsMenu.OPEN_CATEGORY, SettingsMenu.CALENDAR);
+        try { startActivity(settings); } catch (RuntimeException ignored) {}
+    }
+
     private void render() {
-        clocks.removeAllViews();
+        indiaHost.removeAllViews();
+        cityRow.removeAllViews();
         times.clear();
-        List<WorldClocks.Clock> rows = WorldClocks.entries(getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)::getString);
-        boolean share = rows.size() > 1;
+        java.util.function.BiFunction<String, String, String> prefs =
+                getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)::getString;
         int accent = RaiderTheme.accent(this);
         long now = System.currentTimeMillis();
-        for (int i = 0; i < rows.size(); i++) {
-            WorldClocks.Clock clock = rows.get(i);
-            LinearLayout card = new LinearLayout(this);
-            card.setOrientation(LinearLayout.VERTICAL);
-            card.setGravity(Gravity.CENTER_HORIZONTAL);
-            card.setPadding(dp(14), dp(18), dp(14), dp(18));
-            card.setBackground(RaiderTheme.card(this));
-            TextView label = text(clock.label, share ? 18 : 22, R.font.outfit_medium, accent);
-            label.setMaxLines(2);
-            label.setEllipsize(TextUtils.TruncateAt.END);
-            card.addView(label);
-            TextView time = text(WorldClocks.formatTime(clock.zone, now), share ? 32 : 52, R.font.outfit_light, Color.WHITE);
-            time.setTag(clock.zone);
-            LinearLayout.LayoutParams timeLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-            timeLp.topMargin = dp(8);
-            card.addView(time, timeLp);
-            times.add(time);
-            if (!clock.label.equals(clock.zone)) {
-                TextView zone = text(clock.zone, 13, R.font.outfit_regular, 0xFFA9ABC7);
-                zone.setMaxLines(2);
-                zone.setEllipsize(TextUtils.TruncateAt.END);
-                LinearLayout.LayoutParams zoneLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-                zoneLp.topMargin = dp(6);
-                card.addView(zone, zoneLp);
-            }
-            card.setContentDescription(clock.label + " " + time.getText());
-            LinearLayout.LayoutParams lp = share
-                    ? new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1)
-                    : new LinearLayout.LayoutParams(dp(320), LinearLayout.LayoutParams.WRAP_CONTENT);
+        addClock(indiaHost, new WorldClocks.Clock(WorldClocks.INDIA_LABEL, WorldClocks.INDIA_ZONE), accent, now, 28, 72, false);
+        List<WorldClocks.Clock> cities = WorldClocks.cities(prefs);
+        for (int i = 0; i < cities.size(); i++) {
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
             if (i > 0) lp.setMarginStart(dp(12));
-            clocks.addView(card, lp);
+            cityRow.addView(clockCard(cities.get(i), accent, now, 16, 28), lp);
         }
-        empty.setVisibility(rows.size() <= 1 ? View.VISIBLE : View.GONE);
+        empty.setVisibility(cities.isEmpty() ? View.VISIBLE : View.GONE);
+    }
+
+    private void addClock(LinearLayout parent, WorldClocks.Clock clock, int accent, long now, int labelSp, int timeSp, boolean row) {
+        View card = clockCard(clock, accent, now, labelSp, timeSp);
+        LinearLayout.LayoutParams lp = row
+                ? new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1)
+                : new LinearLayout.LayoutParams(dp(420), LinearLayout.LayoutParams.WRAP_CONTENT);
+        parent.addView(card, lp);
+    }
+
+    private LinearLayout clockCard(WorldClocks.Clock clock, int accent, long now, int labelSp, int timeSp) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setGravity(Gravity.CENTER_HORIZONTAL);
+        card.setPadding(dp(14), dp(16), dp(14), dp(16));
+        card.setBackground(RaiderTheme.card(this));
+        card.setFocusable(false);
+        TextView label = text(clock.label, labelSp, R.font.outfit_medium, accent);
+        label.setMaxLines(2);
+        label.setEllipsize(TextUtils.TruncateAt.END);
+        card.addView(label);
+        TextView time = text(WorldClocks.formatTime(clock.zone, now), timeSp, R.font.outfit_light, Color.WHITE);
+        time.setTag(clock.zone);
+        LinearLayout.LayoutParams timeLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        timeLp.topMargin = dp(8);
+        card.addView(time, timeLp);
+        times.add(time);
+        if (!clock.label.equals(clock.zone)) {
+            TextView zone = text(clock.zone, 13, R.font.outfit_regular, 0xFFA9ABC7);
+            zone.setMaxLines(2);
+            zone.setEllipsize(TextUtils.TruncateAt.END);
+            LinearLayout.LayoutParams zoneLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            zoneLp.topMargin = dp(6);
+            card.addView(zone, zoneLp);
+        }
+        card.setContentDescription(clock.label + " " + time.getText());
+        return card;
     }
 
     private void nextBackground() {
