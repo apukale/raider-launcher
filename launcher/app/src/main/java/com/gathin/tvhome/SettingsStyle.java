@@ -17,15 +17,22 @@ final class SettingsStyle {
     static final int SURFACE = 0xD11C1B1F;      // #1C1B1F at ~82%
     static final int ON_SURFACE = 0xFFE6E1E5;
     static final int SECONDARY = 0xFFCAC4D0;
-    /** Accent taken from the background photo (Palette); 0 = none, use the saved accent (Marigold by default). */
+    /** Accent taken from the background photo (Palette); 0 = none, use the saved theme accent. */
     static int photoAccent = 0;
     private static final PathInterpolator EASE = new PathInterpolator(0f, 0f, 0.2f, 1f);
     private SettingsStyle() {}
 
     static int accent(Context c) {
-        String n = c.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE).getString("accent_color", RaiderTheme.MARIGOLD);
-        if (photoAccent != 0 && RaiderTheme.MARIGOLD.equals(n)) return photoAccent;
+        String n = c.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE).getString("accent_color", RaiderTheme.DEFAULT);
+        if (photoAccent != 0 && RaiderTheme.DEFAULT.equals(RaiderColors.theme(n).id)) return photoAccent;
         return RaiderTheme.accentColor(n);
+    }
+    /** Focus pill and outline. A photo accent, when one is set, still drives the default theme. */
+    static int focusColor(Context c) {
+        String n = c.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE).getString("accent_color", RaiderTheme.DEFAULT);
+        RaiderColors.Theme theme = RaiderColors.theme(n);
+        if (photoAccent != 0 && RaiderTheme.DEFAULT.equals(theme.id)) return photoAccent;
+        return theme.focus;
     }
     /** Lighter accent for right-aligned values. */
     static int value(Context c) { return blend(accent(c), 0xFFFFFFFF, 0.45f); }
@@ -43,20 +50,20 @@ final class SettingsStyle {
         hsv[2] = Math.max(hsv[2], 0.88f);
         return Color.HSVToColor(hsv);
     }
-    static GradientDrawable card(Context c) { GradientDrawable d = new GradientDrawable(); d.setColor(SURFACE); d.setCornerRadius(dp(c, 16)); return d; }
+    static GradientDrawable card(Context c) { GradientDrawable d = new GradientDrawable(); d.setColor(RaiderTheme.theme(c).surface); d.setCornerRadius(dp(c, 16)); return d; }
     static GradientDrawable pill(Context c, int color) { GradientDrawable d = new GradientDrawable(); d.setColor(SURFACE); d.setCornerRadius(dp(c, 100)); return d; }
     static Drawable scrim() { return new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0x8C000000, 0xB3000000, 0xD9000000}); }
     static Drawable fallbackBackground() { return new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0xFF1C1B1F, 0xFF0E0E11}); }
     /** Rows: transparent until focused, then a soft glow + 3 dp accent border drawn inside the row's bounds. */
     static Drawable focus(Context c, int color, boolean focused) { return focused ? new Glow(c, color, withAlpha(color, 0x24), true, false) : new ColorDrawable(0); }
-    static Drawable rail(Context c, int color, boolean selected, boolean focused) { return new Glow(c, color, selected ? withAlpha(color, 0x3D) : 0, focused, true); }
+    static Drawable rail(Context c, int color, boolean selected, boolean focused) { return new Glow(c, color, selected ? (color | 0xFF000000) : 0, focused, true); }
     static Drawable glow(Context c, int color, int fill, boolean focused, boolean pill) { return new Glow(c, color, fill, focused, pill); }
     static Drawable toggle(Context c, boolean on, int color) { return RaiderTheme.toggleDrawable(c, on, color); }
     static void scale(View v, boolean focused) {
         v.animate().scaleX(focused ? 1.03f : 1f).scaleY(focused ? 1.03f : 1f).setDuration(300).setInterpolator(EASE).start();
     }
     static void focusAnim(View view) {
-        view.setOnFocusChangeListener((v, focused) -> { v.setBackground(focus(v.getContext(), accent(v.getContext()), focused)); scale(v, focused); });
+        view.setOnFocusChangeListener((v, focused) -> { v.setBackground(focus(v.getContext(), focusColor(v.getContext()), focused)); scale(v, focused); });
     }
     private static int dp(Context c, int v) { return (int) (v * c.getResources().getDisplayMetrics().density + 0.5f); }
 

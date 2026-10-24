@@ -22,6 +22,7 @@ public class GlassView extends View {
     private final RectF rect = new RectF();
     private final float density;
     private float radius;
+    private int accent = 0xFFFFFFFF;
 
     public GlassView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -42,6 +43,13 @@ public class GlassView extends View {
         invalidate();
     }
 
+    /** Theme accent for the rim and the soft outer glow. */
+    void setAccent(int color) {
+        accent = color;
+        rim.setColor(0xE6000000 | (color & 0x00FFFFFF));
+        invalidate();
+    }
+
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
@@ -58,7 +66,7 @@ public class GlassView extends View {
         // they cost one draw, not one per frame of the spring.
         for (int i = 1; i <= 3; i++) {
             glow.setStrokeWidth(i * 2f * density);
-            glow.setColor((0x30 / i) << 24 | 0xFFFFFF);
+            glow.setColor(((0x30 / i) << 24) | (accent & 0x00FFFFFF));
             float o = i * density;
             canvas.drawRoundRect(rect.left - o, rect.top - o, rect.right + o, rect.bottom + o, radius + o, radius + o, glow);
         }

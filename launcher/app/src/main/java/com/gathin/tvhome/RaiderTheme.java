@@ -10,10 +10,11 @@ import android.view.View;
 
 /** Runtime palette and lightweight focus treatments shared by settings and Panchang. */
 final class RaiderTheme {
-    static final String MARIGOLD = "Marigold";
+    static final String DEFAULT = "Indigo";
     private RaiderTheme() { }
     static int accentColor(String name) { return RaiderColors.accentColor(name); }
-    static int accent(Context context) { return accentColor(context.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE).getString("accent_color", MARIGOLD)); }
+    static RaiderColors.Theme theme(Context context) { return RaiderColors.theme(context.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE).getString("accent_color", DEFAULT)); }
+    static int accent(Context context) { return theme(context).accent; }
     static GradientDrawable card(Context context) { GradientDrawable d = new GradientDrawable(); d.setColor(0xCC1A1B2E); d.setCornerRadius(dp(context,16)); d.setStroke(dp(context,1), 0x26FFFFFF); return d; }
     static android.graphics.drawable.Drawable focusBackground(Context context,int color, boolean focused) {
         GradientDrawable inside = new GradientDrawable(); inside.setCornerRadius(dp(context,16));

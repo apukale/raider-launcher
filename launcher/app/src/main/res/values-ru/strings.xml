@@ -32,7 +32,7 @@
     <string name="card_prompt_names">Карточка: «%1$s». Приложение: «%2$s».</string>
     <string name="card_prompt_resigned">Ключ подписи приложения %1$s изменился. Прежний выбор больше не действует. Выберите заново, показывать ли карточку.</string>
     <string name="card_prompt_relabelled">После вашего выбора приложение %1$s изменило название карточки. Выберите заново, показывать ли её.</string>
-    <string name="card_prompt_hint">Позже это можно изменить в настройках лаунчера → «Карточки приложений».</string>
+    <string name="card_prompt_hint">Показанная карточка заменяет значок приложения.</string>
     <string name="card_prompt_identity">%1$s, ключ %2$s</string>
     <string name="card_keep_hidden">Не показывать</string>
     <string name="card_show">Показать карточку</string>

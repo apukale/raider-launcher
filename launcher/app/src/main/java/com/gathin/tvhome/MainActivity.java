@@ -94,8 +94,33 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private FrameLayout root;
     private GlassView glass;
     private View ambient;
+    private HomeFocusBackdrop homeBackdrop;
     private View wallpaperView;
     private File wallpaperFile;
+    /** Drops an in-flight wallpaper attach after trim or a newer decode. */
+    private int wallpaperGen;
+    private static final class WallpaperCache {
+        final String path;
+        final long modified;
+        final int width, height;
+        final java.lang.ref.SoftReference<android.graphics.Bitmap> bitmap;
+        WallpaperCache(String path, long modified, int width, int height, android.graphics.Bitmap bitmap) {
+            this.path = path;
+            this.modified = modified;
+            this.width = width;
+            this.height = height;
+            this.bitmap = new java.lang.ref.SoftReference<>(bitmap);
+        }
+    }
+    /** Survives trim so resume can put the same bitmap back without decoding again. */
+    private static WallpaperCache wallpaperCache;
+    /** Wallpaper decode and photo migration. Never the main thread. */
+    private static final java.util.concurrent.ExecutorService HOME_IO =
+            java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+                Thread t = new Thread(r, "home-io");
+                t.setPriority(Thread.NORM_PRIORITY - 1);
+                return t;
+            });
     private TextView heroName;
     private int ambientColor = -1;
     private ValueAnimator ambientAnimator;
@@ -154,8 +179,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private Dialog cardPrompt;
     /** Set when a decision could not be saved: no more prompts until the next resume, instead of asking in a loop. */
     private boolean promptsPaused;
-    /** Rebuild the tiles on resume: Home was fully hidden by an app, or Home was pressed. Not after a side panel such as Wi-Fi settings. */
-    private boolean rebuildOnResume = true;
+    /** A package changed while Home was stopped. The next resume reloads after the first frame. */
+    private boolean appsDirty;
+    /** Photo jobs are registered once, after the first frame, so the manifest is not read on start. */
+    private static boolean photosScheduled;
+    /** True from onResume until onPause, so a package broadcast can reload while Home is in front. */
+    private boolean resumed;
     /** The Inputs or Module cards dropdown while one is open, so onPause can close it. */
     private PopupWindow openPopup;
     private boolean movingTile;
@@ -205,6 +234,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // Updates send REMOVED followed by ADDED; keep the tile until the new APK is ready.
             if (Intent.ACTION_PACKAGE_REMOVED.equals(intent.getAction())
                     && intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)) return;
+            if (!resumed) {
+                appsDirty = true;
+                return;
+            }
             reloadApps(false);
         }
     };
@@ -221,7 +254,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        PhotoStore.schedule(this, !PhotoStore.hasPhotos(this));
         homeFont = Fonts.family(this, Fonts.HOME);
         setContentView(R.layout.activity_main);
         Fonts.apply(findViewById(R.id.root), Fonts.HOME);
@@ -239,8 +271,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sourcePanelAction = cfg.sourcePanelAction;
 
         root = findViewById(R.id.root);
-        originalHomeBackground = cfg.backgroundColor;
-        root.setBackgroundColor(cfg.backgroundColor);
+        originalHomeBackground = RaiderTheme.theme(this).background;
+        root.setBackgroundColor(originalHomeBackground);
         if (cfg.wallpaper != null) showWallpaper(cfg.wallpaper);
         sky = findViewById(R.id.sky);
         sky.setIntensity(cfg.skyIntensity);
@@ -249,6 +281,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // The glow is one bitmap, so its alpha can be applied while drawing it. Otherwise every frame of
         // a fade renders it into a full-screen offscreen buffer first.
         ambient.forceHasOverlappingRendering(false);
+        installHomeBackdrop();
         heroName = findViewById(R.id.heroName);
         greeting = findViewById(R.id.greeting);
         if (!cfg.showGreeting) {
@@ -273,7 +306,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         homeCalendarStack.setOnClickListener(v -> open(new Intent(this, PanchangActivity.class)));homeCalendarStack.setNextFocusUpId(R.id.weather);
         homeCalendarStack.setOnKeyListener((v,key,event)->{ if(event.getAction()==KeyEvent.ACTION_DOWN && (key==KeyEvent.KEYCODE_DPAD_CENTER || key==KeyEvent.KEYCODE_ENTER)){open(new Intent(this,PanchangActivity.class));return true;} return false; });
         homeDate.setEllipsize(null);
-        homeCalendarOn = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE).getBoolean("home_hindu_calendar", true);
+        homeCalendarOn = panchangOnHome();
+        View homeClock = findViewById(R.id.clock);
+        if (homeClock != null) {
+            homeClock.setFocusable(true);
+            homeClock.setClickable(true);
+            homeClock.setBackgroundResource(R.drawable.calendar_focus);
+            int clockPad = Math.round(4 * density);
+            homeClock.setPadding(clockPad, clockPad, clockPad, clockPad);
+            homeClock.setContentDescription("World clocks");
+            if (homeClock.getNextFocusRightId() == View.NO_ID) homeClock.setNextFocusLeftId(R.id.homeCalendarStack);
+            homeClock.setOnClickListener(v -> open(new Intent(this, WorldClocksActivity.class)));
+            homeClock.setOnKeyListener((v, key, event) -> {
+                if (event.getAction() == KeyEvent.ACTION_DOWN && (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER)) {
+                    open(new Intent(this, WorldClocksActivity.class));
+                    return true;
+                }
+                return false;
+            });
+        }
         homeDate.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->updateHomeCalendar(false));
         homeDate.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener(){public void onViewAttachedToWindow(View v){updateHomeCalendar(true);}public void onViewDetachedFromWindow(View v){handler.removeCallbacks(calendarTransition);}});
         shamsi = cfg.shamsiDate;
@@ -311,7 +362,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         grid.addOnChildAttachStateChangeListener(new RecyclerView.OnChildAttachStateChangeListener() {
             @Override public void onChildViewAttachedToWindow(@NonNull View view) {
                 RecyclerView.ViewHolder holder=grid.getChildViewHolder(view); int p=holder.getBindingAdapterPosition();
-                if(p>=COLUMNS && p<2*COLUMNS)view.setNextFocusUpId(R.id.homeCalendarStack);
+                View card = view.findViewById(R.id.card);
+                View target = card != null ? card : view;
+                if(p>=COLUMNS && p<2*COLUMNS)target.setNextFocusUpId(R.id.homeCalendarStack);
             }
             @Override public void onChildViewDetachedFromWindow(@NonNull View view) {}
         });
@@ -453,54 +506,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     .removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
                     .build(), vpnCallback);
         }
-    }
-
-    /**
-     * A theme's full-screen picture behind everything. Decoded once, downsampled to the screen so a 4K
-     * JPEG costs a 1080p bitmap at most (about 8 MB), which is the price of a wallpaper on a 1 GB TV.
-     */
-    private void showWallpaper(File file) {
-        try {
-            android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
-            android.graphics.BitmapFactory.Options opts = new android.graphics.BitmapFactory.Options();
-            opts.inJustDecodeBounds = true;
-            android.graphics.BitmapFactory.decodeFile(file.getPath(), opts);
-            int sample = 1;
-            while (opts.outWidth / (sample * 2) > dm.widthPixels || opts.outHeight / (sample * 2) > dm.heightPixels) sample *= 2;
-            opts.inJustDecodeBounds = false;
-            opts.inSampleSize = sample;
-            opts.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565;   // no alpha needed, half the memory
-            android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeFile(file.getPath(), opts);
-            if (bmp == null) return;
-            android.widget.ImageView wall = new android.widget.ImageView(this);
-            wallpaperFile = file;
-            wallpaperView = wall;
-            wall.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
-            wall.setImageBitmap(bmp);
-            root.addView(wall, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        } catch (Exception | OutOfMemoryError e) {
-            // A bad or huge picture must never take the home screen down; the plain colour stays.
-        }
-    }
-
-    /**
-     * Home pressed while Home is already in front: singleTask delivers it here, then onResume runs.
-     * Back to the top with the first dock tile focused, like the stock launcher. Back from an app
-     * never comes this way, so returning to the app you left from is unchanged (#118).
-     */
-    @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        if (intent == null || !intent.hasCategory(Intent.CATEGORY_HOME)) return;
-        grid.scrollToPosition(0);
-        lastFocused = 0;
-        lastFocusedKey = adapter.getItemCount() > 0 ? adapter.keyAt(0) : null;
-        rebuildOnResume = true;
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
+        // Stays registered while Home is stopped, so an install during another app is not missed.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(packageReceiver, packageFilter, Context.RECEIVER_NOT_EXPORTED);
         } else {
@@ -508,29 +514,126 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    /**
+     * A theme's full-screen picture behind everything. Decode runs off the main thread and is
+     * downsampled to the screen, so a 4K JPEG is at most a 1080p bitmap. A still-valid bitmap is
+     * reused after trim instead of decoded again.
+     */
+    private void showWallpaper(File file) {
+        if (file == null || root == null) return;
+        wallpaperFile = file;
+        android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+        final int width = dm.widthPixels, height = dm.heightPixels;
+        android.graphics.Bitmap cached = cachedWallpaper(file, width, height);
+        if (cached != null) {
+            attachWallpaper(cached);
+            return;
+        }
+        final int gen = ++wallpaperGen;
+        final String path = file.getPath();
+        HOME_IO.execute(() -> {
+            android.graphics.Bitmap bmp = decodeWallpaper(path, width, height);
+            if (bmp == null) return;
+            wallpaperCache = new WallpaperCache(path, new File(path).lastModified(), width, height, bmp);
+            handler.post(() -> {
+                if (gen != wallpaperGen || isFinishing() || root == null) return;
+                if (wallpaperFile == null || !path.equals(wallpaperFile.getPath())) return;
+                attachWallpaper(bmp);
+            });
+        });
+    }
+
+    private static android.graphics.Bitmap cachedWallpaper(File file, int width, int height) {
+        WallpaperCache cache = wallpaperCache;
+        if (cache == null || !file.getPath().equals(cache.path) || file.lastModified() != cache.modified
+                || cache.width != width || cache.height != height) return null;
+        android.graphics.Bitmap bmp = cache.bitmap.get();
+        return bmp != null && !bmp.isRecycled() ? bmp : null;
+    }
+
+    private static android.graphics.Bitmap decodeWallpaper(String path, int screenW, int screenH) {
+        try {
+            android.graphics.BitmapFactory.Options opts = new android.graphics.BitmapFactory.Options();
+            opts.inJustDecodeBounds = true;
+            android.graphics.BitmapFactory.decodeFile(path, opts);
+            int sample = 1;
+            while (opts.outWidth / (sample * 2) > screenW || opts.outHeight / (sample * 2) > screenH) sample *= 2;
+            opts.inJustDecodeBounds = false;
+            opts.inSampleSize = Math.max(1, sample);
+            opts.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565;
+            return android.graphics.BitmapFactory.decodeFile(path, opts);
+        } catch (Exception | OutOfMemoryError e) {
+            return null;
+        }
+    }
+
+    private void attachWallpaper(android.graphics.Bitmap bmp) {
+        if (bmp == null || bmp.isRecycled() || root == null) return;
+        if (wallpaperView instanceof android.widget.ImageView) {
+            ((android.widget.ImageView) wallpaperView).setImageBitmap(bmp);
+            return;
+        }
+        android.widget.ImageView wall = new android.widget.ImageView(this);
+        wall.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
+        wall.setImageBitmap(bmp);
+        wallpaperView = wall;
+        root.addView(wall, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }
+
+    /** Drop the view's strong reference. The SoftReference can still satisfy the next resume. */
+    private void releaseWallpaperView() {
+        wallpaperGen++;
+        if (wallpaperView instanceof android.widget.ImageView) {
+            ((android.widget.ImageView) wallpaperView).setImageDrawable(null);
+            if (root != null) root.removeView(wallpaperView);
+        }
+        wallpaperView = null;
+    }
+
+    /**
+     * Home pressed while Home is already in front: singleTask delivers it here. Scroll to the dock
+     * and focus the first tile. Do not rebuild tiles or decode anything — on a 2 GB TCL that work
+     * was skipping dozens of frames and HOME looked dead.
+     */
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        if (intent != null) setIntent(intent);
+        if (intent == null || !intent.hasCategory(Intent.CATEGORY_HOME)) return;
+        returnToDock();
+    }
+
+    private void returnToDock() {
+        if (grid == null || adapter == null) return;
+        if (movingTile) finishMovingTile(false);
+        if (openPopup != null) openPopup.dismiss();
+        lastFocused = 0;
+        lastFocusedKey = adapter.getItemCount() > 0 ? adapter.keyAt(0) : null;
+        grid.scrollToPosition(0);
+        grid.post(() -> focusTile(0));
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
+        resumed = true;
         if (homeFont != Fonts.family(this, Fonts.HOME)) { recreate(); return; }
-        PhotoStore.migratePhotoContent(this);
         registerNightReceiver();
-        homeCalendarOn=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE).getBoolean("home_hindu_calendar",true);
+        homeCalendarOn=panchangOnHome();
         applyHomeCalendarTextSize();
         if (wallpaperView == null && wallpaperFile != null) showWallpaper(wallpaperFile);
         promptsPaused = false;
-        if (rebuildOnResume) {
-            tilesReady = false;
-            reloadApps(true);
-        }
-        rebuildOnResume = false;
+        boolean needTiles = appsDirty || adapter.getItemCount() == 0;
+        appsDirty = false;
         updateGreeting();
         updateHomeCalendar(true);
         weatherEnabled=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE).getBoolean("weather_on_home",true);
         handler.removeCallbacks(weatherRefresh);
-        PhotoStore.scheduleIfMissingThrottled(this);
         if(weatherEnabled&&!WeatherLocation.valid(WeatherLocation.lat(this,config),WeatherLocation.lon(this,config))){homeWeather.setText("Set city in Launcher settings");homeWeather.setCompoundDrawables(null,null,null,null);homeWeather.setVisibility(View.VISIBLE);}
-        else if(weatherEnabled){WeatherData cached=WeatherClient.cached(this);long fetched=WeatherClient.fetchedAt(this),age=System.currentTimeMillis()-fetched;if(cached!=null&&age>=0&&age<WeatherClient.FRESH_MS)showWeather(cached);else homeWeather.setVisibility(View.GONE);if(fetched==0||age<0||age>=WeatherClient.REFRESH_MS)requestWeather(true);handler.postDelayed(weatherRefresh,WeatherClient.REFRESH_MS);}
+        else if(weatherEnabled){WeatherData cached=WeatherClient.cached(this);if(cached!=null)showWeather(cached);else if(homeWeather.getText()==null||homeWeather.getText().length()==0)homeWeather.setVisibility(View.GONE);handler.postDelayed(weatherRefresh,WeatherClient.REFRESH_MS);}
         else homeWeather.setVisibility(View.GONE);
+        applyHomeChrome();
+        if (homeBackdrop != null) homeBackdrop.start();
         updateNightTheme(true);
         if (!calendarReceiverRegistered) {
             IntentFilter f=new IntentFilter();f.addAction(Intent.ACTION_TIME_CHANGED);f.addAction(Intent.ACTION_TIMEZONE_CHANGED);f.addAction(Intent.ACTION_DATE_CHANGED);
@@ -543,28 +646,65 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         applyPillLabels();
         sky.update();
         handler.postDelayed(minuteTick, MINUTE_MS);
+        if (needTiles) {
+            final boolean cold = adapter.getItemCount() == 0;
+            handler.post(() -> {
+                if (!resumed || isFinishing()) {
+                    appsDirty = true;
+                    return;
+                }
+                reloadApps(cold && animations);
+                scheduleDeferredResume();
+            });
+        } else {
+            scheduleDeferredResume();
+        }
+    }
+
+    /** Photo migration, an empty-cache refresh, and a stale weather fetch. After the first paint. */
+    private void scheduleDeferredResume() {
+        HOME_IO.execute(() -> {
+            if (isFinishing()) return;
+            try { PhotoStore.migratePhotoContent(this); } catch (Throwable ignored) {}
+            if (!photosScheduled) {
+                try {
+                    PhotoStore.schedule(this, !PhotoStore.hasPhotos(this));
+                    photosScheduled = true;
+                } catch (Throwable ignored) {}
+            }
+            try { PhotoStore.scheduleIfMissingThrottled(this); } catch (Throwable ignored) {}
+            handler.post(() -> {
+                if (!resumed || isFinishing()) return;
+                if (homeBackdrop != null) homeBackdrop.refresh();
+                if (!weatherEnabled) return;
+                if (!WeatherLocation.valid(WeatherLocation.lat(this, config), WeatherLocation.lon(this, config))) return;
+                long fetched = WeatherClient.fetchedAt(this);
+                long age = System.currentTimeMillis() - fetched;
+                if (fetched == 0 || age < 0 || age >= WeatherClient.REFRESH_MS) requestWeather(true);
+            });
+        });
     }
 
     @Override
     public void onTrimMemory(int level) {
         super.onTrimMemory(level);
         if (level < TRIM_MEMORY_UI_HIDDEN) return;
-        String focusedKey = lastFocusedKey;
-        int focusedPosition = lastFocused;
-        if (adapter != null) adapter.clearArtwork();
-        lastFocusedKey = focusedKey;
-        lastFocused = focusedPosition;
-        if (wallpaperView instanceof android.widget.ImageView) {
-            ((android.widget.ImageView) wallpaperView).setImageDrawable(null);
-            if (root != null) root.removeView(wallpaperView);
-            wallpaperView = null;
-        }
+        // Opening an app hides Home. Keep the tiles so coming back is not a full rebuild.
+        if (homeBackdrop != null) homeBackdrop.hide();
+        releaseWallpaperView();
         if (ambient != null) {
             ambient.animate().cancel();
             ambient.setBackground(null);
             ambientColor = -1;
         }
-        rebuildOnResume = true;
+        if (level >= TRIM_MEMORY_COMPLETE && adapter != null && adapter.getItemCount() > 0) {
+            String focusedKey = lastFocusedKey;
+            int focusedPosition = lastFocused;
+            adapter.clearArtwork();
+            lastFocusedKey = focusedKey;
+            lastFocused = focusedPosition;
+            appsDirty = true;
+        }
     }
 
     @Override
@@ -648,6 +788,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onPause() {
         super.onPause();
+        resumed = false;
         if (movingTile) finishMovingTile(false);
         stopAmbientAnimation();
         heroName.animate().cancel();
@@ -657,6 +798,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (nightReceiverRegistered) { try { unregisterReceiver(nightTimeReceiver); } catch (IllegalArgumentException ignored) {} nightReceiverRegistered = false; }
         NightTheme.applyHome(root, false, originalHomeBackground);
         handler.removeCallbacks(weatherRefresh);
+        if (homeBackdrop != null) homeBackdrop.stop();
         handler.removeCallbacks(calendarTransition);
         if(calendarReceiverRegistered){try{unregisterReceiver(calendarTimeReceiver);}catch(IllegalArgumentException ignored){}calendarReceiverRegistered=false;}
         // Nothing of ours stays on screen over another app; an undecided prompt simply returns next time.
@@ -694,15 +836,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void showWeather(WeatherData data){
         Calendar c=Calendar.getInstance();int y=c.get(Calendar.YEAR),m=c.get(Calendar.MONTH)+1,d=c.get(Calendar.DAY_OF_MONTH);
         long rise=(long)((Panchang.sunriseJd(y,m,d)-2440587.5)*86400000d),set=(long)((Panchang.sunsetJd(y,m,d)-2440587.5)*86400000d);boolean night=System.currentTimeMillis()<rise||System.currentTimeMillis()>set;
-        String label=data.temperature+(WeatherLocation.fahrenheit(this)?"\u00B0F":"\u00B0C")+" \u00B7 "+data.high+"\u00B0/"+data.low+"\u00B0"+(data.precipitation>=40?" \u00B7 "+data.precipitation+"%":"");
+        String label=data.temperature+(WeatherLocation.fahrenheit(this)?"\u00B0F":"\u00B0C")+" \u00B7 "+data.high+"\u00B0/"+data.low+"\u00B0"+WeatherData.rainSuffix(data.precipitation);
         homeWeather.setText(label);homeWeather.setContentDescription(WeatherLocation.place(this,config)+" weather: "+label);int size=(int)(homeWeather.getTextSize()*1.25f);WeatherIconDrawable icon=new WeatherIconDrawable(WeatherData.iconGroup(data.code),night,0xA6FFFFFF);icon.setBounds(0,0,size,size);homeWeather.setCompoundDrawables(icon,null,null,null);homeWeather.setCompoundDrawablePadding((int)(5*getResources().getDisplayMetrics().density));homeWeather.setVisibility(View.VISIBLE);
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        unregisterReceiver(packageReceiver);
-        rebuildOnResume = true;
     }
 
     @Override
@@ -713,6 +848,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     protected void onDestroy() {
+        if (homeBackdrop != null) homeBackdrop.destroy();
+        try { unregisterReceiver(packageReceiver); } catch (IllegalArgumentException ignored) {}
         super.onDestroy();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
@@ -729,10 +866,47 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Home screen: Back otherwise goes nowhere.
     }
 
+    private void installHomeBackdrop() {
+        android.widget.ImageView photo = new android.widget.ImageView(this);
+        photo.setId(R.id.homePhoto);
+        photo.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
+        photo.setAlpha(0f);
+        View scrim = new View(this);
+        scrim.setAlpha(0f);
+        FrameLayout.LayoutParams full = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        int at = Math.max(0, root.indexOfChild(ambient));
+        root.addView(photo, at, full);
+        root.addView(scrim, at + 1, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        homeBackdrop = new HomeFocusBackdrop(this, photo, scrim);
+    }
+
+    private void applyHomeChrome() {
+        RaiderColors.Theme theme = RaiderTheme.theme(this);
+        originalHomeBackground = theme.background;
+        if (wallpaperView == null) root.setBackgroundColor(theme.background);
+        if (glass != null) glass.setAccent(theme.focus);
+        int ink = theme.onSurface, muted = theme.secondary;
+        paint(R.id.clock, ink);
+        paint(R.id.ampm, muted);
+        paint(R.id.date, muted);
+        paint(R.id.weather, muted);
+        paint(R.id.heroName, ink);
+        paint(R.id.homeCalendarLine1, ink);
+        paint(R.id.homeCalendarTithi, muted);
+        paint(R.id.homeCalendarMoon, muted);
+        paint(R.id.homeCalendarRahu, muted);
+    }
+
+    private void paint(int id, int color) {
+        View view = findViewById(id);
+        if (view instanceof TextView) ((TextView) view).setTextColor(color);
+    }
+
     // ---- glass highlight -------------------------------------------------------------------------
 
     @Override
     public void onTileFocused(int position, View card) {
+        if (glass != null) glass.setAccent(RaiderTheme.theme(this).focus);
         lastFocused = position;
         lastFocusedKey = adapter.keyAt(position);
         // After HOME the grid is rebuilt and the first tile can be focused before it is laid out; place the glass after layout.
@@ -991,11 +1165,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (position < 0 || position >= adapter.getItemCount()) return;
         final String key = adapter.keyAt(position);
         String pkg = adapter.packageAt(position);
-        android.app.AlertDialog dialog = new android.app.AlertDialog.Builder(this)
-                .setTitle(R.string.app_actions)
-                .setItems(new CharSequence[]{getString(R.string.move_app), getString(R.string.hide_app),
-                        getString(adapter.logoAt(position) ? R.string.use_banner : R.string.use_app_logo),
-                        getString(R.string.app_info)}, (d, which) -> {
+        // A long press opens this menu while OK is still held. The picker swallows that release
+        // so it cannot choose the focused row.
+        SettingsPicker.list(this, getString(R.string.app_actions), new CharSequence[]{
+                getString(R.string.move_app), getString(R.string.hide_app),
+                getString(adapter.logoAt(position) ? R.string.use_banner : R.string.use_app_logo),
+                getString(R.string.app_info)}, which -> {
             if (which == 0) {
                 movingTile = true;
                 movingPosition = adapter.positionOf(key);
@@ -1015,19 +1190,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             } else {
                 try { startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg))); } catch (Exception ignored) { }
             }
-        }).create();
-        // A long press opens this dialog while OK is still held. Ignore that press's release so
-        // it cannot choose the focused menu row.
-        final boolean[] ignoreFirstOkUp = {true};
-        dialog.setOnShowListener(d -> dialog.getListView().setOnKeyListener((v, code, event) -> {
-            if (ignoreFirstOkUp[0] && (code == KeyEvent.KEYCODE_DPAD_CENTER || code == KeyEvent.KEYCODE_ENTER)
-                    && event.getAction() == KeyEvent.ACTION_UP) {
-                ignoreFirstOkUp[0] = false;
-                return true;
-            }
-            return false;
-        }));
-        dialog.show();
+        }, true);
     }
 
     private void moveTileInDirection(int position, int keyCode) {
@@ -1111,6 +1274,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void applyPillLabels(){if(btnInputs==null||btnWifi==null)return;TextView settings=findViewById(R.id.btnSettings);TextView[] buttons={(TextView)btnInputs,btnWifi,settings};int[] icons={R.drawable.ic_input,wifiIconRes!=0?wifiIconRes:R.drawable.ic_wifi,R.drawable.ic_settings};for(int i=0;i<buttons.length;i++){TextView button=buttons[i];if(button==null)continue;String label;if(button.getId()==R.id.btnInputs)label=getString(R.string.inputs);else if(button.getId()==R.id.btnSettings)label=getString(R.string.settings);else{CharSequence d=button.getContentDescription();label=d!=null&&d.length()>0?String.valueOf(d):(button.getText()!=null&&button.getText().length()>0?String.valueOf(button.getText()):getString(R.string.wifi));}button.setContentDescription(label);android.graphics.drawable.Drawable icon=getDrawable(icons[i]);if(icon!=null)icon=icon.mutate();if(pillLabels){if(button!=btnWifi||button.getText()==null||button.getText().length()==0)button.setText(label);button.setPaddingRelative(dp(16),0,dp(20),0);button.setCompoundDrawablePadding(dp(9));button.setMinWidth(0);button.setMinimumWidth(0);button.setMaxWidth(button==btnWifi?dp(180):Integer.MAX_VALUE);button.setCompoundDrawablesRelativeWithIntrinsicBounds(icon,null,null,null);}else{int size=dp(26),width=dp(48);button.setText("");if(icon!=null)icon.setBounds(0,0,size,size);int side=Math.max(0,(width-size)/2);button.setPaddingRelative(side,0,side,0);button.setCompoundDrawablePadding(0);button.setMinWidth(width);button.setMinimumWidth(width);button.setMaxWidth(width);button.setCompoundDrawablesRelative(icon,null,null,null);}}}
     private int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
 
+    private boolean panchangOnHome(){android.content.SharedPreferences p=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE);return LauncherPrefs.panchangOnHome(LauncherPrefs.hinduOn(p.contains(LauncherPrefs.HINDU),p.getBoolean(LauncherPrefs.HINDU,true)),p.getBoolean("home_hindu_calendar",true));}
     private void updateHomeCalendar(boolean rearm) {
         if(homeDate==null)return;
         Calendar c=Calendar.getInstance(); long ms=System.currentTimeMillis(); double now=PanchangDisplay.jdNow();
@@ -1445,18 +1609,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void startScreensaver() { startActivity(new Intent(this, ScreensaverActivity.class)); }
 
     private void confirmRestartTv() {
-        new android.app.AlertDialog.Builder(this)
-                .setMessage(R.string.restart_tv_confirm)
-                .setNegativeButton(android.R.string.cancel, null)
-                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
-                    if (!PowerMenuService.openPowerDialog()) {
-                        new android.app.AlertDialog.Builder(this)
-                                .setMessage(R.string.restart_tv_service_missing)
-                                .setPositiveButton(android.R.string.ok, null)
-                                .show();
-                    }
-                })
-                .show();
+        SettingsPicker.confirm(this, null, getString(R.string.restart_tv_confirm), () -> {
+            if (!PowerMenuService.openPowerDialog()) {
+                SettingsPicker.notice(this, null, getString(R.string.restart_tv_service_missing));
+            }
+        });
     }
 
     private void addSettingsMenuRow(LinearLayout rows, PopupWindow popup, int title, Runnable action) {

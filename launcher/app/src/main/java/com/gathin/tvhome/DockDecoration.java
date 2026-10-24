@@ -58,7 +58,7 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             }
         }
         if (!any) return;
-        // Room for the 1.12x focus scale plus the glass glow, the same above and below.
+        // Room for the 1.05x focus scale plus the glass glow, the same above and below.
         rect.inset(-14 * density, -18 * density);
         float radius = 26 * density;
         c.drawRoundRect(rect, radius, radius, band);

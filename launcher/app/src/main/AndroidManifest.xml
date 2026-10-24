@@ -16,6 +16,7 @@
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.CLEAR_APP_CACHE"
         tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
     <!-- Needed since Android 10 to read the Wi-Fi network name for the network pill. Never requested at
@@ -77,6 +78,7 @@
             android:screenOrientation="landscape" />
         <activity android:name=".PanchangActivity" android:exported="false" android:excludeFromRecents="true" android:screenOrientation="landscape" />
         <activity android:name=".WeatherActivity" android:exported="false" android:excludeFromRecents="true" android:screenOrientation="landscape" />
+        <activity android:name=".WorldClocksActivity" android:exported="false" android:excludeFromRecents="true" android:screenOrientation="landscape" />
         <activity android:name=".ScreensaverActivity" android:exported="false" android:excludeFromRecents="true" android:noHistory="true" android:screenOrientation="landscape" />
         <activity
             android:name=".HomeSettingsActivity"
