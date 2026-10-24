@@ -6,4 +6,13 @@
     <item name="weatherCityChoice" type="id" />
     <item name="weatherDefaultChoice" type="id" />
     <item name="weatherUnitsChoice" type="id" />
+    <item name="hinduMasterChoice" type="id" />
+    <item name="worldIndiaChoice" type="id" />
+    <item name="worldCity1Choice" type="id" />
+    <item name="worldCity2Choice" type="id" />
+    <item name="worldCity3Choice" type="id" />
+    <item name="worldCity4Choice" type="id" />
+    <item name="worldDreamChoice" type="id" />
+    <item name="kidsChoice" type="id" />
+    <item name="homeClockDetail" type="id" />
 </resources>

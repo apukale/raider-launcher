@@ -8,4 +8,13 @@ public class LauncherPrefsTest {
         assertFalse(LauncherPrefs.showPillLabels(false, true));
         assertTrue(LauncherPrefs.showPillLabels(true, true));
     }
+
+    @Test(timeout=5000) public void hinduMasterGatesPanchangOnly() {
+        assertTrue(LauncherPrefs.hinduOn(false, false));
+        assertFalse(LauncherPrefs.hinduOn(true, false));
+        assertTrue(LauncherPrefs.panchangOnHome(true, true));
+        assertFalse(LauncherPrefs.panchangOnHome(false, true));
+        assertFalse(LauncherPrefs.panchangOnDream(true, false));
+        assertFalse(LauncherPrefs.panchangOnDream(false, true));
+    }
 }

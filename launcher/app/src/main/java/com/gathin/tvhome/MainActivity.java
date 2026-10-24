@@ -124,7 +124,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean homeCalendarOn;
     private final Runnable calendarTransition=()->{NightTheme.prepareHomeTextUpdate(root,originalHomeBackground);updateHomeCalendar(true);updateNightTheme(true);};
     private boolean calendarReceiverRegistered;
-    private final BroadcastReceiver calendarTimeReceiver=new BroadcastReceiver(){@Override public void onReceive(Context c,Intent i){NightTheme.prepareHomeTextUpdate(root,originalHomeBackground);updateHomeCalendar(true);updateNightTheme(true);}};
+    private final BroadcastReceiver calendarTimeReceiver=new BroadcastReceiver(){@Override public void onReceive(Context c,Intent i){NightTheme.prepareHomeTextUpdate(root,originalHomeBackground);updateHomeCalendar(true);updateHomeClockDetail();updateNightTheme(true);}};
     private boolean shamsi;
     /** Optional time-of-day backdrop (config.xml, sky_intensity); 0 keeps it hidden. */
     private SkyView sky;
@@ -213,6 +213,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         public void run() {
             updateGreeting();
             updateWifiLabel();
+            updateHomeClockDetail();
             sky.update();
             handler.postDelayed(this, MINUTE_MS);
         }
@@ -273,7 +274,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         homeCalendarStack.setOnClickListener(v -> open(new Intent(this, PanchangActivity.class)));homeCalendarStack.setNextFocusUpId(R.id.weather);
         homeCalendarStack.setOnKeyListener((v,key,event)->{ if(event.getAction()==KeyEvent.ACTION_DOWN && (key==KeyEvent.KEYCODE_DPAD_CENTER || key==KeyEvent.KEYCODE_ENTER)){open(new Intent(this,PanchangActivity.class));return true;} return false; });
         homeDate.setEllipsize(null);
-        homeCalendarOn = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE).getBoolean("home_hindu_calendar", true);
+        homeCalendarOn = panchangOnHome();
+        attachHomeClockDetail();
         homeDate.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->updateHomeCalendar(false));
         homeDate.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener(){public void onViewAttachedToWindow(View v){updateHomeCalendar(true);}public void onViewDetachedFromWindow(View v){handler.removeCallbacks(calendarTransition);}});
         shamsi = cfg.shamsiDate;
@@ -514,7 +516,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (homeFont != Fonts.family(this, Fonts.HOME)) { recreate(); return; }
         PhotoStore.migratePhotoContent(this);
         registerNightReceiver();
-        homeCalendarOn=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE).getBoolean("home_hindu_calendar",true);
+        homeCalendarOn=panchangOnHome();
+        updateHomeClockDetail();
         applyHomeCalendarTextSize();
         if (wallpaperView == null && wallpaperFile != null) showWallpaper(wallpaperFile);
         promptsPaused = false;
@@ -694,7 +697,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void showWeather(WeatherData data){
         Calendar c=Calendar.getInstance();int y=c.get(Calendar.YEAR),m=c.get(Calendar.MONTH)+1,d=c.get(Calendar.DAY_OF_MONTH);
         long rise=(long)((Panchang.sunriseJd(y,m,d)-2440587.5)*86400000d),set=(long)((Panchang.sunsetJd(y,m,d)-2440587.5)*86400000d);boolean night=System.currentTimeMillis()<rise||System.currentTimeMillis()>set;
-        String label=data.temperature+(WeatherLocation.fahrenheit(this)?"\u00B0F":"\u00B0C")+" \u00B7 "+data.high+"\u00B0/"+data.low+"\u00B0"+(data.precipitation>=40?" \u00B7 "+data.precipitation+"%":"");
+        String label=data.temperature+(WeatherLocation.fahrenheit(this)?"\u00B0F":"\u00B0C")+" \u00B7 "+data.high+"\u00B0/"+data.low+"\u00B0"+WeatherData.rainSuffix(data.precipitation);
         homeWeather.setText(label);homeWeather.setContentDescription(WeatherLocation.place(this,config)+" weather: "+label);int size=(int)(homeWeather.getTextSize()*1.25f);WeatherIconDrawable icon=new WeatherIconDrawable(WeatherData.iconGroup(data.code),night,0xA6FFFFFF);icon.setBounds(0,0,size,size);homeWeather.setCompoundDrawables(icon,null,null,null);homeWeather.setCompoundDrawablePadding((int)(5*getResources().getDisplayMetrics().density));homeWeather.setVisibility(View.VISIBLE);
     }
 
@@ -1100,6 +1103,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void applyPillLabels(){if(btnInputs==null||btnWifi==null)return;TextView settings=findViewById(R.id.btnSettings);TextView[] buttons={(TextView)btnInputs,btnWifi,settings};int[] icons={R.drawable.ic_input,wifiIconRes!=0?wifiIconRes:R.drawable.ic_wifi,R.drawable.ic_settings};for(int i=0;i<buttons.length;i++){TextView button=buttons[i];if(button==null)continue;String label;if(button.getId()==R.id.btnInputs)label=getString(R.string.inputs);else if(button.getId()==R.id.btnSettings)label=getString(R.string.settings);else{CharSequence d=button.getContentDescription();label=d!=null&&d.length()>0?String.valueOf(d):(button.getText()!=null&&button.getText().length()>0?String.valueOf(button.getText()):getString(R.string.wifi));}button.setContentDescription(label);android.graphics.drawable.Drawable icon=getDrawable(icons[i]);if(icon!=null)icon=icon.mutate();if(pillLabels){if(button!=btnWifi||button.getText()==null||button.getText().length()==0)button.setText(label);button.setPaddingRelative(dp(16),0,dp(20),0);button.setCompoundDrawablePadding(dp(9));button.setMinWidth(0);button.setMinimumWidth(0);button.setMaxWidth(button==btnWifi?dp(180):Integer.MAX_VALUE);button.setCompoundDrawablesRelativeWithIntrinsicBounds(icon,null,null,null);}else{int size=dp(26),width=dp(48);button.setText("");if(icon!=null)icon.setBounds(0,0,size,size);int side=Math.max(0,(width-size)/2);button.setPaddingRelative(side,0,side,0);button.setCompoundDrawablePadding(0);button.setMinWidth(width);button.setMinimumWidth(width);button.setMaxWidth(width);button.setCompoundDrawablesRelative(icon,null,null,null);}}}
     private int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
 
+    private boolean panchangOnHome(){android.content.SharedPreferences p=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE);return LauncherPrefs.panchangOnHome(LauncherPrefs.hinduOn(p.contains(LauncherPrefs.HINDU),p.getBoolean(LauncherPrefs.HINDU,true)),p.getBoolean("home_hindu_calendar",true));}
+    private void attachHomeClockDetail(){if(homeClockDetail!=null)return;View clock=findViewById(R.id.clock);if(clock==null||!(clock.getParent() instanceof View))return;View mid=(View)clock.getParent();if(!(mid.getParent() instanceof View))return;View row=(View)mid.getParent();if(!(row.getParent() instanceof android.widget.LinearLayout))return;android.widget.LinearLayout block=(android.widget.LinearLayout)row.getParent();homeClockDetail=new TextView(this);homeClockDetail.setId(R.id.homeClockDetail);homeClockDetail.setTextColor(0xA6FFFFFF);homeClockDetail.setTextSize(13);homeClockDetail.setTypeface(Fonts.of(this,Fonts.HOME,R.font.outfit_regular));homeClockDetail.setIncludeFontPadding(false);homeClockDetail.setMaxLines(2);homeClockDetail.setEllipsize(android.text.TextUtils.TruncateAt.END);homeClockDetail.setGravity(homeDate.getGravity());homeClockDetail.setContentDescription("Clock detail");android.widget.LinearLayout.LayoutParams lp=new android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,android.view.ViewGroup.LayoutParams.WRAP_CONTENT);lp.topMargin=dp(2);block.addView(homeClockDetail,block.indexOfChild(row)+1,lp);clock.setFocusable(true);updateHomeClockDetail();}
+    private void updateHomeClockDetail(){if(homeClockDetail==null)return;android.content.SharedPreferences p=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE);homeClockDetail.setText(WorldClocks.homeDetail(p::getString,System.currentTimeMillis()));}
+    private TextView homeClockDetail;
     private void updateHomeCalendar(boolean rearm) {
         if(homeDate==null)return;
         Calendar c=Calendar.getInstance(); long ms=System.currentTimeMillis(); double now=PanchangDisplay.jdNow();
