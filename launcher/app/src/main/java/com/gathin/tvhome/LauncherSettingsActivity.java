@@ -231,7 +231,7 @@ public final class LauncherSettingsActivity extends Activity {
         categoryRail = findViewById(R.id.categoryRail);
         categoryContent = findViewById(R.id.categoryContent);
         categoryScroll = findViewById(R.id.categoryScroll);
-        categoryRail.setBackground(null);categoryRail.setClipChildren(false);categoryRail.setClipToPadding(false); categoryRail.setPadding(dp(4),dp(4),dp(4),dp(4));
+        categoryRail.setBackground(SettingsStyle.card(this));categoryRail.setClipChildren(false);categoryRail.setClipToPadding(false); categoryRail.setPadding(dp(4),dp(4),dp(4),dp(4));
         clearCacheHeader = null;
         categoryScroll.getViewTreeObserver().addOnGlobalFocusChangeListener((oldFocus,newFocus) -> keepFocusedRowVisible(newFocus));
         String[] names = SettingsMenu.LABELS;
@@ -241,13 +241,13 @@ public final class LauncherSettingsActivity extends Activity {
         int[][] groups={{R.id.pillLabelsChoice,R.id.moduleCardsChoice,R.id.unhideAppsChoice},{R.id.accentChoice,R.id.animationsChoice,R.id.advancedChoice},{R.id.startScreensaverChoice,R.id.screensaverStyleChoice,R.id.startAfterChoice},{R.id.photoSourceChoice,R.id.photoIntervalChoice,R.id.photoStorageChoice,R.id.refreshPhotosChoice},{R.id.homeCalendarChoice,R.id.calendarChoice,R.id.calendarTextSizeChoice},{R.id.weatherChoice},{R.id.nightModeChoice,R.id.nightStartsChoice,R.id.nightEndsChoice},{R.id.dnsChoice,R.id.tvSettingsChoice,R.id.defaultHomeChoice,R.id.clearCacheChoice,R.id.resetOrderChoice,R.id.followThemeChoice},{}};
         for(int category=0;category<names.length;category++){
             final int index=category;
-            TextView rail=new TextView(this);railItems[category]=rail;rail.setText(names[category]);android.graphics.drawable.Drawable railIcon=getDrawable(icons[category]).mutate();railIcon.setTint(RaiderTheme.theme(this).secondary);railIcon.setBounds(0,0,dp(20),dp(20));rail.setCompoundDrawablesRelative(railIcon,null,null,null);rail.setCompoundDrawablePadding(dp(8));rail.setGravity(android.view.Gravity.CENTER_VERTICAL);rail.setPadding(dp(14),0,dp(10),0);rail.setTextSize(14);rail.setIncludeFontPadding(false);rail.setSingleLine(true);rail.setTextColor(ink());rail.setTypeface(Fonts.of(this,Fonts.SETTINGS,R.font.outfit_medium));rail.setFocusable(true);rail.setClickable(true);rail.setBackground(SettingsStyle.focus(this,SettingsStyle.accent(this),false));LinearLayout.LayoutParams rlp=new LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,dp(36));if(category<names.length-1)rlp.bottomMargin=dp(2);categoryRail.addView(rail,rlp);rail.setId(View.generateViewId());rail.setOnClickListener(v->selectCategory(index,true));rail.setOnFocusChangeListener((v,f)->{v.setBackground(SettingsStyle.rail(this,SettingsStyle.accent(this),index==selectedCategory,f));((TextView)v).setTextColor(f||index==selectedCategory?ink():RaiderTheme.theme(this).secondary);tintRailIcon((TextView)v,f||index==selectedCategory);SettingsStyle.scale(v,f);});
+            TextView rail=new TextView(this);railItems[category]=rail;rail.setText(names[category]);android.graphics.drawable.Drawable railIcon=getDrawable(icons[category]).mutate();railIcon.setTint(RaiderTheme.theme(this).secondary);railIcon.setBounds(0,0,dp(20),dp(20));rail.setCompoundDrawablesRelative(railIcon,null,null,null);rail.setCompoundDrawablePadding(dp(8));rail.setGravity(android.view.Gravity.CENTER_VERTICAL);rail.setPadding(dp(14),0,dp(10),0);rail.setTextSize(14);rail.setIncludeFontPadding(false);rail.setSingleLine(true);rail.setTextColor(ink());rail.setTypeface(Fonts.of(this,Fonts.SETTINGS,R.font.outfit_medium));rail.setFocusable(true);rail.setClickable(true);rail.setBackground(SettingsStyle.focus(this,SettingsStyle.focusColor(this),false));LinearLayout.LayoutParams rlp=new LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,dp(36));if(category<names.length-1)rlp.bottomMargin=dp(2);categoryRail.addView(rail,rlp);rail.setId(View.generateViewId());rail.setOnClickListener(v->selectCategory(index,true));rail.setOnFocusChangeListener((v,f)->{int focus=SettingsStyle.focusColor(this);v.setBackground(SettingsStyle.rail(this,focus,index==selectedCategory,f));((TextView)v).setTextColor(index==selectedCategory?RaiderColors.inkOn(focus):(f?ink():RaiderTheme.theme(this).secondary));tintRailIcon((TextView)v,index==selectedCategory,f);SettingsStyle.scale(v,f);});
             LinearLayout card=new LinearLayout(this);categoryCards[category]=card;card.setOrientation(LinearLayout.VERTICAL);card.setPadding(dp(12),dp(10),dp(12),dp(10));card.setClipChildren(false);card.setClipToPadding(false);card.setBackground(SettingsStyle.card(this));LinearLayout.LayoutParams clp=new LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,-2);clp.bottomMargin=0;categoryContent.addView(card,clp);
             if(category==8){buildAbout(card);continue;}
             if(category==4)addHinduMaster(card);
-            if(category==0){LinearLayout apr=new LinearLayout(this);apr.setOrientation(LinearLayout.HORIZONTAL);apr.setGravity(android.view.Gravity.CENTER_VERTICAL);apr.setPadding(dp(14),0,dp(14),0);TextView aprTitle=categoryText("Apps per row",17,ink());aprTitle.setPadding(0,0,0,0);aprTitle.setIncludeFontPadding(false);aprTitle.setTypeface(Fonts.of(this,Fonts.SETTINGS,R.font.outfit_medium));apr.addView(aprTitle,new LinearLayout.LayoutParams(0,android.view.ViewGroup.LayoutParams.WRAP_CONTENT,1f));appsPerRowValue=categoryText(columns+" apps",16,SettingsStyle.accent(this));appsPerRowValue.setPadding(0,0,0,0);appsPerRowValue.setIncludeFontPadding(false);apr.addView(appsPerRowValue);card.addView(apr,new LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,dp(40)));LinearLayout choicesRow=new LinearLayout(this);choicesRow.setOrientation(LinearLayout.HORIZONTAL);int[] columnIds={R.id.columns4,R.id.columns5,R.id.columns6,R.id.columns7};for(int id:columnIds){View choice=legacy.findViewById(id);ViewGroupTools.detach(choice);if(choice instanceof TextView){((TextView)choice).setTextColor(ink());((TextView)choice).setTypeface(Fonts.of(this,Fonts.SETTINGS,R.font.outfit_medium));}LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(40),1f);lp.setMargins(dp(4),0,dp(4),dp(4));final int tint=COLUMN_TINTS[id==R.id.columns4?0:id==R.id.columns5?1:id==R.id.columns6?2:3];choice.setBackground(SettingsStyle.glow(this,SettingsStyle.accent(this),tint,false,false));choice.setOnFocusChangeListener((v,f)->{v.setBackground(SettingsStyle.glow(this,SettingsStyle.accent(this),tint,f,false));SettingsStyle.scale(v,f);});choicesRow.addView(choice,lp);}card.addView(choicesRow);}
+            if(category==0){LinearLayout apr=new LinearLayout(this);apr.setOrientation(LinearLayout.HORIZONTAL);apr.setGravity(android.view.Gravity.CENTER_VERTICAL);apr.setPadding(dp(14),0,dp(14),0);TextView aprTitle=categoryText("Apps per row",17,ink());aprTitle.setPadding(0,0,0,0);aprTitle.setIncludeFontPadding(false);aprTitle.setTypeface(Fonts.of(this,Fonts.SETTINGS,R.font.outfit_medium));apr.addView(aprTitle,new LinearLayout.LayoutParams(0,android.view.ViewGroup.LayoutParams.WRAP_CONTENT,1f));appsPerRowValue=categoryText(columns+" apps",16,SettingsStyle.accent(this));appsPerRowValue.setPadding(0,0,0,0);appsPerRowValue.setIncludeFontPadding(false);apr.addView(appsPerRowValue);card.addView(apr,new LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,dp(40)));LinearLayout choicesRow=new LinearLayout(this);choicesRow.setOrientation(LinearLayout.HORIZONTAL);int[] columnIds={R.id.columns4,R.id.columns5,R.id.columns6,R.id.columns7};for(int id:columnIds){View choice=legacy.findViewById(id);ViewGroupTools.detach(choice);if(choice instanceof TextView){((TextView)choice).setTextColor(ink());((TextView)choice).setTypeface(Fonts.of(this,Fonts.SETTINGS,R.font.outfit_medium));}LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(40),1f);lp.setMargins(dp(4),0,dp(4),dp(4));final int tint=COLUMN_TINTS[id==R.id.columns4?0:id==R.id.columns5?1:id==R.id.columns6?2:3];choice.setBackground(SettingsStyle.glow(this,SettingsStyle.focusColor(this),tint,false,false));choice.setOnFocusChangeListener((v,f)->{v.setBackground(SettingsStyle.glow(this,SettingsStyle.focusColor(this),tint,f,false));SettingsStyle.scale(v,f);});choicesRow.addView(choice,lp);}card.addView(choicesRow);}
             boolean resetShown=false;
-            for(int id:groups[category]){View row=legacy.findViewById(id);if(row==null)continue;ViewGroupTools.detach(row);if(isDestructive(id)&&!resetShown){resetShown=true;TextView cap=categoryText("Reset",14,0xFFE8907E);cap.setPadding(dp(14),dp(18),dp(14),dp(6));cap.setIncludeFontPadding(false);card.addView(cap);}LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,android.view.ViewGroup.LayoutParams.WRAP_CONTENT);lp.bottomMargin=dp(4);row.setBackground(SettingsStyle.focus(this,SettingsStyle.accent(this),false));if(row instanceof TextView){TextView t=(TextView)row;t.setTextColor(ink());t.setTextSize(17);t.setTypeface(Fonts.of(this,Fonts.SETTINGS,R.font.outfit_medium));t.setPadding(dp(14),dp(6),dp(16),dp(6));t.setMinHeight(dp(rowHeight));t.setMinimumHeight(dp(rowHeight));t.setSingleLine(false);t.setMaxLines(8);t.setEllipsize(null);t.setIncludeFontPadding(false);t.setGravity(android.view.Gravity.CENTER_VERTICAL|android.view.Gravity.START);t.setFocusable(true);t.setClickable(true);SettingsStyle.focusAnim(t);}card.addView(row,lp);if(id==R.id.accentChoice)addFontsEntry(card);if(id==R.id.tvSettingsChoice)addInputNamesRow(card);if(id==R.id.defaultHomeChoice)card.addView(hint(getString(R.string.home_settings_help)));if(id==R.id.advancedChoice)card.addView(hint(getString(R.string.advanced_effects_warning)));if(id==R.id.followThemeChoice)card.addView(hint(getString(R.string.follow_theme_hint)));}
+            for(int id:groups[category]){View row=legacy.findViewById(id);if(row==null)continue;ViewGroupTools.detach(row);if(isDestructive(id)&&!resetShown){resetShown=true;TextView cap=categoryText("Reset",14,0xFFE8907E);cap.setPadding(dp(14),dp(18),dp(14),dp(6));cap.setIncludeFontPadding(false);card.addView(cap);}LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,android.view.ViewGroup.LayoutParams.WRAP_CONTENT);lp.bottomMargin=dp(4);row.setBackground(SettingsStyle.focus(this,SettingsStyle.focusColor(this),false));if(row instanceof TextView){TextView t=(TextView)row;t.setTextColor(ink());t.setTextSize(17);t.setTypeface(Fonts.of(this,Fonts.SETTINGS,R.font.outfit_medium));t.setPadding(dp(14),dp(6),dp(16),dp(6));t.setMinHeight(dp(rowHeight));t.setMinimumHeight(dp(rowHeight));t.setSingleLine(false);t.setMaxLines(8);t.setEllipsize(null);t.setIncludeFontPadding(false);t.setGravity(android.view.Gravity.CENTER_VERTICAL|android.view.Gravity.START);t.setFocusable(true);t.setClickable(true);SettingsStyle.focusAnim(t);}card.addView(row,lp);if(id==R.id.accentChoice)addFontsEntry(card);if(id==R.id.tvSettingsChoice)addInputNamesRow(card);if(id==R.id.defaultHomeChoice)card.addView(hint(getString(R.string.home_settings_help)));if(id==R.id.advancedChoice)card.addView(hint(getString(R.string.advanced_effects_warning)));if(id==R.id.followThemeChoice)card.addView(hint(getString(R.string.follow_theme_hint)));if(id==R.id.clearCacheChoice)addFreeRamRow(card);}
             if(category==0)addRecommendationsRow(card);
             if(category==4)addWorldClocks(card);
             if(category==6)addNightNowRow(card);
@@ -256,16 +256,17 @@ public final class LauncherSettingsActivity extends Activity {
         }
         lookCard=(LinearLayout)categoryCards[1];buildFontsCard();
         selectCategory(0,false);if(getIntent().getBooleanExtra("open_fonts",false)){getIntent().removeExtra("open_fonts");selectCategory(1,false);showFonts();}
+        if(categoryScroll!=null)categoryScroll.post(this::fitCalendarCard);
         {View sr=findViewById(R.id.settingsRoot);if(settingsBackground!=null){BitmapDrawable image=new BitmapDrawable(getResources(),settingsBackground);image.setGravity(android.view.Gravity.FILL);image.setFilterBitmap(true);sr.setBackground(new LayerDrawable(new android.graphics.drawable.Drawable[]{image,SettingsStyle.scrim()}));}else sr.setBackgroundColor(RaiderTheme.theme(this).background);}TextView settingsHeader=findViewById(R.id.settingsHeader);if(settingsHeader!=null)settingsHeader.setTextColor(ink());
     }
     private TextView categoryText(String text,int size,int color){TextView view=new TextView(this);view.setText(text);view.setTextColor(color);view.setTextSize(size);view.setTypeface(Fonts.of(this,Fonts.SETTINGS,R.font.outfit_regular));view.setPadding(dp(8),dp(8),dp(8),dp(14));return view;}
     private static final class ViewGroupTools{static void detach(View view){if(view.getParent() instanceof android.view.ViewGroup)((android.view.ViewGroup)view.getParent()).removeView(view);}}
-    private void selectCategory(int index,boolean requestFocus){if(fontsCard!=null&&categoryCards[1]==fontsCard){categoryCards[1]=lookCard;fontsCard.setVisibility(View.GONE);}selectedCategory=index;if(categoryScroll!=null)categoryScroll.scrollTo(0,0);for(int i=0;i<categoryCards.length;i++){categoryCards[i].setVisibility(i==index?View.VISIBLE:View.GONE);railItems[i].setBackground(SettingsStyle.rail(this,SettingsStyle.accent(this),i==index,railItems[i].hasFocus()));((TextView)railItems[i]).setTextColor(i==index?ink():RaiderTheme.theme(this).secondary);tintRailIcon((TextView)railItems[i],i==index||railItems[i].hasFocus());}if(requestFocus)railItems[index].requestFocus();if(categoryScroll!=null)categoryScroll.post(this::fitCurrentCard);}
+    private void selectCategory(int index,boolean requestFocus){if(fontsCard!=null&&categoryCards[1]==fontsCard){categoryCards[1]=lookCard;fontsCard.setVisibility(View.GONE);}selectedCategory=index;if(categoryScroll!=null)categoryScroll.scrollTo(0,0);for(int i=0;i<categoryCards.length;i++){categoryCards[i].setVisibility(i==index?View.VISIBLE:View.GONE);railItems[i].setBackground(SettingsStyle.rail(this,SettingsStyle.focusColor(this),i==index,railItems[i].hasFocus()));((TextView)railItems[i]).setTextColor(i==index?RaiderColors.inkOn(SettingsStyle.focusColor(this)):RaiderTheme.theme(this).secondary);tintRailIcon((TextView)railItems[i],i==index,railItems[i].hasFocus());}if(requestFocus)railItems[index].requestFocus();if(categoryScroll!=null)categoryScroll.post(this::fitCurrentCard);}
     private void loadSettingsBackground(java.io.File file){try{BitmapFactory.Options bounds=new BitmapFactory.Options();bounds.inJustDecodeBounds=true;BitmapFactory.decodeFile(file.getAbsolutePath(),bounds);if(bounds.outWidth<=0)return;int sample=1;while(sample<64&&bounds.outWidth/(sample*2)>=240)sample*=2;BitmapFactory.Options options=new BitmapFactory.Options();options.inSampleSize=sample;Bitmap raw=BitmapFactory.decodeFile(file.getAbsolutePath(),options);if(raw==null)return;int w=raw.getWidth(),h=raw.getHeight();float target=(float)getResources().getDisplayMetrics().widthPixels/(float)getResources().getDisplayMetrics().heightPixels;int cropW=w,cropH=h;if((float)w/h>target)cropW=Math.max(1,(int)(h*target));else cropH=Math.max(1,(int)(w/target));Bitmap cropped=Bitmap.createBitmap(raw,(w-cropW)/2,(h-cropH)/2,cropW,cropH);Bitmap small=Bitmap.createScaledBitmap(cropped,240,Math.max(1,Math.round(240/target)),true);if(cropped!=raw)cropped.recycle();if(small!=raw)raw.recycle();
         // ~1/8 of 1080p; pre-blurred once here, never live
         try{androidx.palette.graphics.Palette p=androidx.palette.graphics.Palette.from(small).maximumColorCount(16).generate();androidx.palette.graphics.Palette.Swatch s=p.getVibrantSwatch();if(s==null)s=p.getLightVibrantSwatch();if(s==null)s=p.getDominantSwatch();SettingsStyle.photoAccent=s==null?0:SettingsStyle.fromSwatch(s.getRgb());}catch(RuntimeException e){SettingsStyle.photoAccent=0;}
         w=small.getWidth();h=small.getHeight();int[] pixels=new int[w*h];small.getPixels(pixels,0,w,0,0,w,h);small.recycle();BoxBlur.blur(pixels,w,h,8,2);Bitmap blurred=Bitmap.createBitmap(w,h,Bitmap.Config.RGB_565);blurred.setPixels(pixels,0,w,0,0,w,h);settingsBackground=blurred;}catch(Throwable t){SettingsStyle.photoAccent=0;}}
-    private void applyAccentToRows(View view){if(view.isFocusable())view.setBackground(SettingsStyle.focus(this,SettingsStyle.accent(this),view.hasFocus()));if(view instanceof android.view.ViewGroup){android.view.ViewGroup group=(android.view.ViewGroup)view;for(int i=0;i<group.getChildCount();i++)applyAccentToRows(group.getChildAt(i));}}
+    private void applyAccentToRows(View view){if(view.isFocusable())view.setBackground(SettingsStyle.focus(this,SettingsStyle.focusColor(this),view.hasFocus()));if(view instanceof android.view.ViewGroup){android.view.ViewGroup group=(android.view.ViewGroup)view;for(int i=0;i<group.getChildCount();i++)applyAccentToRows(group.getChildAt(i));}}
     private View findFocusable(View view){if(view.isFocusable()&&view.getVisibility()==View.VISIBLE)return view;if(view instanceof android.view.ViewGroup){android.view.ViewGroup group=(android.view.ViewGroup)view;for(int i=0;i<group.getChildCount();i++){View found=findFocusable(group.getChildAt(i));if(found!=null)return found;}}return null;}
     private int ink(){return RaiderTheme.theme(this).onSurface;}
     private void chooseAccent(){String[] labels=RaiderColors.labels();String[] ids=RaiderColors.ids();String current=RaiderColors.theme(choices.getString("accent_color",RaiderTheme.DEFAULT)).id;int selected=0;for(int i=0;i<ids.length;i++)if(ids[i].equals(current))selected=i;SettingsPicker.single(this,"Colour theme",labels,selected,w->{choices.edit().putString("accent_color",ids[w]).apply();setResult(RESULT_OK);recreate();});}
@@ -284,14 +285,14 @@ public final class LauncherSettingsActivity extends Activity {
     private static boolean isDestructive(int id){return id==R.id.followThemeChoice||id==R.id.resetOrderChoice;}
     private TextView nightNowChoice;
     /** Start now / Stop now: a manual night mode override that lasts until the next scheduled end (or start). */
-    private void addNightNowRow(LinearLayout card){TextView t=new TextView(this);t.setId(R.id.nightNowChoice);nightNowChoice=t;t.setBackground(SettingsStyle.focus(this,SettingsStyle.accent(this),false));t.setTextColor(ink());t.setTextSize(17);t.setTypeface(Fonts.of(this,Fonts.SETTINGS,R.font.outfit_medium));t.setPadding(dp(14),dp(6),dp(16),dp(6));t.setMinHeight(dp(rowHeight));t.setMinimumHeight(dp(rowHeight));t.setSingleLine(false);t.setMaxLines(8);t.setEllipsize(null);t.setIncludeFontPadding(false);t.setGravity(android.view.Gravity.CENTER_VERTICAL|android.view.Gravity.START);t.setFocusable(true);t.setClickable(true);SettingsStyle.focusAnim(t);t.setOnClickListener(v->{NightState.toggleNow(choices,System.currentTimeMillis());setResult(RESULT_OK);updateNightNow();});LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,android.view.ViewGroup.LayoutParams.WRAP_CONTENT);lp.bottomMargin=dp(4);card.addView(t,lp);updateNightNow();}
+    private void addNightNowRow(LinearLayout card){TextView t=new TextView(this);t.setId(R.id.nightNowChoice);nightNowChoice=t;t.setBackground(SettingsStyle.focus(this,SettingsStyle.focusColor(this),false));t.setTextColor(ink());t.setTextSize(17);t.setTypeface(Fonts.of(this,Fonts.SETTINGS,R.font.outfit_medium));t.setPadding(dp(14),dp(6),dp(16),dp(6));t.setMinHeight(dp(rowHeight));t.setMinimumHeight(dp(rowHeight));t.setSingleLine(false);t.setMaxLines(8);t.setEllipsize(null);t.setIncludeFontPadding(false);t.setGravity(android.view.Gravity.CENTER_VERTICAL|android.view.Gravity.START);t.setFocusable(true);t.setClickable(true);SettingsStyle.focusAnim(t);t.setOnClickListener(v->{NightState.toggleNow(choices,System.currentTimeMillis());setResult(RESULT_OK);updateNightNow();});LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,android.view.ViewGroup.LayoutParams.WRAP_CONTENT);lp.bottomMargin=dp(4);card.addView(t,lp);updateNightNow();}
     private void updateNightNow(){if(nightNowChoice==null)return;if(choices==null)choices=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE);long now=System.currentTimeMillis();boolean active=NightState.isActive(choices,now);java.text.SimpleDateFormat f=new java.text.SimpleDateFormat("h:mm a",java.util.Locale.getDefault());String value;if(active){long until=NightState.nextChangeMillis(choices,now);value=until==Long.MAX_VALUE?"On":"On until "+f.format(new java.util.Date(until));}else{value=NightState.overrideActive(choices,now)?"Off until "+f.format(new java.util.Date(choices.getLong(NightState.OVERRIDE_UNTIL,0L))):"Off";}NightEffects.apply(this,findViewById(R.id.settingsRoot),active);nightNowChoice.setText((active?"Stop now":"Start now")+": "+value);formatRow(R.id.nightNowChoice);}
-    private void formatRows(){int[] ids={R.id.animationsChoice,R.id.advancedChoice,R.id.followThemeChoice,R.id.pillLabelsChoice,R.id.moduleCardsChoice,R.id.resetOrderChoice,R.id.unhideAppsChoice,R.id.defaultHomeChoice,R.id.accentChoice,R.id.screensaverStyleChoice,R.id.photoIntervalChoice,R.id.photoSourceChoice,R.id.photoStorageChoice,R.id.refreshPhotosChoice,R.id.startAfterChoice,R.id.startScreensaverChoice,R.id.hinduMasterChoice,R.id.homeCalendarChoice,R.id.calendarTextSizeChoice,R.id.calendarChoice,R.id.worldIndiaChoice,R.id.worldCity1Choice,R.id.worldCity2Choice,R.id.worldCity3Choice,R.id.worldCity4Choice,R.id.worldDreamChoice,R.id.kidsChoice,R.id.weatherChoice,R.id.clearCacheChoice,R.id.tvSettingsChoice,R.id.dnsChoice,R.id.nightModeChoice,R.id.nightStartsChoice,R.id.nightEndsChoice};for(int id:ids)formatRow(id);}
+    private void formatRows(){int[] ids={R.id.animationsChoice,R.id.advancedChoice,R.id.followThemeChoice,R.id.pillLabelsChoice,R.id.moduleCardsChoice,R.id.resetOrderChoice,R.id.unhideAppsChoice,R.id.defaultHomeChoice,R.id.accentChoice,R.id.screensaverStyleChoice,R.id.photoIntervalChoice,R.id.photoSourceChoice,R.id.photoStorageChoice,R.id.refreshPhotosChoice,R.id.startAfterChoice,R.id.startScreensaverChoice,R.id.hinduMasterChoice,R.id.homeCalendarChoice,R.id.calendarTextSizeChoice,R.id.calendarChoice,R.id.worldIndiaChoice,R.id.worldCity1Choice,R.id.worldCity2Choice,R.id.worldCity3Choice,R.id.worldCity4Choice,R.id.worldDreamChoice,R.id.kidsChoice,R.id.weatherChoice,R.id.clearCacheChoice,R.id.freeRamChoice,R.id.tvSettingsChoice,R.id.dnsChoice,R.id.nightModeChoice,R.id.nightStartsChoice,R.id.nightEndsChoice};for(int id:ids)formatRow(id);}
     /** Title (and optional detail line) on the left, current value + toggle/chevron on the right. Re-parses only when the row text was set afresh. */
     private void formatRow(int id){View value=findViewById(id);if(!(value instanceof TextView))return;TextView row=(TextView)value;String raw=row.getText().toString();Object tag=row.getTag();String title,val,sub;
         if(tag instanceof String[]&&raw.equals(((String[])tag)[0])){String[] st=(String[])tag;title=st[1];val=st[2];sub=st[3];}
         else{int nl=raw.indexOf('\n');String first=nl<0?raw:raw.substring(0,nl);String rest=nl<0?"":raw.substring(nl+1).trim();int c=first.indexOf(": ");if(c>=0){title=first.substring(0,c).trim();val=first.substring(c+2).trim();sub=rest;}else{title=first.trim();int nl2=rest.indexOf('\n');val=nl2<0?rest:rest.substring(0,nl2).trim();sub=nl2<0?"":rest.substring(nl2+1).trim();}}
-        SpannableString styled=new SpannableString(sub.isEmpty()?title:title+"\n"+sub);styled.setSpan(new AbsoluteSizeSpan(17,true),0,title.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);styled.setSpan(new ForegroundColorSpan(ink()),0,title.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);if(!sub.isEmpty()){styled.setSpan(new AbsoluteSizeSpan(14,true),title.length()+1,styled.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);styled.setSpan(new ForegroundColorSpan(RaiderTheme.theme(this).secondary),title.length()+1,styled.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);}
+        boolean calendarRow=isCalendarRow(id);int titleSp=calendarRow?16:17;int subSp=calendarRow?13:14;SpannableString styled=new SpannableString(sub.isEmpty()?title:title+"\n"+sub);styled.setSpan(new AbsoluteSizeSpan(titleSp,true),0,title.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);styled.setSpan(new ForegroundColorSpan(ink()),0,title.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);if(!sub.isEmpty()){styled.setSpan(new AbsoluteSizeSpan(subSp,true),title.length()+1,styled.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);styled.setSpan(new ForegroundColorSpan(RaiderTheme.theme(this).secondary),title.length()+1,styled.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);}
         row.setText(styled);row.setTag(new String[]{styled.toString(),title,val,sub});
         android.graphics.drawable.Drawable end=row.getCompoundDrawablesRelative()[2];android.graphics.drawable.Drawable trailing=end instanceof RaiderTheme.ValueDrawable?((RaiderTheme.ValueDrawable)end).trailing:end;
         row.setCompoundDrawablePadding(dp(12));row.setCompoundDrawablesRelativeWithIntrinsicBounds(rowIcon(row),null,new RaiderTheme.ValueDrawable(this,val,SettingsStyle.value(this),trailing,dp(320)),null);}
@@ -384,6 +385,7 @@ public final class LauncherSettingsActivity extends Activity {
                 if (isFinishing() || clearingCache) return;
                 if (clearCacheChoice != null) { clearCacheChoice.setText(storageSummary(snapshot)); formatRow(R.id.clearCacheChoice); }
                 updateResources(snapshot);
+                updateFreeRamRow();
                 if (aboutReadout != null) {
                     String storage;
                     if (snapshot.freeBytes < 0 || snapshot.totalBytes < 0) storage = "Storage unavailable";
@@ -443,7 +445,7 @@ public final class LauncherSettingsActivity extends Activity {
         if (snapshot.freeBytes < 0 || snapshot.totalBytes < 0) {
             return "Clear cache: Unavailable\nFrees app cache. Asks before it runs.";
         }
-        return "Clear cache: " + Formatter.formatShortFileSize(this, snapshot.freeBytes) + " free"
+        return "Clear cache: " + Formatter.formatShortFileSize(this, snapshot.freeBytes) + " storage free"
                 + "\nFrees app cache. Asks before it runs.\nApp caches " + cache + " · " + Formatter.formatShortFileSize(this, snapshot.totalBytes) + " total";
     }
 
@@ -531,6 +533,150 @@ public final class LauncherSettingsActivity extends Activity {
         SettingsPicker.buttons(this, getString(R.string.clear_app_cache), message, null,
                 null, null, getString(R.string.open_storage_settings), this::openStorageSettings,
                 getString(android.R.string.ok), null);
+    }
+
+    private TextView freeRamChoice;
+    private boolean freeingRam;
+
+    private void addFreeRamRow(LinearLayout card) {
+        TextView row = settingsRow(R.id.freeRamChoice);
+        freeRamChoice = row;
+        row.setOnClickListener(v -> SettingsPicker.confirm(this, "Free RAM",
+                "This closes background apps to free memory. It does not remove apps, photos, or your settings.",
+                this::freeRam));
+        row.setText("Free RAM\nCloses background apps. Asks before it runs.");
+        card.addView(row, rowParams());
+    }
+
+    private void updateFreeRamRow() {
+        if (freeRamChoice == null || freeingRam) return;
+        android.app.ActivityManager.MemoryInfo info = memoryInfo();
+        String value = info.totalMem <= 0 ? "Unavailable" : Formatter.formatShortFileSize(this, info.availMem) + " free";
+        freeRamChoice.setText("Free RAM: " + value + "\nCloses background apps. Asks before it runs.");
+        formatRow(R.id.freeRamChoice);
+    }
+
+    private void freeRam() {
+        if (freeingRam || freeRamChoice == null) return;
+        freeingRam = true;
+        freeRamChoice.setText("Free RAM: Closing apps\u2026");
+        formatRow(R.id.freeRamChoice);
+        final String self = getPackageName();
+        final String home = defaultHomePackage();
+        new Thread(() -> {
+            long before = memoryInfo().availMem;
+            int closed = closeBackgroundApps(self, home);
+            try {
+                Thread.sleep(350L);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+            }
+            long after = memoryInfo().availMem;
+            long total = memoryInfo().totalMem;
+            mainHandler.post(() -> {
+                freeingRam = false;
+                if (isFinishing()) return;
+                updateFreeRamRow();
+                updateStorageSummary();
+                showFreeRamResult(before, after, total, closed);
+            });
+        }, "launcher-free-ram").start();
+    }
+
+    private int closeBackgroundApps(String self, String home) {
+        android.app.ActivityManager am = (android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE);
+        if (am == null) return 0;
+        PackageManager pm = getPackageManager();
+        java.util.ArrayList<RamFree.Proc> procs = new java.util.ArrayList<>();
+        java.util.List<android.app.ActivityManager.RunningAppProcessInfo> running = null;
+        try {
+            running = am.getRunningAppProcesses();
+        } catch (Throwable ignored) {
+            running = null;
+        }
+        if (running != null) {
+            int[] pids = new int[running.size()];
+            for (int i = 0; i < running.size(); i++) pids[i] = running.get(i).pid;
+            android.os.Debug.MemoryInfo[] mem = null;
+            try {
+                mem = am.getProcessMemoryInfo(pids);
+            } catch (Throwable ignored) {
+                mem = null;
+            }
+            for (int i = 0; i < running.size(); i++) {
+                android.app.ActivityManager.RunningAppProcessInfo info = running.get(i);
+                String pkg = info.pkgList != null && info.pkgList.length > 0 ? info.pkgList[0] : info.processName;
+                if (pkg == null) continue;
+                int colon = pkg.indexOf(':');
+                if (colon > 0) pkg = pkg.substring(0, colon);
+                long pss = mem != null && i < mem.length && mem[i] != null ? mem[i].getTotalPss() * 1024L : 0L;
+                procs.add(new RamFree.Proc(pkg, info.importance, pss, isSystemPackage(pm, pkg), self.equals(pkg), home.equals(pkg)));
+            }
+        }
+        java.util.List<String> targets = RamFree.targets(procs);
+        if (targets.isEmpty()) targets = RamFree.targets(installedThirdParty(pm, self, home));
+        int closed = 0;
+        for (String pkg : targets) {
+            try {
+                am.killBackgroundProcesses(pkg);
+                closed++;
+            } catch (Throwable ignored) {
+                // A TV that refuses the call leaves that app running.
+            }
+        }
+        return closed;
+    }
+
+    private java.util.List<RamFree.Proc> installedThirdParty(PackageManager pm, String self, String home) {
+        java.util.ArrayList<RamFree.Proc> procs = new java.util.ArrayList<>();
+        java.util.List<ApplicationInfo> apps;
+        try {
+            apps = pm.getInstalledApplications(0);
+        } catch (Throwable ignored) {
+            return procs;
+        }
+        for (ApplicationInfo info : apps) {
+            if (info == null || info.packageName == null) continue;
+            boolean system = (info.flags & ApplicationInfo.FLAG_SYSTEM) != 0;
+            procs.add(new RamFree.Proc(info.packageName, 0, 0L, system, self.equals(info.packageName), home.equals(info.packageName)));
+        }
+        return procs;
+    }
+
+    private static boolean isSystemPackage(PackageManager pm, String pkg) {
+        try {
+            ApplicationInfo info = pm.getApplicationInfo(pkg, 0);
+            return (info.flags & ApplicationInfo.FLAG_SYSTEM) != 0;
+        } catch (Throwable ignored) {
+            return true;
+        }
+    }
+
+    private String defaultHomePackage() {
+        ResolveInfo resolved = getPackageManager().resolveActivity(
+                new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME), PackageManager.MATCH_DEFAULT_ONLY);
+        if (resolved == null || resolved.activityInfo == null || resolved.activityInfo.packageName == null) return "";
+        return resolved.activityInfo.packageName;
+    }
+
+    private android.app.ActivityManager.MemoryInfo memoryInfo() {
+        android.app.ActivityManager.MemoryInfo info = new android.app.ActivityManager.MemoryInfo();
+        android.app.ActivityManager am = (android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE);
+        if (am != null) am.getMemoryInfo(info);
+        return info;
+    }
+
+    private void showFreeRamResult(long before, long after, long total, int closed) {
+        String beforeText = before <= 0 ? "unavailable" : Formatter.formatShortFileSize(this, before);
+        String afterText = after <= 0 ? "unavailable" : Formatter.formatShortFileSize(this, after);
+        String totalText = total <= 0 ? "" : " of " + Formatter.formatShortFileSize(this, total);
+        long delta = before > 0 && after > before ? after - before : 0L;
+        String message;
+        if (closed == 0) message = "No background apps to close.";
+        else if (delta >= 1024L * 1024L) message = "Freed " + Formatter.formatShortFileSize(this, delta) + " by closing " + closed + " background apps.";
+        else message = "Closed " + closed + " background apps.";
+        message += "\nRAM " + beforeText + " free \u2192 " + afterText + " free" + totalText + ".";
+        SettingsPicker.buttons(this, "Free RAM", message, null, null, null, null, null, getString(android.R.string.ok), null);
     }
 
     private void openStorageSettings() {
@@ -682,7 +828,7 @@ public final class LauncherSettingsActivity extends Activity {
 
     // ---- 2.11.5: per-area fonts (small sub-page of Look) and input names (Apps) ----
     private LinearLayout lookCard,fontsCard;private TextView fontsEntry;private final int[] fontRowIds=new int[Fonts.AREAS.length];
-    private TextView settingsRow(int id){TextView t=new TextView(this);t.setId(id);t.setBackground(SettingsStyle.focus(this,SettingsStyle.accent(this),false));t.setTextColor(ink());t.setTextSize(17);t.setTypeface(Fonts.of(this,Fonts.SETTINGS,R.font.outfit_medium));t.setPadding(dp(14),dp(6),dp(16),dp(6));t.setMinHeight(dp(rowHeight));t.setMinimumHeight(dp(rowHeight));t.setSingleLine(false);t.setMaxLines(8);t.setEllipsize(null);t.setIncludeFontPadding(false);t.setGravity(android.view.Gravity.CENTER_VERTICAL|android.view.Gravity.START);t.setFocusable(true);t.setClickable(true);SettingsStyle.focusAnim(t);return t;}
+    private TextView settingsRow(int id){TextView t=new TextView(this);t.setId(id);t.setBackground(SettingsStyle.focus(this,SettingsStyle.focusColor(this),false));t.setTextColor(ink());t.setTextSize(17);t.setTypeface(Fonts.of(this,Fonts.SETTINGS,R.font.outfit_medium));t.setPadding(dp(14),dp(6),dp(16),dp(6));t.setMinHeight(dp(rowHeight));t.setMinimumHeight(dp(rowHeight));t.setSingleLine(false);t.setMaxLines(8);t.setEllipsize(null);t.setIncludeFontPadding(false);t.setGravity(android.view.Gravity.CENTER_VERTICAL|android.view.Gravity.START);t.setFocusable(true);t.setClickable(true);SettingsStyle.focusAnim(t);return t;}
     private LinearLayout.LayoutParams rowParams(){LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,android.view.ViewGroup.LayoutParams.WRAP_CONTENT);lp.bottomMargin=dp(4);return lp;}
     private void addFontsEntry(LinearLayout card){fontsEntry=settingsRow(R.id.fontChoice);fontsEntry.setOnClickListener(v->showFonts());card.addView(fontsEntry,rowParams());updateFontsEntry();}
     private void updateFontsEntry(){if(fontsEntry==null)return;String first=Fonts.name(this,Fonts.AREAS[0]);boolean same=true;for(String a:Fonts.AREAS)if(!Fonts.name(this,a).equals(first))same=false;fontsEntry.setText("Fonts: "+(same?first:"Mixed")+"\nHome, settings, screensaver and Panchang");formatRow(R.id.fontChoice);if(same)setValueFace(fontsEntry,Fonts.family(this,Fonts.AREAS[0]));}
@@ -704,7 +850,10 @@ public final class LauncherSettingsActivity extends Activity {
     private int rowHeight=56;private int[] categoryIcons;
     /** Right-panel rows stay text-only; left rail keeps its icons. */
     private android.graphics.drawable.Drawable rowIcon(View row){return null;}
-    private void fitCurrentCard(){if(categoryScroll==null||categoryCards==null)return;View card=categoryCards[selectedCategory];if(card==null||card.getHeight()==0)return;if(card.getHeight()+dp(24)>categoryScroll.getHeight())compactRows(card);}
+    private void fitCurrentCard(){if(categoryScroll==null||categoryCards==null)return;if(selectedCategory==4){fitCalendarCard();return;}View card=categoryCards[selectedCategory];if(card==null||card.getHeight()==0)return;if(card.getHeight()+dp(24)>categoryScroll.getHeight())compactRows(card);}
+    private void fitCalendarCard(){if(categoryCards==null||categoryCards.length<=4||categoryScroll==null||!(categoryCards[4] instanceof LinearLayout))return;int viewportPx=categoryScroll.getHeight();if(viewportPx<=0){categoryScroll.post(this::fitCalendarCard);return;}float density=getResources().getDisplayMetrics().density;int viewportDp=Math.round(viewportPx/density);int bottomDp=categoryContent==null?0:Math.round(categoryContent.getPaddingBottom()/density);CalendarPanelFit.Spec spec=CalendarPanelFit.forViewport(viewportDp,bottomDp);LinearLayout card=(LinearLayout)categoryCards[4];card.setPadding(dp(spec.cardPadDp),dp(spec.cardPadDp),dp(spec.cardPadDp),dp(spec.cardPadDp));for(int i=0;i<card.getChildCount();i++){View child=card.getChildAt(i);android.widget.LinearLayout.LayoutParams lp=(android.widget.LinearLayout.LayoutParams)child.getLayoutParams();lp.bottomMargin=dp(spec.gapDp);if(child.getId()==R.id.worldClocksCaption){child.setPadding(dp(12),0,dp(12),0);lp.height=dp(spec.captionDp);}else if(child instanceof TextView){boolean two=isCityRow(child.getId());int h=dp(two?spec.twoDp:spec.singleDp);lp.height=h;((TextView)child).setMinHeight(h);((TextView)child).setMinimumHeight(h);((TextView)child).setPadding(dp(12),0,dp(12),0);((TextView)child).setGravity(android.view.Gravity.CENTER_VERTICAL|android.view.Gravity.START);}child.setLayoutParams(lp);}if(categoryScroll.getScrollY()!=0)categoryScroll.scrollTo(0,0);}
+    private static boolean isCityRow(int id){return id==R.id.worldCity1Choice||id==R.id.worldCity2Choice||id==R.id.worldCity3Choice||id==R.id.worldCity4Choice;}
+    private static boolean isCalendarRow(int id){return id==R.id.hinduMasterChoice||id==R.id.homeCalendarChoice||id==R.id.calendarChoice||id==R.id.calendarTextSizeChoice||id==R.id.worldIndiaChoice||id==R.id.worldDreamChoice||isCityRow(id);}
     private void compactRows(View v){if(v instanceof TextView){TextView t=(TextView)v;if(t.getMinHeight()==dp(56)){t.setMinHeight(dp(48));t.setMinimumHeight(dp(48));}}if(v instanceof android.view.ViewGroup){android.view.ViewGroup g=(android.view.ViewGroup)v;for(int i=0;i<g.getChildCount();i++)compactRows(g.getChildAt(i));}}
     /** Clear app cache pill: reached by UP from the first row or the first category; DOWN returns to where focus came from. */
     private View headerReturn;
@@ -719,16 +868,17 @@ public final class LauncherSettingsActivity extends Activity {
         final android.app.Dialog[] held=new android.app.Dialog[1];in.setOnEditorActionListener((v,a,e)->{if(a==android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH||a==android.view.inputmethod.EditorInfo.IME_ACTION_DONE){if(held[0]!=null)held[0].dismiss();searchCity(in.getText().toString());return true;}return false;});held[0]=SettingsPicker.form(this,"Weather city",box,getString(android.R.string.cancel),null,null,null,"Search",()->searchCity(in.getText().toString()));}
     private void searchCity(String q){if(q==null||q.trim().length()<2){Toast.makeText(this,"Type at least 2 letters",Toast.LENGTH_SHORT).show();return;}Toast.makeText(this,"Searching\u2026",Toast.LENGTH_SHORT).show();new Thread(()->{java.util.List<WeatherLocation.Place> r;String err=null;try{r=WeatherLocation.search(q);}catch(Exception e){r=java.util.Collections.emptyList();err=e.getClass().getSimpleName();}final java.util.List<WeatherLocation.Place> res=r;final String error=err;runOnUiThread(()->{if(isFinishing())return;if(error!=null){Toast.makeText(this,"City search failed ("+error+")",Toast.LENGTH_LONG).show();return;}if(res.isEmpty()){Toast.makeText(this,"No matches for \u201C"+q.trim()+"\u201D",Toast.LENGTH_SHORT).show();showCitySearch(q);return;}String[] items=new String[res.size()];for(int i=0;i<items.length;i++)items[i]=res.get(i).label;SettingsPicker.list(this,"Choose a city",items,w->{WeatherLocation.useCity(this,res.get(w));setResult(RESULT_OK);updateWeatherRows();Toast.makeText(this,"Weather: "+res.get(w).name,Toast.LENGTH_SHORT).show();});});},"city-search").start();}
 
-    private void tintRailIcon(TextView rail, boolean active){if(rail==null)return;android.graphics.drawable.Drawable icon=rail.getCompoundDrawablesRelative()[0];if(icon!=null)icon.setTint(active?ink():RaiderTheme.theme(this).secondary);}
+    private void tintRailIcon(TextView rail, boolean selected, boolean focused){if(rail==null)return;android.graphics.drawable.Drawable icon=rail.getCompoundDrawablesRelative()[0];if(icon!=null)icon.setTint(selected?RaiderColors.inkOn(SettingsStyle.focusColor(this)):(focused?ink():RaiderTheme.theme(this).secondary));}
     private TextView aboutReadout;
     private void buildAbout(LinearLayout card){String link="github.com/apukale/raider-launcher";String head="Raider Launcher "+BuildConfig.VERSION_NAME+" ("+BuildConfig.VERSION_CODE+")\nMade by apukale\n";String tail="\nFork of CleanYourTV";android.text.SpannableString about=new android.text.SpannableString(head+link+tail);about.setSpan(new ForegroundColorSpan(SettingsStyle.value(this)),head.length(),head.length()+link.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);int fork=head.length()+link.length();about.setSpan(new AbsoluteSizeSpan(13,true),fork,about.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);about.setSpan(new ForegroundColorSpan(0xFFA9ABC7),fork,about.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);TextView t=categoryText("",16,0xFFF4F1EA);t.setText(about);t.setIncludeFontPadding(false);LinearLayout aboutRow=new LinearLayout(this);aboutRow.setOrientation(LinearLayout.HORIZONTAL);aboutRow.addView(t,new LinearLayout.LayoutParams(0,android.view.ViewGroup.LayoutParams.WRAP_CONTENT,1f));LinearLayout qrCol=new LinearLayout(this);qrCol.setOrientation(LinearLayout.VERTICAL);qrCol.setGravity(android.view.Gravity.CENTER_HORIZONTAL);qrCol.setPadding(dp(12),dp(8),dp(4),0);android.widget.ImageView qr=new android.widget.ImageView(this);qr.setImageResource(R.drawable.about_qr);qr.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);qr.setContentDescription("QR code for https://github.com/apukale/raider-launcher");android.graphics.drawable.Drawable qd=qr.getDrawable();if(qd instanceof android.graphics.drawable.BitmapDrawable)((android.graphics.drawable.BitmapDrawable)qd).setFilterBitmap(false);qrCol.addView(qr,new LinearLayout.LayoutParams(dp(112),dp(112)));TextView scan=categoryText("Scan for GitHub",13,SettingsStyle.SECONDARY);scan.setPadding(0,dp(6),0,0);scan.setIncludeFontPadding(false);qrCol.addView(scan);aboutRow.addView(qrCol,new LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.WRAP_CONTENT,android.view.ViewGroup.LayoutParams.WRAP_CONTENT));card.addView(aboutRow);aboutReadout=categoryText("RAM\nStorage",15,0xFFCAC4D0);aboutReadout.setPadding(dp(8),dp(4),dp(8),dp(8));aboutReadout.setIncludeFontPadding(false);card.addView(aboutReadout);}
     private String ramReadout(){android.app.ActivityManager am=(android.app.ActivityManager)getSystemService(ACTIVITY_SERVICE);android.app.ActivityManager.MemoryInfo info=new android.app.ActivityManager.MemoryInfo();if(am!=null)am.getMemoryInfo(info);if(info.totalMem<=0)return "RAM unavailable";return "RAM "+android.text.format.Formatter.formatShortFileSize(this,info.availMem)+" free of "+android.text.format.Formatter.formatShortFileSize(this,info.totalMem);}
     private void addHinduMaster(LinearLayout card){TextView t=settingsRow(R.id.hinduMasterChoice);t.setOnClickListener(v->{boolean on=choices.getBoolean(LauncherPrefs.HINDU,true);choices.edit().putBoolean(LauncherPrefs.HINDU,!on).apply();setResult(RESULT_OK);refresh();});card.addView(t,rowParams());}
     private static final int[] WORLD_CITY_IDS={R.id.worldCity1Choice,R.id.worldCity2Choice,R.id.worldCity3Choice,R.id.worldCity4Choice};
-    private void addWorldClocks(LinearLayout card){TextView cap=categoryText("World clocks",14,SettingsStyle.accent(this));cap.setPadding(dp(14),dp(14),dp(14),dp(6));cap.setIncludeFontPadding(false);card.addView(cap);TextView india=settingsRow(R.id.worldIndiaChoice);india.setOnClickListener(v->SettingsPicker.notice(this,"India time","Fixed local zone. The Home clock does not label it. The world clocks screen lists it."));card.addView(india,rowParams());for(int i=0;i<WORLD_CITY_IDS.length;i++){final int slot=i;TextView city=settingsRow(WORLD_CITY_IDS[i]);city.setOnClickListener(v->chooseWorldCity(slot));card.addView(city,rowParams());}TextView dream=settingsRow(R.id.worldDreamChoice);dream.setOnClickListener(v->{choices.edit().putBoolean(WorldClocks.DREAM,!choices.getBoolean(WorldClocks.DREAM,false)).apply();setResult(RESULT_OK);refresh();});card.addView(dream,rowParams());}
-    private void updateWorldClockRows(){TextView india=findViewById(R.id.worldIndiaChoice);if(india==null)return;long now=System.currentTimeMillis();india.setText("India time: "+WorldClocks.formatTime(WorldClocks.INDIA_ZONE,now));for(int i=0;i<WORLD_CITY_IDS.length;i++){TextView city=findViewById(WORLD_CITY_IDS[i]);String name=choices.getString(WorldClocks.nameKey(i),"");String zone=choices.getString(WorldClocks.zoneKey(i),"");if(!WorldClocks.validZone(zone))city.setText("City "+(i+1)+": Not set\nChoose a timezone");else{String label=WorldClocks.labelFor(name,zone);String time=WorldClocks.formatTime(zone,now);city.setText(label.equals(zone.trim())?"City "+(i+1)+": "+label+"\n"+time:"City "+(i+1)+": "+label+"\n"+zone.trim()+" \u00B7 "+time);}}TextView dream=findViewById(R.id.worldDreamChoice);dream.setText("Show world clocks on Screensaver: "+getString(choices.getBoolean(WorldClocks.DREAM,false)?R.string.on:R.string.off));}
-    private void chooseWorldCity(int slot){String name=choices.getString(WorldClocks.nameKey(slot),"");String zone=choices.getString(WorldClocks.zoneKey(slot),"");boolean set=WorldClocks.validZone(zone);boolean named=name!=null&&!name.trim().isEmpty();String message;if(!set)message="Not set";else{String label=WorldClocks.labelFor(name,zone);String time=WorldClocks.formatTime(zone,System.currentTimeMillis());message=label.equals(zone.trim())?zone.trim()+"\n"+time:label+"\n"+zone.trim()+" \u00B7 "+time;}String clearLabel=set||named?"Clear":null;Runnable clear=clearLabel==null?null:()->{choices.edit().remove(WorldClocks.nameKey(slot)).remove(WorldClocks.zoneKey(slot)).apply();setResult(RESULT_OK);refresh();};SettingsPicker.buttons(this,"City "+(slot+1),message,null,"Timezone",()->pickWorldZone(slot),"Rename",()->renameWorldSlot(slot),clearLabel,clear);}
-    private void pickWorldZone(int slot){String current=choices.getString(WorldClocks.zoneKey(slot),"");String[] zones=WorldClocks.zones();SettingsPicker.filter(this,"Timezone",q->{java.util.List<String> matches=WorldClocks.filterZones(zones,q);return matches.toArray(new String[0]);},current,zone->{choices.edit().putString(WorldClocks.zoneKey(slot),zone).apply();setResult(RESULT_OK);refresh();});}
+    private void addWorldClocks(LinearLayout card){TextView cap=categoryText("World clocks",13,SettingsStyle.accent(this));cap.setId(R.id.worldClocksCaption);cap.setPadding(dp(12),dp(2),dp(12),dp(2));cap.setIncludeFontPadding(false);card.addView(cap);TextView india=settingsRow(R.id.worldIndiaChoice);india.setOnClickListener(v->SettingsPicker.notice(this,"India time","Fixed local zone. The Home clock does not label it. The world clocks screen lists it."));card.addView(india,rowParams());for(int i=0;i<WORLD_CITY_IDS.length;i++){final int slot=i;TextView city=settingsRow(WORLD_CITY_IDS[i]);city.setOnClickListener(v->chooseWorldCity(slot));card.addView(city,rowParams());}TextView dream=settingsRow(R.id.worldDreamChoice);dream.setOnClickListener(v->{choices.edit().putBoolean(WorldClocks.DREAM,!choices.getBoolean(WorldClocks.DREAM,false)).apply();setResult(RESULT_OK);refresh();});card.addView(dream,rowParams());}
+    private String storedClock(String key){return choices.contains(key)?choices.getString(key,""):null;}
+    private void updateWorldClockRows(){TextView india=findViewById(R.id.worldIndiaChoice);if(india==null)return;long now=System.currentTimeMillis();india.setText("India time: "+WorldClocks.formatTime(WorldClocks.INDIA_ZONE,now));for(int i=0;i<WORLD_CITY_IDS.length;i++){TextView city=findViewById(WORLD_CITY_IDS[i]);String storedName=storedClock(WorldClocks.nameKey(i));String storedZone=storedClock(WorldClocks.zoneKey(i));String zone=WorldClocks.zoneAt(i,storedZone);String label=WorldClocks.nameAt(i,storedName,storedZone);String time=WorldClocks.formatTime(zone,now);city.setText(label.equals(zone)?"City "+(i+1)+": "+label+"\n"+time:"City "+(i+1)+": "+label+"\n"+zone+" \u00B7 "+time);}TextView dream=findViewById(R.id.worldDreamChoice);dream.setText("Show world clocks on Screensaver: "+getString(choices.getBoolean(WorldClocks.DREAM,false)?R.string.on:R.string.off));}
+    private void chooseWorldCity(int slot){String storedName=storedClock(WorldClocks.nameKey(slot));String storedZone=storedClock(WorldClocks.zoneKey(slot));String zone=WorldClocks.zoneAt(slot,storedZone);String label=WorldClocks.nameAt(slot,storedName,storedZone);String time=WorldClocks.formatTime(zone,System.currentTimeMillis());String message=label.equals(zone)?zone+"\n"+time:label+"\n"+zone+" \u00B7 "+time;boolean custom=storedName!=null||storedZone!=null;String clearLabel=custom?"Clear":null;Runnable clear=clearLabel==null?null:()->{choices.edit().remove(WorldClocks.nameKey(slot)).remove(WorldClocks.zoneKey(slot)).apply();setResult(RESULT_OK);refresh();};SettingsPicker.buttons(this,"City "+(slot+1),message,null,"Timezone",()->pickWorldZone(slot),"Rename",()->renameWorldSlot(slot),clearLabel,clear);}
+    private void pickWorldZone(int slot){String current=WorldClocks.zoneAt(slot,storedClock(WorldClocks.zoneKey(slot)));String[] zones=WorldClocks.zones();SettingsPicker.filter(this,"Timezone",q->{java.util.List<String> matches=WorldClocks.filterZones(zones,q);return matches.toArray(new String[0]);},current,zone->{choices.edit().putString(WorldClocks.zoneKey(slot),zone).apply();setResult(RESULT_OK);refresh();});}
     private void renameWorldSlot(int slot){android.widget.EditText in=new android.widget.EditText(this);in.setSingleLine(true);in.setHint("Display name");String name=choices.getString(WorldClocks.nameKey(slot),"");String zone=choices.getString(WorldClocks.zoneKey(slot),"");if(name!=null)in.setText(name.trim());in.setSelection(in.getText().length());in.setTextColor(ink());in.setHintTextColor(0xFFA9ABC7);in.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);in.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS);android.widget.FrameLayout box=new android.widget.FrameLayout(this);box.setPadding(dp(16),dp(4),dp(16),dp(4));box.addView(in,new android.widget.FrameLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,android.view.ViewGroup.LayoutParams.WRAP_CONTENT));final android.app.Dialog[] held=new android.app.Dialog[1];Runnable save=()->{String typed=in.getText().toString().trim();if(typed.isEmpty()||typed.equals(zone==null?"":zone.trim()))choices.edit().remove(WorldClocks.nameKey(slot)).apply();else choices.edit().putString(WorldClocks.nameKey(slot),typed).apply();setResult(RESULT_OK);refresh();};in.setOnEditorActionListener((v,a,e)->{if(a==android.view.inputmethod.EditorInfo.IME_ACTION_DONE){if(held[0]!=null)held[0].dismiss();save.run();return true;}return false;});held[0]=SettingsPicker.form(this,"Rename",box,getString(android.R.string.cancel),null,null,null,"Save",save);}
     private void addKidsRow(LinearLayout card){TextView t=settingsRow(R.id.kidsChoice);t.setOnClickListener(v->SettingsPicker.notice(this,"Kids","Coming soon."));card.addView(t,rowParams());t.setText("Kids: Coming soon");}
     private void addRecommendationsRow(LinearLayout card){TextView t=settingsRow(R.id.homeRecsChoice);t.setOnClickListener(v->{boolean on=HomeRecs.shown(choices.contains(HomeRecs.PREF),choices.getBoolean(HomeRecs.PREF,true));choices.edit().putBoolean(HomeRecs.PREF,!on).apply();setResult(RESULT_OK);refresh();});card.addView(t,rowParams());}

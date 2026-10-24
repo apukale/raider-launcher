@@ -33,12 +33,38 @@ public class WorldClocksTest {
         assertEquals("America/New_York", WorldClocks.labelFor("  ", "America/New_York"));
         assertEquals("America/New_York", WorldClocks.labelFor(null, " America/New_York "));
         List<WorldClocks.Clock> clocks = WorldClocks.entries(prefs("NYC", "America/New_York"));
-        assertEquals(2, clocks.size());
+        assertEquals(5, clocks.size());
         assertEquals("India", clocks.get(0).label);
         assertEquals(WorldClocks.INDIA_ZONE, clocks.get(0).zone);
         assertEquals("NYC", clocks.get(1).label);
         assertEquals("America/New_York", clocks.get(1).zone);
         assertEquals("7:00 AM", WorldClocks.formatTime(clocks.get(1).zone, NOON_UTC));
+        assertEquals("New York", clocks.get(2).label);
+        assertEquals("London", clocks.get(3).label);
+        assertEquals("Dubai", clocks.get(4).label);
+    }
+
+    @Test(timeout = 5000)
+    public void unsetSlotsUseFactoryCitiesAndKeepASavedOne() {
+        List<WorldClocks.Clock> clocks = WorldClocks.entries((key, fallback) -> fallback);
+        assertEquals(5, clocks.size());
+        assertEquals("Los Angeles", clocks.get(1).label);
+        assertEquals("America/Los_Angeles", clocks.get(1).zone);
+        assertEquals("4:00 AM", WorldClocks.formatTime(clocks.get(1).zone, NOON_UTC));
+        assertEquals("New York", clocks.get(2).label);
+        assertEquals("America/New_York", clocks.get(2).zone);
+        assertEquals("London", clocks.get(3).label);
+        assertEquals("Europe/London", clocks.get(3).zone);
+        assertEquals("Dubai", clocks.get(4).label);
+        assertEquals("Asia/Dubai", clocks.get(4).zone);
+        assertEquals("4:00 PM", WorldClocks.formatTime(clocks.get(4).zone, NOON_UTC));
+        java.util.Map<String, String> saved = new java.util.HashMap<>();
+        saved.put(WorldClocks.zoneKey(2), "Europe/Paris");
+        List<WorldClocks.Clock> mixed = WorldClocks.entries((key, fallback) -> saved.getOrDefault(key, fallback));
+        assertEquals("Los Angeles", mixed.get(1).label);
+        assertEquals("Europe/Paris", mixed.get(3).zone);
+        assertEquals("Europe/Paris", mixed.get(3).label);
+        assertEquals("Dubai", mixed.get(4).label);
     }
 
     @Test(timeout = 5000)
@@ -61,7 +87,7 @@ public class WorldClocksTest {
     @Test(timeout = 5000)
     public void dreamDetailIsOneCityPerLine() {
         String text = WorldClocks.dreamDetail(prefs("London", "Europe/London"), NOON_UTC);
-        assertEquals("India 5:30 PM\nLondon 12:00 PM", text);
+        assertEquals("India 5:30 PM\nLondon 12:00 PM\nNew York 7:00 AM\nLondon 12:00 PM\nDubai 4:00 PM", text);
     }
 
     @Test(timeout = 5000)

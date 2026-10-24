@@ -27,6 +27,11 @@ final class WorldClocks {
     static final String INDIA_LABEL = "India";
     static final int SLOTS = 4;
     static final String DREAM = "dream_world_clocks";
+    /** Factory cities for slots 0–3. Used only when that slot's preference is unset. */
+    static final String[] DEFAULT_NAMES = {"Los Angeles", "New York", "London", "Dubai"};
+    static final String[] DEFAULT_ZONES = {
+            "America/Los_Angeles", "America/New_York", "Europe/London", "Asia/Dubai"
+    };
 
     static final class Place {
         final String name, label, zone;
@@ -52,6 +57,33 @@ final class WorldClocks {
 
     static String nameKey(int slot) { return "world_clock_" + (slot + 1) + "_name"; }
     static String zoneKey(int slot) { return "world_clock_" + (slot + 1) + "_zone"; }
+
+    static String defaultName(int slot) {
+        return slot >= 0 && slot < SLOTS ? DEFAULT_NAMES[slot] : "";
+    }
+
+    static String defaultZone(int slot) {
+        return slot >= 0 && slot < SLOTS ? DEFAULT_ZONES[slot] : "";
+    }
+
+    /** Saved zone, or the factory city when the preference is missing or not a real zone. */
+    static String zoneAt(int slot, String stored) {
+        String zone = stored == null ? "" : stored.trim();
+        if (validZone(zone)) return zone;
+        return defaultZone(slot);
+    }
+
+    /**
+     * Saved label. An unset slot uses the factory name. A zone the user picked, with no label,
+     * keeps the zone id so a factory name is not pasted onto their city.
+     */
+    static String nameAt(int slot, String storedName, String storedZone) {
+        String custom = storedName == null ? "" : storedName.trim();
+        if (!custom.isEmpty()) return custom;
+        String zone = storedZone == null ? "" : storedZone.trim();
+        if (!validZone(zone) || zone.equals(defaultZone(slot))) return defaultName(slot);
+        return zone;
+    }
 
     /** Custom label when one was saved, otherwise the zone id. */
     static String labelFor(String name, String zone) {
@@ -146,11 +178,16 @@ final class WorldClocks {
     }
 
     private static String[] read(BiFunction<String, String, String> prefs, boolean names) {
+        String[] storedZones = new String[SLOTS];
+        String[] storedNames = new String[SLOTS];
+        for (int i = 0; i < SLOTS; i++) {
+            // null means the preference is unset. A saved value, including a custom zone, is kept.
+            storedZones[i] = prefs == null ? null : prefs.apply(zoneKey(i), null);
+            storedNames[i] = prefs == null ? null : prefs.apply(nameKey(i), null);
+        }
         String[] values = new String[SLOTS];
         for (int i = 0; i < SLOTS; i++) {
-            String key = names ? nameKey(i) : zoneKey(i);
-            String value = prefs == null ? "" : prefs.apply(key, "");
-            values[i] = value == null ? "" : value;
+            values[i] = names ? nameAt(i, storedNames[i], storedZones[i]) : zoneAt(i, storedZones[i]);
         }
         return values;
     }

@@ -243,7 +243,7 @@ final class SettingsPicker {
                     row.addView(mark, mp);
                 }
                 row.setOnFocusChangeListener((v, has) -> {
-                    v.setBackground(SettingsStyle.focus(activity, SettingsStyle.accent(activity), has));
+                    v.setBackground(SettingsStyle.focus(activity, SettingsStyle.focusColor(activity), has));
                     if (has) v.post(() -> scroll.requestChildRectangleOnScreen(v, new Rect(0, 0, v.getWidth(), v.getHeight()), false));
                 });
                 row.setOnClickListener(v -> {
@@ -345,7 +345,7 @@ final class SettingsPicker {
             }
             final Mark markRef = mark;
             row.setOnFocusChangeListener((v, has) -> {
-                v.setBackground(SettingsStyle.focus(activity, SettingsStyle.accent(activity), has));
+                v.setBackground(SettingsStyle.focus(activity, SettingsStyle.focusColor(activity), has));
                 if (has) v.post(() -> scroll.requestChildRectangleOnScreen(v, new Rect(0, 0, v.getWidth(), v.getHeight()), false));
             });
             row.setOnKeyListener((v, code, event) -> {
@@ -438,7 +438,7 @@ final class SettingsPicker {
         button.setGravity(Gravity.CENTER);
         button.setMinHeight(dp(activity, 36));
         button.setPadding(dp(activity, 12), dp(activity, 6), dp(activity, 12), dp(activity, 6));
-        button.setOnFocusChangeListener((v, has) -> v.setBackground(SettingsStyle.focus(activity, SettingsStyle.accent(activity), has)));
+        button.setOnFocusChangeListener((v, has) -> v.setBackground(SettingsStyle.focus(activity, SettingsStyle.focusColor(activity), has)));
         button.setOnClickListener(v -> {
             dialog.dismiss();
             if (action != null) action.run();
