@@ -699,7 +699,8 @@ public final class LauncherSettingsActivity extends Activity {
 
     // ---- 2.11.7 look: 56 dp rows with a left icon, 48 dp when a page would otherwise scroll ----
     private int rowHeight=56;private int[] categoryIcons;
-    private android.graphics.drawable.Drawable rowIcon(View row){int id=row.getId();int res=0;if(id==R.id.clearCacheChoice)res=R.drawable.ic_clean;else if(id==R.id.photoSourceChoice||id==R.id.refreshPhotosChoice||id==R.id.photoStorageChoice||id==R.id.photoIntervalChoice)res=R.drawable.ic_wallpaper;else if(id==R.id.inputNamesChoice)res=R.drawable.ic_input;else if(categoryIcons!=null){if((fontsCard!=null&&inside(fontsCard,row))||(lookCard!=null&&inside(lookCard,row)))res=categoryIcons[1];else if(categoryCards!=null)for(int i=0;i<categoryCards.length&&i<categoryIcons.length;i++)if(categoryCards[i]!=null&&inside(categoryCards[i],row)){res=categoryIcons[i];break;}}if(res==0)return null;android.graphics.drawable.Drawable d=getDrawable(res);if(d==null)return null;d=d.mutate();d.setTint(SettingsStyle.SECONDARY);return d;}
+    /** Right-panel rows stay text-only; left rail keeps its icons. */
+    private android.graphics.drawable.Drawable rowIcon(View row){return null;}
     private void fitCurrentCard(){if(categoryScroll==null||categoryCards==null)return;View card=categoryCards[selectedCategory];if(card==null||card.getHeight()==0)return;if(card.getHeight()+dp(24)>categoryScroll.getHeight())compactRows(card);}
     private void compactRows(View v){if(v instanceof TextView){TextView t=(TextView)v;if(t.getMinHeight()==dp(56)){t.setMinHeight(dp(48));t.setMinimumHeight(dp(48));}}if(v instanceof android.view.ViewGroup){android.view.ViewGroup g=(android.view.ViewGroup)v;for(int i=0;i<g.getChildCount();i++)compactRows(g.getChildAt(i));}}
     /** Clear app cache pill: reached by UP from the first row or the first category; DOWN returns to where focus came from. */
