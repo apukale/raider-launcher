@@ -122,7 +122,7 @@ public class RaiderThemeTest {
         assertTrue(spec.fits(viewport));
         assertTrue(spec.singleDp >= 30);
         assertTrue(spec.twoDp >= 40);
-        assertEquals(CalendarPanelFit.ROWS, 10);
+        assertEquals(CalendarPanelFit.ROWS, 9);
     }
 
     @Test(timeout = 5000) public void freeRamSkipsForegroundSelfSystemAndHome() {

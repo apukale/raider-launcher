@@ -46,7 +46,7 @@ public class WeatherActivity extends Activity {
     private android.widget.ImageButton back; private View headerBar; private TextView attributionView; private boolean week; private int accent; private double lat, lon; private String place; private boolean fahrenheit;
 
     @Override protected void onCreate(Bundle b){super.onCreate(b);Config cfg=Config.load(this);lat=WeatherLocation.lat(this,cfg);lon=WeatherLocation.lon(this,cfg);place=WeatherLocation.place(this,cfg);if(place==null)place="";fahrenheit=WeatherLocation.fahrenheit(this);accent=RaiderTheme.accent(this);build();
-        NightEffects.dim(root,NightState.isActive(getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE),System.currentTimeMillis()));toggle.requestFocus();
+        NightEffects.dim(this,root,NightState.isActive(getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE),System.currentTimeMillis()));toggle.requestFocus();
         if(!WeatherLocation.valid(lat,lon)){subtitle.setText("Set city in Launcher settings > Weather");}else{String cached=cachedJson();if(cached!=null)render(cached,false);io.execute(this::loadForecast);}
         root.post(()->{android.graphics.Rect fr=freeRect();int w=root.getWidth(),h=root.getHeight();io.execute(()->loadMap(fr,w,h));});}
     @Override protected void onDestroy(){destroyed=true;io.shutdownNow();if(mapView!=null)mapView.setImageDrawable(null);if(map!=null){map.recycle();map=null;}super.onDestroy();}

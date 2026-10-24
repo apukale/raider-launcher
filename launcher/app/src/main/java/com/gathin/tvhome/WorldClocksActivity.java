@@ -42,7 +42,8 @@ public class WorldClocksActivity extends Activity {
             main.postDelayed(this, Math.max(1000L, delay));
         }
     };
-    private LinearLayout screenRoot, indiaHost, cityRow;
+    private LinearLayout screenRoot, cityRow;
+    private TextView indiaTime;
     private TextView empty;
     private View changeBackground;
     private Bitmap backgroundBitmap;
@@ -58,7 +59,7 @@ public class WorldClocksActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
-        NightEffects.dim(screenRoot, NightState.isActive(getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE), System.currentTimeMillis()));
+        NightEffects.dim(this, screenRoot, NightState.isActive(getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE), System.currentTimeMillis()));
         render();
         main.removeCallbacks(tick);
         tick.run();
@@ -137,7 +138,22 @@ public class WorldClocksActivity extends Activity {
         header.setGravity(Gravity.CENTER_VERTICAL);
         TextView title = text("World clocks", 28, R.font.outfit_medium, 0xFFF4F1EA);
         title.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        header.addView(title, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        header.addView(title, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        LinearLayout india = new LinearLayout(this);
+        india.setOrientation(LinearLayout.HORIZONTAL);
+        india.setGravity(Gravity.CENTER_VERTICAL | Gravity.END);
+        india.setPadding(dp(28), 0, 0, 0);
+        TextView indiaLabel = text(WorldClocks.INDIA_LABEL, 16, R.font.outfit_medium, 0xFFA9ABC7);
+        indiaLabel.setGravity(Gravity.CENTER_VERTICAL);
+        india.addView(indiaLabel);
+        indiaTime = text(WorldClocks.formatTime(WorldClocks.INDIA_ZONE, System.currentTimeMillis()), 26, R.font.outfit_light, Color.WHITE);
+        indiaTime.setGravity(Gravity.CENTER_VERTICAL);
+        indiaTime.setTag(WorldClocks.INDIA_ZONE);
+        indiaTime.setContentDescription("India time");
+        LinearLayout.LayoutParams indiaTimeLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        indiaTimeLp.setMarginStart(dp(10));
+        india.addView(indiaTime, indiaTimeLp);
+        header.addView(india, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         ImageButton back = iconButton(R.drawable.ic_back, "Back", v -> goHome());
         header.addView(back);
         changeBackground = iconButton(R.drawable.ic_wallpaper, "Change background", v -> nextBackground());
@@ -156,15 +172,12 @@ public class WorldClocksActivity extends Activity {
         citiesLp.setMarginStart(dp(12));
         header.addView(cities, citiesLp);
         root.addView(header);
-        indiaHost = new LinearLayout(this);
-        indiaHost.setOrientation(LinearLayout.VERTICAL);
-        indiaHost.setGravity(Gravity.CENTER);
-        root.addView(indiaHost, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
         cityRow = new LinearLayout(this);
         cityRow.setOrientation(LinearLayout.HORIZONTAL);
         cityRow.setGravity(Gravity.CENTER);
         cityRow.setBaselineAligned(false);
         LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        rowLp.topMargin = dp(36);
         rowLp.bottomMargin = dp(8);
         root.addView(cityRow, rowLp);
         empty = text("No other cities set", 16, R.font.outfit_regular, 0xFFA9ABC7);
@@ -180,14 +193,17 @@ public class WorldClocksActivity extends Activity {
     }
 
     private void render() {
-        indiaHost.removeAllViews();
         cityRow.removeAllViews();
         times.clear();
+        long now = System.currentTimeMillis();
+        if (indiaTime != null) {
+            indiaTime.setText(WorldClocks.formatTime(WorldClocks.INDIA_ZONE, now));
+            indiaTime.setTag(WorldClocks.INDIA_ZONE);
+            times.add(indiaTime);
+        }
         java.util.function.BiFunction<String, String, String> prefs =
                 getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)::getString;
         int accent = RaiderTheme.accent(this);
-        long now = System.currentTimeMillis();
-        addClock(indiaHost, new WorldClocks.Clock(WorldClocks.INDIA_LABEL, WorldClocks.INDIA_ZONE), accent, now, 28, 72, false);
         List<WorldClocks.Clock> cities = WorldClocks.cities(prefs);
         for (int i = 0; i < cities.size(); i++) {
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
@@ -195,14 +211,6 @@ public class WorldClocksActivity extends Activity {
             cityRow.addView(clockCard(cities.get(i), accent, now, 16, 28), lp);
         }
         empty.setVisibility(cities.isEmpty() ? View.VISIBLE : View.GONE);
-    }
-
-    private void addClock(LinearLayout parent, WorldClocks.Clock clock, int accent, long now, int labelSp, int timeSp, boolean row) {
-        View card = clockCard(clock, accent, now, labelSp, timeSp);
-        LinearLayout.LayoutParams lp = row
-                ? new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1)
-                : new LinearLayout.LayoutParams(dp(420), LinearLayout.LayoutParams.WRAP_CONTENT);
-        parent.addView(card, lp);
     }
 
     private LinearLayout clockCard(WorldClocks.Clock clock, int accent, long now, int labelSp, int timeSp) {

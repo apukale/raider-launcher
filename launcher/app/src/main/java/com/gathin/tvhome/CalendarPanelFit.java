@@ -1,11 +1,12 @@
 package com.gathin.tvhome;
 
 /**
- * Calendar &amp; Clocks has ten rows (six single-line, four city rows with a second line) plus a caption.
+ * Calendar &amp; Clocks has nine rows (five single-line, four city rows with a second line) plus a caption.
+ * India is the home clock and is not a row on this panel.
  * On a 1080p leanback TV the settings scroll area is short, so this picks row heights that fit it.
  */
 final class CalendarPanelFit {
-    static final int ROWS = 10;
+    static final int ROWS = 9;
     static final int TWO_LINE = 4;
     static final int SINGLE = ROWS - TWO_LINE;
     /** Settings chrome: 27dp top, 27dp bottom, 44dp header, 16dp gap under the header. */

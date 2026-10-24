@@ -20,7 +20,7 @@ import org.json.JSONObject;
  * India (Asia/Kolkata) plus four city slots. India is fixed and is not a preference.
  * A slot's display label is stored apart from its zone id, so the zone can be
  * America/New_York while the label is NYC. The Hindu calendar master does not hide these clocks.
- * Home draws only the clock. The world clocks screen shows India above the four cities.
+ * Home draws only the clock. The world clocks screen shows India in the header, beside the title, and the four cities below.
  * The screensaver strip, when enabled, shows those four cities and not India.
  */
 final class WorldClocks {
