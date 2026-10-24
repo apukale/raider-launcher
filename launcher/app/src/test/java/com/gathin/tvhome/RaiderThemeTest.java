@@ -46,9 +46,15 @@ public class RaiderThemeTest {
         assertEquals("Indigo", RaiderColors.theme("nope").id);
         assertTrue(RaiderColors.theme("Porcelain").light);
         assertFalse(RaiderColors.theme("Indigo").light);
-        assertEquals("1 Indigo + Marigold", RaiderColors.labels()[0]);
-        assertEquals("3 Midnight + Ice", RaiderColors.labels()[1]);
-        assertEquals("9 Porcelain + Espresso", RaiderColors.labels()[7]);
+        assertEquals("Indigo + Marigold", RaiderColors.labels()[0]);
+        assertEquals("Midnight + Ice", RaiderColors.labels()[1]);
+        assertEquals("Espresso + Amber", RaiderColors.labels()[2]);
+        assertEquals("Forest + Mint", RaiderColors.labels()[3]);
+        assertEquals("Plum + Orchid", RaiderColors.labels()[4]);
+        assertEquals("Onyx + Crimson", RaiderColors.labels()[5]);
+        assertEquals("True Black + Silver", RaiderColors.labels()[6]);
+        assertEquals("Porcelain + Espresso", RaiderColors.labels()[7]);
+        for (String label : RaiderColors.labels()) assertFalse(Character.isDigit(label.charAt(0)));
         assertFalse(java.util.Arrays.asList(RaiderColors.labels()).contains("Graphite + Teal"));
     }
 
