@@ -63,31 +63,13 @@ public class RaiderThemeTest {
         assertEquals(0, HomeFocusPhoto.nextIndex(4, 3));
     }
 
-    @Test(timeout = 5000) public void recommendationsDefaultOnAndCap() {
-        assertTrue(HomeRecs.shown(false, false));
-        assertTrue(HomeRecs.shown(true, true));
-        assertFalse(HomeRecs.shown(true, false));
-        java.util.ArrayList<HomeRecs.Item> items = new java.util.ArrayList<>();
-        for (int i = 0; i < 8; i++) items.add(new HomeRecs.Item("Title " + i, null, null));
-        items.add(new HomeRecs.Item("  ", null, null));
-        assertEquals(HomeRecs.MAX, HomeRecs.cap(items).size());
-        assertEquals("Title 0", HomeRecs.cap(items).get(0).title);
-        assertTrue(HomeRecs.cap(null).isEmpty());
-        java.util.List<HomeRecs.Item> watch = java.util.Collections.singletonList(new HomeRecs.Item("Show", "content://p", "intent:#Intent;end"));
-        java.util.ArrayList<HomeRecs.Item> photos = new java.util.ArrayList<>();
-        photos.add(HomeRecs.photoCard("Dock", "Bing", "/tmp/a.jpg"));
-        photos.add(HomeRecs.photoCard("  ", "Unsplash", "/tmp/b.jpg"));
-        assertEquals("Show", HomeRecs.choose(watch, photos).get(0).title);
-        java.util.List<HomeRecs.Item> fallback = HomeRecs.choose(java.util.Collections.emptyList(), photos);
-        assertEquals(2, fallback.size());
-        assertEquals("Dock", fallback.get(0).title);
-        assertEquals("Unsplash", fallback.get(1).title);
-        assertEquals(HomeRecs.SCREENSAVER, fallback.get(0).intent);
-        java.util.List<HomeRecs.Item> none = HomeRecs.choose(null, java.util.Collections.emptyList());
-        assertEquals(1, none.size());
-        assertEquals(HomeRecs.PLACEHOLDER_TITLE, none.get(0).title);
-        assertEquals(HomeRecs.PHOTOS, none.get(0).intent);
-        assertEquals("Photo", HomeRecs.photoTitle(null, " "));
+    @Test(timeout = 5000) public void homePhotoIntervalMatchesTheScreensaverFloor() {
+        assertEquals(HomeFocusPhoto.INTERVAL_DEFAULT_MS, 60_000L);
+        assertEquals(60_000L, HomeFocusPhoto.intervalMs(60_000L));
+        assertEquals(30_000L, HomeFocusPhoto.intervalMs(30_000L));
+        assertEquals(30_000L, HomeFocusPhoto.intervalMs(0));
+        assertEquals(120_000L, HomeFocusPhoto.intervalMs(120_000L));
+        assertEquals(0x59000000, HomeFocusPhoto.PHOTO_SCRIM);
     }
 
     @Test(timeout = 5000) public void photosMasterDefaultsOn() {

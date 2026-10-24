@@ -95,13 +95,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private GlassView glass;
     private View ambient;
     private HomeFocusBackdrop homeBackdrop;
-    private android.widget.LinearLayout homeRecs;
-    private int firstRecId = View.NO_ID;
-    private int recGen;
-    private boolean recAskedDownload;
-    private final java.util.ArrayList<android.graphics.Bitmap> recPosters = new java.util.ArrayList<>();
-    private final Runnable recRefresh = this::loadRecommendations;
-    private final int gradientSeed = new java.util.Random().nextInt();
     private View wallpaperView;
     private File wallpaperFile;
     /** Drops an in-flight wallpaper attach after trim or a newer decode. */
@@ -366,17 +359,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         adapter = new AppAdapter(this, this, COLUMNS, cfg);
         grid.setAdapter(adapter);
-        installRecommendations();
-        root.getViewTreeObserver().addOnGlobalFocusChangeListener((oldFocus, newFocus) -> {
-            if (homeBackdrop != null && !insideView(grid, newFocus)) homeBackdrop.hide();
-        });
         grid.addOnChildAttachStateChangeListener(new RecyclerView.OnChildAttachStateChangeListener() {
             @Override public void onChildViewAttachedToWindow(@NonNull View view) {
                 RecyclerView.ViewHolder holder=grid.getChildViewHolder(view); int p=holder.getBindingAdapterPosition();
                 View card = view.findViewById(R.id.card);
                 View target = card != null ? card : view;
-                if (homeRecs != null && homeRecs.getVisibility() == View.VISIBLE && p < COLUMNS && firstRecId != View.NO_ID) target.setNextFocusUpId(firstRecId);
-                else if(p>=COLUMNS && p<2*COLUMNS)target.setNextFocusUpId(R.id.homeCalendarStack);
+                if(p>=COLUMNS && p<2*COLUMNS)target.setNextFocusUpId(R.id.homeCalendarStack);
             }
             @Override public void onChildViewDetachedFromWindow(@NonNull View view) {}
         });
@@ -645,7 +633,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         else if(weatherEnabled){WeatherData cached=WeatherClient.cached(this);if(cached!=null)showWeather(cached);else if(homeWeather.getText()==null||homeWeather.getText().length()==0)homeWeather.setVisibility(View.GONE);handler.postDelayed(weatherRefresh,WeatherClient.REFRESH_MS);}
         else homeWeather.setVisibility(View.GONE);
         applyHomeChrome();
-        loadRecommendations();
+        if (homeBackdrop != null) homeBackdrop.start();
         updateNightTheme(true);
         if (!calendarReceiverRegistered) {
             IntentFilter f=new IntentFilter();f.addAction(Intent.ACTION_TIME_CHANGED);f.addAction(Intent.ACTION_TIMEZONE_CHANGED);f.addAction(Intent.ACTION_DATE_CHANGED);
@@ -687,7 +675,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             try { PhotoStore.scheduleIfMissingThrottled(this); } catch (Throwable ignored) {}
             handler.post(() -> {
                 if (!resumed || isFinishing()) return;
-                loadRecommendations();
+                if (homeBackdrop != null) homeBackdrop.refresh();
                 if (!weatherEnabled) return;
                 if (!WeatherLocation.valid(WeatherLocation.lat(this, config), WeatherLocation.lon(this, config))) return;
                 long fetched = WeatherClient.fetchedAt(this);
@@ -810,7 +798,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (nightReceiverRegistered) { try { unregisterReceiver(nightTimeReceiver); } catch (IllegalArgumentException ignored) {} nightReceiverRegistered = false; }
         NightTheme.applyHome(root, false, originalHomeBackground);
         handler.removeCallbacks(weatherRefresh);
-        handler.removeCallbacks(recRefresh);
+        if (homeBackdrop != null) homeBackdrop.stop();
         handler.removeCallbacks(calendarTransition);
         if(calendarReceiverRegistered){try{unregisterReceiver(calendarTimeReceiver);}catch(IllegalArgumentException ignored){}calendarReceiverRegistered=false;}
         // Nothing of ours stays on screen over another app; an undecided prompt simply returns next time.
@@ -890,14 +878,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         root.addView(photo, at, full);
         root.addView(scrim, at + 1, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         homeBackdrop = new HomeFocusBackdrop(this, photo, scrim);
-        homeBackdrop.setScrim(originalHomeBackground);
     }
 
     private void applyHomeChrome() {
         RaiderColors.Theme theme = RaiderTheme.theme(this);
         originalHomeBackground = theme.background;
         if (wallpaperView == null) root.setBackgroundColor(theme.background);
-        if (homeBackdrop != null) homeBackdrop.setScrim(theme.background);
         if (glass != null) glass.setAccent(theme.focus);
         int ink = theme.onSurface, muted = theme.secondary;
         paint(R.id.clock, ink);
@@ -916,243 +902,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (view instanceof TextView) ((TextView) view).setTextColor(color);
     }
 
-    private void installRecommendations() {
-        View frame = (View) grid.getParent();
-        if (!(frame.getParent() instanceof android.widget.LinearLayout)) return;
-        android.widget.LinearLayout column = (android.widget.LinearLayout) frame.getParent();
-        homeRecs = new android.widget.LinearLayout(this);
-        homeRecs.setId(R.id.homeRecs);
-        homeRecs.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-        homeRecs.setVisibility(View.GONE);
-        android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.topMargin = dp(8);
-        lp.bottomMargin = dp(4);
-        column.addView(homeRecs, column.indexOfChild(frame), lp);
-    }
-
-    private void loadRecommendations() {
-        android.content.SharedPreferences prefs = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE);
-        if (!HomeRecs.shown(prefs.contains(HomeRecs.PREF), prefs.getBoolean(HomeRecs.PREF, true))) {
-            handler.removeCallbacks(recRefresh);
-            showRecommendations(java.util.Collections.emptyList(), java.util.Collections.emptyMap(), false);
-            return;
-        }
-        if (homeRecs != null && homeRecs.getVisibility() != View.VISIBLE) {
-            showRecommendations(HomeRecs.choose(null, null), java.util.Collections.emptyMap(), true);
-        }
-        final int gen = ++recGen;
-        final boolean photosOn = PhotosMaster.on(this);
-        new Thread(() -> {
-            java.util.ArrayList<HomeRecs.Item> found = new java.util.ArrayList<>();
-            try {
-                String[] projection = new String[] {
-                        android.media.tv.TvContract.WatchNextPrograms.COLUMN_TITLE,
-                        android.media.tv.TvContract.WatchNextPrograms.COLUMN_POSTER_ART_URI,
-                        android.media.tv.TvContract.WatchNextPrograms.COLUMN_INTENT_URI
-                };
-                try (android.database.Cursor cursor = getContentResolver().query(
-                        android.media.tv.TvContract.WatchNextPrograms.CONTENT_URI, projection, null, null, null)) {
-                    if (cursor != null) while (cursor.moveToNext() && found.size() < HomeRecs.MAX + 2) {
-                        found.add(new HomeRecs.Item(cursor.getString(0), cursor.getString(1), cursor.getString(2)));
-                    }
-                }
-            } catch (Throwable ignored) {
-                found.clear();
-            }
-            java.util.ArrayList<HomeRecs.Item> photos = new java.util.ArrayList<>();
-            if (photosOn && HomeRecs.cap(found).isEmpty()) {
-                try {
-                    for (PhotoStore.Photo photo : PhotoStore.list(this)) {
-                        if (photos.size() >= HomeRecs.MAX) break;
-                        String path = new java.io.File(PhotoStore.dir(this), photo.file).getAbsolutePath();
-                        photos.add(HomeRecs.photoCard(photo.title, ExtraPhotoSources.label(photo.source), path));
-                    }
-                } catch (Throwable ignored) {}
-            }
-            java.util.List<HomeRecs.Item> items = HomeRecs.choose(found, photos);
-            boolean waiting = items.size() == 1 && HomeRecs.PHOTOS.equals(items.get(0).intent);
-            if (photosOn && waiting && !recAskedDownload) {
-                recAskedDownload = true;
-                try { PhotoStore.scheduleIfMissingThrottled(this); } catch (Throwable ignored) {}
-                try { PhotoStore.schedule(this, true); } catch (Throwable ignored) {}
-            }
-            int scrim = HomeFocusPhoto.scrim(RaiderTheme.theme(this).background);
-            int width = dp(168), height = dp(94);
-            java.util.HashMap<String, android.graphics.Bitmap> posters = new java.util.HashMap<>();
-            if (photosOn) {
-                for (HomeRecs.Item item : items) {
-                    if (!HomeRecs.SCREENSAVER.equals(item.intent) || item.poster == null) continue;
-                    android.graphics.Bitmap bmp = tintedPoster(item.poster, width, height, scrim);
-                    if (bmp != null) posters.put(item.poster, bmp);
-                }
-            }
-            final boolean poll = photosOn && waiting;
-            runOnUiThread(() -> {
-                if (gen != recGen || isFinishing()) {
-                    for (android.graphics.Bitmap bmp : posters.values()) if (bmp != null && !bmp.isRecycled()) bmp.recycle();
-                    return;
-                }
-                showRecommendations(items, posters, true);
-                handler.removeCallbacks(recRefresh);
-                if (poll && resumed) handler.postDelayed(recRefresh, 8000);
-            });
-        }, "home-recs").start();
-    }
-
-    private android.graphics.Bitmap tintedPoster(String path, int width, int height, int scrim) {
-        try {
-            android.graphics.BitmapFactory.Options bounds = new android.graphics.BitmapFactory.Options();
-            bounds.inJustDecodeBounds = true;
-            android.graphics.BitmapFactory.decodeFile(path, bounds);
-            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null;
-            int sample = 1;
-            while (sample < 16 && bounds.outWidth / (sample * 2) >= width && bounds.outHeight / (sample * 2) >= height) sample *= 2;
-            android.graphics.BitmapFactory.Options opts = new android.graphics.BitmapFactory.Options();
-            opts.inSampleSize = sample;
-            android.graphics.Bitmap raw = android.graphics.BitmapFactory.decodeFile(path, opts);
-            if (raw == null) return null;
-            android.graphics.Bitmap out = raw.copy(android.graphics.Bitmap.Config.ARGB_8888, true);
-            if (out == null) { raw.recycle(); return null; }
-            if (out != raw) raw.recycle();
-            new android.graphics.Canvas(out).drawColor(scrim);
-            return out;
-        } catch (Exception | OutOfMemoryError ignored) {
-            return null;
-        }
-    }
-
-    private void showRecommendations(java.util.List<HomeRecs.Item> items, java.util.Map<String, android.graphics.Bitmap> posters, boolean enabled) {
-        if (homeRecs == null) return;
-        homeRecs.removeAllViews();
-        releaseRecPosters();
-        firstRecId = View.NO_ID;
-        if (!enabled) { homeRecs.setVisibility(View.GONE); return; }
-        if (items == null || items.isEmpty()) items = HomeRecs.choose(null, null);
-        boolean placeholder = items.size() == 1 && HomeRecs.PHOTOS.equals(items.get(0).intent);
-        if (!PhotosMaster.on(this) && placeholder) {
-            addGradientCards();
-            homeRecs.setVisibility(View.VISIBLE);
-            wireRecFocus();
-            return;
-        }
-        RaiderColors.Theme theme = RaiderTheme.theme(this);
-        int width = dp(168), height = dp(94);
-        for (int i = 0; i < items.size(); i++) {
-            HomeRecs.Item item = items.get(i);
-            android.graphics.Bitmap poster = item.poster == null || posters == null ? null : posters.get(item.poster);
-            TextView card = recommendationCard(item, theme, poster, placeholder);
-            if (poster != null) recPosters.add(poster);
-            if (i == 0) firstRecId = card.getId();
-            android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(width, height);
-            if (i > 0) lp.setMarginStart(dp(10));
-            homeRecs.addView(card, lp);
-        }
-        homeRecs.setVisibility(View.VISIBLE);
-        wireRecFocus();
-    }
-
-    private TextView recommendationCard(HomeRecs.Item item, RaiderColors.Theme theme, android.graphics.Bitmap poster, boolean placeholder) {
-        TextView card = new TextView(this);
-        card.setText(item.title);
-        card.setTextColor(placeholder ? theme.secondary : theme.onSurface);
-        card.setTextSize(14);
-        card.setMaxLines(2);
-        card.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        card.setPadding(dp(10), dp(8), dp(10), dp(8));
-        card.setFocusable(true);
-        card.setClickable(true);
-        card.setId(View.generateViewId());
-        card.setNextFocusDownId(R.id.grid);
-        card.setNextFocusUpId(R.id.homeCalendarStack);
-        card.setOnClickListener(v -> openRecommendation(item.intent));
-        if (poster != null) {
-            android.graphics.drawable.BitmapDrawable image = new android.graphics.drawable.BitmapDrawable(getResources(), poster);
-            image.setGravity(android.view.Gravity.FILL);
-            image.setFilterBitmap(true);
-            card.setBackground(image);
-            card.setForeground(getDrawable(R.drawable.calendar_focus));
-            card.setGravity(android.view.Gravity.BOTTOM | android.view.Gravity.CENTER_HORIZONTAL);
-        } else if (placeholder) {
-            android.graphics.drawable.GradientDrawable fill = new android.graphics.drawable.GradientDrawable();
-            fill.setColor(theme.surface);
-            fill.setCornerRadius(dp(10));
-            card.setBackground(fill);
-            card.setForeground(getDrawable(R.drawable.calendar_focus));
-            card.setGravity(android.view.Gravity.CENTER);
-        } else {
-            card.setBackgroundResource(R.drawable.calendar_focus);
-            card.setGravity(android.view.Gravity.CENTER);
-        }
-        return card;
-    }
-
-    private void addGradientCards() {
-        int width = dp(168), height = dp(94);
-        for (int i = 0; i < 4; i++) {
-            TextView card = new TextView(this);
-            card.setContentDescription("Photos off");
-            card.setFocusable(true);
-            card.setClickable(true);
-            card.setId(View.generateViewId());
-            if (i == 0) firstRecId = card.getId();
-            card.setNextFocusDownId(R.id.grid);
-            card.setNextFocusUpId(R.id.homeCalendarStack);
-            android.graphics.drawable.GradientDrawable fill = PhotoGradients.drawable(gradientSeed + i);
-            fill.setCornerRadius(dp(10));
-            card.setBackground(fill);
-            card.setForeground(getDrawable(R.drawable.calendar_focus));
-            card.setOnClickListener(v -> openRecommendation(HomeRecs.PHOTOS));
-            android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(width, height);
-            if (i > 0) lp.setMarginStart(dp(10));
-            homeRecs.addView(card, lp);
-        }
-    }
-
-    private void wireRecFocus() {
-        if (grid == null || firstRecId == View.NO_ID) return;
-        for (int c = 0; c < grid.getChildCount(); c++) {
-            View child = grid.getChildAt(c);
-            RecyclerView.ViewHolder holder = grid.getChildViewHolder(child);
-            if (holder == null) continue;
-            int pos = holder.getBindingAdapterPosition();
-            View card = child.findViewById(R.id.card);
-            if (pos >= 0 && pos < COLUMNS && card != null) card.setNextFocusUpId(firstRecId);
-        }
-    }
-
-    private void releaseRecPosters() {
-        for (android.graphics.Bitmap bmp : recPosters) if (bmp != null && !bmp.isRecycled()) bmp.recycle();
-        recPosters.clear();
-    }
-
-    private void openRecommendation(String intentUri) {
-        if (HomeRecs.SCREENSAVER.equals(intentUri)) { startScreensaver(); return; }
-        if (HomeRecs.PHOTOS.equals(intentUri)) {
-            startActivity(new Intent(this, LauncherSettingsActivity.class).putExtra(SettingsMenu.OPEN_CATEGORY, SettingsMenu.PHOTOS));
-            return;
-        }
-        if (intentUri == null || intentUri.isEmpty()) return;
-        try {
-            startActivity(Intent.parseUri(intentUri, Intent.URI_INTENT_SCHEME));
-        } catch (Exception ignored) {
-            Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private static boolean insideView(View parent, View child) {
-        while (child != null) {
-            if (child == parent) return true;
-            android.view.ViewParent next = child.getParent();
-            child = next instanceof View ? (View) next : null;
-        }
-        return false;
-    }
-
     // ---- glass highlight -------------------------------------------------------------------------
 
     @Override
     public void onTileFocused(int position, View card) {
-        if (homeBackdrop != null) homeBackdrop.onTile(adapter.keyAt(position));
         if (glass != null) glass.setAccent(RaiderTheme.theme(this).focus);
         lastFocused = position;
         lastFocusedKey = adapter.keyAt(position);
