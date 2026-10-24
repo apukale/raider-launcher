@@ -1,9 +1,109 @@
-Copyright 2021 The Outfit Project Authors (https://github.com/Outfitio/Outfit-Fonts)
+Raider Launcher font bundle
+===========================
 
-This Font Software is licensed under the SIL Open Font License, Version 1.1.
-This license is copied below, and is also available with a FAQ at:
-https://scripts.sil.org/OFL
+Setting: Launcher Settings → Look → Fonts. Each of Home, Launcher settings,
+Screensaver, and Panchang keeps its own family (Weather follows Panchang).
+Nothing is chosen until the user changes it: the default is Outfit.
+The list and the weight mapping live in
+app/src/main/java/com/gathin/tvhome/Fonts.java.
+The files live in app/src/main/res/font/.
 
+What is not included
+--------------------
+SF Pro, New York, and Google Sans are not in this APK. They are not licensed
+for redistribution. The chooser uses stand-ins instead: Inter for an SF-like
+grotesque, Source Serif 4 for a New York-like serif, Poppins for a Google
+Sans-like geometric, Manrope for a Samsung One-like grotesque, and the
+device's own Roboto for the Android/Google system face.
+
+Roboto itself is Apache 2.0 and is not copied into the APK. The Roboto row
+loads /system/fonts/Roboto-*.ttf (or Roboto-Regular.ttf with a weight axis)
+when those files are on the TV, and otherwise the platform sans-serif family,
+so the row still changes the UI on a device that does not ship the files.
+
+Every family below is the SIL Open Font License 1.1. The only Reserved Font
+Name in this set is Lexend's "RevReading Lexend", which this app does not use.
+Latin subsets and pinned variable axes are Modified Versions; the copyright
+notices and this license are the required notices. Glyph coverage matches the
+Outfit file already in the app (Latin, Latin-1, Latin Extended, and the
+punctuation Outfit draws). Other scripts fall back to the system font.
+
+Weights follow the UI: extralight 200 and light 300 where the family has them
+(clock and secondary text), regular 400, medium 500, bold 700. Atkinson
+Hyperlegible ships Regular and Bold only, so emphasis uses Bold. Inter uses
+400 / 500 / 600 / 700 (no light cut). Variable families are one file plus a
+font-family XML per weight, so a weight is built once per process instead of
+once per TextView.
+
+Families and files
+------------------
+Outfit (baseline, default)
+  Copyright 2021 The Outfit Project Authors (https://github.com/Outfitio/Outfit-Fonts)
+  outfit.ttf (variable wght) with outfit_extralight.xml, outfit_light.xml,
+  outfit_regular.xml, outfit_medium.xml (200, 300, 400, 500). Unchanged.
+
+Sora
+  Copyright 2019 The Sora Project Authors (https://github.com/sora-xor/sora-font)
+  sora.ttf (variable wght) with sora_extralight.xml, sora_light.xml,
+  sora_regular.xml, sora_medium.xml, sora_bold.xml.
+
+Sofia Sans
+  Copyright 2019 The Sofia Sans Project Authors (https://github.com/lettersoup/Sofia-Sans)
+  sofia_sans.ttf (variable wght) with sofia_sans_extralight.xml, sofia_sans_light.xml,
+  sofia_sans_regular.xml, sofia_sans_medium.xml, sofia_sans_bold.xml.
+
+Nunito
+  Copyright 2014 The Nunito Project Authors (https://github.com/googlefonts/nunito)
+  nunito.ttf (variable wght) with nunito_extralight.xml, nunito_light.xml,
+  nunito_regular.xml, nunito_medium.xml, nunito_bold.xml.
+
+Work Sans
+  Copyright 2019 The Work Sans Project Authors (https://github.com/weiweihuanghuang/Work-Sans)
+  work_sans.ttf (variable wght) with work_sans_extralight.xml, work_sans_light.xml,
+  work_sans_regular.xml, work_sans_medium.xml, work_sans_bold.xml.
+
+Lexend
+  Copyright 2018 The Lexend Project Authors (https://github.com/googlefonts/lexend),
+  with Reserved Font Name "RevReading Lexend".
+  lexend.ttf (variable wght) with lexend_extralight.xml, lexend_light.xml,
+  lexend_regular.xml, lexend_medium.xml, lexend_bold.xml.
+
+Atkinson Hyperlegible
+  Copyright 2020 Braille Institute of America, Inc.
+  atkinson_regular.ttf (400) and atkinson_bold.ttf (700) only.
+
+Space Grotesk
+  Copyright 2020 The Space Grotesk Project Authors (https://github.com/floriankarsten/space-grotesk)
+  space_grotesk.ttf (variable wght 300–700) with space_grotesk_light.xml,
+  space_grotesk_regular.xml, space_grotesk_medium.xml, space_grotesk_bold.xml.
+
+Inter (SF-like stand-in)
+  Copyright 2020 The Inter Project Authors (https://github.com/rsms/inter)
+  inter.ttf (variable wght; optical size pinned to 18) with inter_regular.xml (400),
+  inter_medium.xml (500), inter_semibold.xml (600), inter_bold.xml (700).
+
+Source Serif 4 (New York-like stand-in)
+  Copyright 2014 The Source Serif 4 Project Authors (https://github.com/adobe-fonts/source-serif)
+  source_serif_4.ttf (variable wght; optical size pinned to 20, the upstream default)
+  with source_serif_4_extralight.xml, source_serif_4_light.xml, source_serif_4_regular.xml,
+  source_serif_4_medium.xml, source_serif_4_bold.xml.
+
+Poppins (Google Sans-like stand-in)
+  Copyright 2020 The Poppins Project Authors (https://github.com/itfoundry/Poppins)
+  Static cuts only (upstream has no variable file): poppins_light.ttf,
+  poppins_regular.ttf, poppins_medium.ttf, poppins_bold.ttf.
+
+Roboto Flex
+  Copyright 2017 The Roboto Flex Project Authors (https://github.com/TypeNetwork/Roboto-Flex)
+  roboto_flex.ttf (variable wght; every other axis pinned to its default, about 78 KB)
+  with roboto_flex_extralight.xml, roboto_flex_light.xml, roboto_flex_regular.xml,
+  roboto_flex_medium.xml, roboto_flex_bold.xml.
+  Included because that single file is small. It is a separate row from Roboto.
+
+Manrope (Samsung One-like stand-in)
+  Copyright 2018 The Manrope Project Authors (https://github.com/googlefonts/manrope)
+  manrope.ttf (variable wght) with manrope_extralight.xml, manrope_light.xml,
+  manrope_regular.xml, manrope_medium.xml, manrope_bold.xml.
 
 -----------------------------------------------------------
 SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
