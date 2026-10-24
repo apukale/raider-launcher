@@ -18,6 +18,7 @@
     <item name="homeRecsChoice" type="id" />
     <item name="resourcesChoice" type="id" />
     <item name="freeRamChoice" type="id" />
+    <item name="freeRamHomeChoice" type="id" />
     <item name="worldClocksCaption" type="id" />
     <item name="homeRecs" type="id" />
     <item name="homePhoto" type="id" />

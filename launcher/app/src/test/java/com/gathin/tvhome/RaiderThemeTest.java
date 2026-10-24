@@ -4,8 +4,8 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class RaiderThemeTest {
-    @Test(timeout = 5000) public void eightThemesAndRetiredNames() {
-        assertEquals(8, RaiderColors.themes().length);
+    @Test(timeout = 5000) public void sevenThemesAndRetiredNames() {
+        assertEquals(7, RaiderColors.themes().length);
         assertEquals(0xFFF2A93B, RaiderColors.accentColor("Indigo"));
         assertEquals(0xFFF5B942, RaiderColors.theme("Indigo").focus);
         assertEquals(0xFF0E1226, RaiderColors.theme("Indigo").background);
@@ -31,20 +31,17 @@ public class RaiderThemeTest {
         assertEquals(0xFFD4D4D4, RaiderColors.accentColor("True Black"));
         assertEquals(0xFFFFFFFF, RaiderColors.theme("True Black").focus);
         assertEquals(0xFF000000, RaiderColors.theme("True Black").background);
-        assertEquals(0xFF4A3425, RaiderColors.accentColor("Porcelain"));
-        assertEquals(0xFFF2EFE9, RaiderColors.theme("Porcelain").background);
-        assertEquals(0xFF241F19, RaiderColors.theme("Porcelain").onSurface);
-        assertEquals(0xFFF8F5F0, RaiderColors.theme("Porcelain").surface);
         assertEquals(0xFF141210, RaiderColors.inkOn(0xFFF5B942));
         assertEquals(0xFF141210, RaiderColors.inkOn(0xFFF87171));
         assertEquals(0xFFF6F3EE, RaiderColors.inkOn(0xFF3A241A));
         assertEquals("Indigo", RaiderColors.theme("Marigold").id);
+        assertEquals("Indigo", RaiderColors.theme("Porcelain").id);
         assertEquals("Forest", RaiderColors.theme("Teal").id);
         assertEquals("Plum", RaiderColors.theme("Rose").id);
         assertEquals("True Black", RaiderColors.theme("Silver").id);
         assertEquals("Indigo", RaiderColors.theme(null).id);
         assertEquals("Indigo", RaiderColors.theme("nope").id);
-        assertTrue(RaiderColors.theme("Porcelain").light);
+        for (RaiderColors.Theme theme : RaiderColors.themes()) assertFalse(theme.light);
         assertFalse(RaiderColors.theme("Indigo").light);
         assertEquals("Indigo + Marigold", RaiderColors.labels()[0]);
         assertEquals("Midnight + Ice", RaiderColors.labels()[1]);
@@ -53,9 +50,9 @@ public class RaiderThemeTest {
         assertEquals("Plum + Orchid", RaiderColors.labels()[4]);
         assertEquals("Onyx + Crimson", RaiderColors.labels()[5]);
         assertEquals("True Black + Silver", RaiderColors.labels()[6]);
-        assertEquals("Porcelain + Espresso", RaiderColors.labels()[7]);
         for (String label : RaiderColors.labels()) assertFalse(Character.isDigit(label.charAt(0)));
         assertFalse(java.util.Arrays.asList(RaiderColors.labels()).contains("Graphite + Teal"));
+        assertFalse(java.util.Arrays.asList(RaiderColors.labels()).contains("Porcelain + Espresso"));
     }
 
     @Test(timeout = 5000) public void focusPhotoScrimAndCycle() {

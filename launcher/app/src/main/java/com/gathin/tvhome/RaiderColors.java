@@ -1,7 +1,8 @@
 package com.gathin.tvhome;
 
 /**
- * Eight colour themes. Display names are plain ("Indigo + Marigold"). Graphite + Teal is not shipped.
+ * Seven colour themes. Display names are plain ("Indigo + Marigold"). Graphite + Teal and
+ * Porcelain + Espresso are not shipped. A saved Porcelain value falls back to Indigo + Marigold.
  * Background, accent, focus, and primary text are the hexes printed on each schematic.
  * Indigo panels are white at 7% over #0E1226 (the stated 6–8% frost). Midnight's panel is the
  * written #12293D. The other panels are the card surfaces in those schematics.
@@ -14,7 +15,6 @@ package com.gathin.tvhome;
  *   <li>Plum + Orchid — bg #1A1026, panel #2A1840, accent #E879F9, focus #F0ABFC, text #F1EAF7, secondary #C9B6D4</li>
  *   <li>Onyx + Crimson — bg #140D0F, panel #241618, accent #EF4444, focus #F87171, text #F5EFEF, secondary #C4B0B0</li>
  *   <li>True Black + Silver — bg #000000, panel #141414, accent #D4D4D4, focus #FFFFFF, text #F2F2F2, secondary #A3A3A3</li>
- *   <li>Porcelain + Espresso — bg #F2EFE9, panel #F8F5F0, accent #4A3425, focus #4A3425, text #241F19, secondary #6E635A (light)</li>
  * </ul>
  */
 final class RaiderColors {
@@ -42,8 +42,7 @@ final class RaiderColors {
             new Theme("Forest", "Forest + Mint", 0xFF34D399, 0xFF6EE7B7, 0xFF0F1A14, 0xFF1A2C22, 0xFFE9F2EC, 0xFFA3C4B4, false),
             new Theme("Plum", "Plum + Orchid", 0xFFE879F9, 0xFFF0ABFC, 0xFF1A1026, 0xFF2A1840, 0xFFF1EAF7, 0xFFC9B6D4, false),
             new Theme("Onyx", "Onyx + Crimson", 0xFFEF4444, 0xFFF87171, 0xFF140D0F, 0xFF241618, 0xFFF5EFEF, 0xFFC4B0B0, false),
-            new Theme("True Black", "True Black + Silver", 0xFFD4D4D4, 0xFFFFFFFF, 0xFF000000, 0xFF141414, 0xFFF2F2F2, 0xFFA3A3A3, false),
-            new Theme("Porcelain", "Porcelain + Espresso", 0xFF4A3425, 0xFF4A3425, 0xFFF2EFE9, 0xFFF8F5F0, 0xFF241F19, 0xFF6E635A, true)
+            new Theme("True Black", "True Black + Silver", 0xFFD4D4D4, 0xFFFFFFFF, 0xFF000000, 0xFF141414, 0xFFF2F2F2, 0xFFA3A3A3, false)
     };
 
     private RaiderColors() {}
@@ -62,13 +61,13 @@ final class RaiderColors {
         return labels;
     }
 
-    /** Stored name, including the retired Marigold / Teal / Rose / Silver values. */
+    /** Stored name, including retired Marigold / Teal / Rose / Silver / Porcelain values. */
     static Theme theme(String stored) {
         String key = stored == null ? "" : stored.trim();
         if ("Teal".equalsIgnoreCase(key)) key = "Forest";
         else if ("Rose".equalsIgnoreCase(key)) key = "Plum";
         else if ("Silver".equalsIgnoreCase(key)) key = "True Black";
-        else if ("Marigold".equalsIgnoreCase(key) || key.isEmpty()) key = "Indigo";
+        else if ("Marigold".equalsIgnoreCase(key) || "Porcelain".equalsIgnoreCase(key) || key.isEmpty()) key = "Indigo";
         for (Theme theme : THEMES) if (theme.id.equalsIgnoreCase(key)) return theme;
         return THEMES[0];
     }

@@ -238,13 +238,14 @@ public final class LauncherSettingsActivity extends Activity {
         int[] icons = categoryIcons = new int[]{R.drawable.ic_cat_home,R.drawable.ic_cat_appearance,R.drawable.ic_cat_screensaver,R.drawable.ic_wallpaper,R.drawable.ic_cat_calendar,R.drawable.ic_cat_weather,R.drawable.ic_cat_night,R.drawable.ic_cat_apps,R.drawable.ic_cat_about};
         railItems=new View[names.length]; categoryCards=new View[names.length];
         View legacy=LayoutInflater.from(this).inflate(R.layout.legacy_launcher_settings,null,false); // root is a ScrollView; only findViewById is used
-        int[][] groups={{R.id.pillLabelsChoice,R.id.moduleCardsChoice,R.id.unhideAppsChoice},{R.id.accentChoice,R.id.animationsChoice,R.id.advancedChoice},{R.id.startScreensaverChoice,R.id.screensaverStyleChoice,R.id.startAfterChoice},{R.id.photoSourceChoice,R.id.photoIntervalChoice,R.id.photoStorageChoice,R.id.refreshPhotosChoice},{R.id.homeCalendarChoice,R.id.calendarChoice,R.id.calendarTextSizeChoice},{R.id.weatherChoice},{R.id.nightModeChoice,R.id.nightStartsChoice,R.id.nightEndsChoice},{R.id.dnsChoice,R.id.tvSettingsChoice,R.id.defaultHomeChoice,R.id.clearCacheChoice,R.id.resetOrderChoice,R.id.followThemeChoice},{}};
+        int[][] groups={{R.id.pillLabelsChoice,R.id.moduleCardsChoice,R.id.unhideAppsChoice},{R.id.accentChoice,R.id.animationsChoice,R.id.advancedChoice},{R.id.startScreensaverChoice,R.id.screensaverStyleChoice,R.id.startAfterChoice},{R.id.photoSourceChoice,R.id.photoIntervalChoice,R.id.photoStorageChoice,R.id.refreshPhotosChoice},{R.id.homeCalendarChoice,R.id.calendarChoice,R.id.calendarTextSizeChoice},{R.id.weatherChoice},{R.id.nightModeChoice,R.id.nightStartsChoice,R.id.nightEndsChoice},{R.id.clearCacheChoice,R.id.dnsChoice,R.id.tvSettingsChoice,R.id.defaultHomeChoice,R.id.resetOrderChoice,R.id.followThemeChoice},{}};
         for(int category=0;category<names.length;category++){
             final int index=category;
             TextView rail=new TextView(this);railItems[category]=rail;rail.setText(names[category]);android.graphics.drawable.Drawable railIcon=getDrawable(icons[category]).mutate();railIcon.setTint(RaiderTheme.theme(this).secondary);railIcon.setBounds(0,0,dp(20),dp(20));rail.setCompoundDrawablesRelative(railIcon,null,null,null);rail.setCompoundDrawablePadding(dp(8));rail.setGravity(android.view.Gravity.CENTER_VERTICAL);rail.setPadding(dp(14),0,dp(10),0);rail.setTextSize(14);rail.setIncludeFontPadding(false);rail.setSingleLine(true);rail.setTextColor(ink());rail.setTypeface(Fonts.of(this,Fonts.SETTINGS,R.font.outfit_medium));rail.setFocusable(true);rail.setClickable(true);rail.setBackground(SettingsStyle.focus(this,SettingsStyle.focusColor(this),false));LinearLayout.LayoutParams rlp=new LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,dp(36));if(category<names.length-1)rlp.bottomMargin=dp(2);categoryRail.addView(rail,rlp);rail.setId(View.generateViewId());rail.setOnClickListener(v->selectCategory(index,true));rail.setOnFocusChangeListener((v,f)->{int focus=SettingsStyle.focusColor(this);v.setBackground(SettingsStyle.rail(this,focus,index==selectedCategory,f));((TextView)v).setTextColor(index==selectedCategory?RaiderColors.inkOn(focus):(f?ink():RaiderTheme.theme(this).secondary));tintRailIcon((TextView)v,index==selectedCategory,f);SettingsStyle.scale(v,f);});
             LinearLayout card=new LinearLayout(this);categoryCards[category]=card;card.setOrientation(LinearLayout.VERTICAL);card.setPadding(dp(12),dp(10),dp(12),dp(10));card.setClipChildren(false);card.setClipToPadding(false);card.setBackground(SettingsStyle.card(this));LinearLayout.LayoutParams clp=new LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,-2);clp.bottomMargin=0;categoryContent.addView(card,clp);
             if(category==8){buildAbout(card);continue;}
             if(category==4)addHinduMaster(card);
+            if(category==0)addFreeRamHome(card);
             if(category==0){LinearLayout apr=new LinearLayout(this);apr.setOrientation(LinearLayout.HORIZONTAL);apr.setGravity(android.view.Gravity.CENTER_VERTICAL);apr.setPadding(dp(14),0,dp(14),0);TextView aprTitle=categoryText("Apps per row",17,ink());aprTitle.setPadding(0,0,0,0);aprTitle.setIncludeFontPadding(false);aprTitle.setTypeface(Fonts.of(this,Fonts.SETTINGS,R.font.outfit_medium));apr.addView(aprTitle,new LinearLayout.LayoutParams(0,android.view.ViewGroup.LayoutParams.WRAP_CONTENT,1f));appsPerRowValue=categoryText(columns+" apps",16,SettingsStyle.accent(this));appsPerRowValue.setPadding(0,0,0,0);appsPerRowValue.setIncludeFontPadding(false);apr.addView(appsPerRowValue);card.addView(apr,new LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,dp(40)));LinearLayout choicesRow=new LinearLayout(this);choicesRow.setOrientation(LinearLayout.HORIZONTAL);int[] columnIds={R.id.columns4,R.id.columns5,R.id.columns6,R.id.columns7};for(int id:columnIds){View choice=legacy.findViewById(id);ViewGroupTools.detach(choice);if(choice instanceof TextView){((TextView)choice).setTextColor(ink());((TextView)choice).setTypeface(Fonts.of(this,Fonts.SETTINGS,R.font.outfit_medium));}LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(40),1f);lp.setMargins(dp(4),0,dp(4),dp(4));final int tint=COLUMN_TINTS[id==R.id.columns4?0:id==R.id.columns5?1:id==R.id.columns6?2:3];choice.setBackground(SettingsStyle.glow(this,SettingsStyle.focusColor(this),tint,false,false));choice.setOnFocusChangeListener((v,f)->{v.setBackground(SettingsStyle.glow(this,SettingsStyle.focusColor(this),tint,f,false));SettingsStyle.scale(v,f);});choicesRow.addView(choice,lp);}card.addView(choicesRow);}
             boolean resetShown=false;
             for(int id:groups[category]){View row=legacy.findViewById(id);if(row==null)continue;ViewGroupTools.detach(row);if(isDestructive(id)&&!resetShown){resetShown=true;TextView cap=categoryText("Reset",14,0xFFE8907E);cap.setPadding(dp(14),dp(18),dp(14),dp(6));cap.setIncludeFontPadding(false);card.addView(cap);}LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,android.view.ViewGroup.LayoutParams.WRAP_CONTENT);lp.bottomMargin=dp(4);row.setBackground(SettingsStyle.focus(this,SettingsStyle.focusColor(this),false));if(row instanceof TextView){TextView t=(TextView)row;t.setTextColor(ink());t.setTextSize(17);t.setTypeface(Fonts.of(this,Fonts.SETTINGS,R.font.outfit_medium));t.setPadding(dp(14),dp(6),dp(16),dp(6));t.setMinHeight(dp(rowHeight));t.setMinimumHeight(dp(rowHeight));t.setSingleLine(false);t.setMaxLines(8);t.setEllipsize(null);t.setIncludeFontPadding(false);t.setGravity(android.view.Gravity.CENTER_VERTICAL|android.view.Gravity.START);t.setFocusable(true);t.setClickable(true);SettingsStyle.focusAnim(t);}card.addView(row,lp);if(id==R.id.accentChoice)addFontsEntry(card);if(id==R.id.tvSettingsChoice)addInputNamesRow(card);if(id==R.id.defaultHomeChoice)card.addView(hint(getString(R.string.home_settings_help)));if(id==R.id.advancedChoice)card.addView(hint(getString(R.string.advanced_effects_warning)));if(id==R.id.followThemeChoice)card.addView(hint(getString(R.string.follow_theme_hint)));if(id==R.id.clearCacheChoice)addFreeRamRow(card);}
@@ -287,7 +288,7 @@ public final class LauncherSettingsActivity extends Activity {
     /** Start now / Stop now: a manual night mode override that lasts until the next scheduled end (or start). */
     private void addNightNowRow(LinearLayout card){TextView t=new TextView(this);t.setId(R.id.nightNowChoice);nightNowChoice=t;t.setBackground(SettingsStyle.focus(this,SettingsStyle.focusColor(this),false));t.setTextColor(ink());t.setTextSize(17);t.setTypeface(Fonts.of(this,Fonts.SETTINGS,R.font.outfit_medium));t.setPadding(dp(14),dp(6),dp(16),dp(6));t.setMinHeight(dp(rowHeight));t.setMinimumHeight(dp(rowHeight));t.setSingleLine(false);t.setMaxLines(8);t.setEllipsize(null);t.setIncludeFontPadding(false);t.setGravity(android.view.Gravity.CENTER_VERTICAL|android.view.Gravity.START);t.setFocusable(true);t.setClickable(true);SettingsStyle.focusAnim(t);t.setOnClickListener(v->{NightState.toggleNow(choices,System.currentTimeMillis());setResult(RESULT_OK);updateNightNow();});LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,android.view.ViewGroup.LayoutParams.WRAP_CONTENT);lp.bottomMargin=dp(4);card.addView(t,lp);updateNightNow();}
     private void updateNightNow(){if(nightNowChoice==null)return;if(choices==null)choices=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE);long now=System.currentTimeMillis();boolean active=NightState.isActive(choices,now);java.text.SimpleDateFormat f=new java.text.SimpleDateFormat("h:mm a",java.util.Locale.getDefault());String value;if(active){long until=NightState.nextChangeMillis(choices,now);value=until==Long.MAX_VALUE?"On":"On until "+f.format(new java.util.Date(until));}else{value=NightState.overrideActive(choices,now)?"Off until "+f.format(new java.util.Date(choices.getLong(NightState.OVERRIDE_UNTIL,0L))):"Off";}NightEffects.apply(this,findViewById(R.id.settingsRoot),active);nightNowChoice.setText((active?"Stop now":"Start now")+": "+value);formatRow(R.id.nightNowChoice);}
-    private void formatRows(){int[] ids={R.id.animationsChoice,R.id.advancedChoice,R.id.followThemeChoice,R.id.pillLabelsChoice,R.id.moduleCardsChoice,R.id.resetOrderChoice,R.id.unhideAppsChoice,R.id.defaultHomeChoice,R.id.accentChoice,R.id.screensaverStyleChoice,R.id.photoIntervalChoice,R.id.photoSourceChoice,R.id.photoStorageChoice,R.id.refreshPhotosChoice,R.id.startAfterChoice,R.id.startScreensaverChoice,R.id.hinduMasterChoice,R.id.homeCalendarChoice,R.id.calendarTextSizeChoice,R.id.calendarChoice,R.id.worldIndiaChoice,R.id.worldCity1Choice,R.id.worldCity2Choice,R.id.worldCity3Choice,R.id.worldCity4Choice,R.id.worldDreamChoice,R.id.kidsChoice,R.id.weatherChoice,R.id.clearCacheChoice,R.id.freeRamChoice,R.id.tvSettingsChoice,R.id.dnsChoice,R.id.nightModeChoice,R.id.nightStartsChoice,R.id.nightEndsChoice};for(int id:ids)formatRow(id);}
+    private void formatRows(){int[] ids={R.id.animationsChoice,R.id.advancedChoice,R.id.followThemeChoice,R.id.pillLabelsChoice,R.id.moduleCardsChoice,R.id.resetOrderChoice,R.id.unhideAppsChoice,R.id.defaultHomeChoice,R.id.accentChoice,R.id.screensaverStyleChoice,R.id.photoIntervalChoice,R.id.photoSourceChoice,R.id.photoStorageChoice,R.id.refreshPhotosChoice,R.id.startAfterChoice,R.id.startScreensaverChoice,R.id.hinduMasterChoice,R.id.homeCalendarChoice,R.id.calendarTextSizeChoice,R.id.calendarChoice,R.id.worldIndiaChoice,R.id.worldCity1Choice,R.id.worldCity2Choice,R.id.worldCity3Choice,R.id.worldCity4Choice,R.id.worldDreamChoice,R.id.kidsChoice,R.id.weatherChoice,R.id.clearCacheChoice,R.id.freeRamChoice,R.id.freeRamHomeChoice,R.id.tvSettingsChoice,R.id.dnsChoice,R.id.nightModeChoice,R.id.nightStartsChoice,R.id.nightEndsChoice};for(int id:ids)formatRow(id);}
     /** Title (and optional detail line) on the left, current value + toggle/chevron on the right. Re-parses only when the row text was set afresh. */
     private void formatRow(int id){View value=findViewById(id);if(!(value instanceof TextView))return;TextView row=(TextView)value;String raw=row.getText().toString();Object tag=row.getTag();String title,val,sub;
         if(tag instanceof String[]&&raw.equals(((String[])tag)[0])){String[] st=(String[])tag;title=st[1];val=st[2];sub=st[3];}
@@ -443,10 +444,12 @@ public final class LauncherSettingsActivity extends Activity {
                 ? getString(R.string.cache_size_unavailable)
                 : Formatter.formatShortFileSize(this, snapshot.cacheBytes);
         if (snapshot.freeBytes < 0 || snapshot.totalBytes < 0) {
-            return "Clear cache: Unavailable\nFrees app cache. Asks before it runs.";
+            return getString(R.string.storage_free_unavailable, cache);
         }
-        return "Clear cache: " + Formatter.formatShortFileSize(this, snapshot.freeBytes) + " storage free"
-                + "\nFrees app cache. Asks before it runs.\nApp caches " + cache + " · " + Formatter.formatShortFileSize(this, snapshot.totalBytes) + " total";
+        return getString(R.string.storage_summary,
+                Formatter.formatShortFileSize(this, snapshot.freeBytes),
+                Formatter.formatShortFileSize(this, snapshot.totalBytes),
+                cache);
     }
 
     private void clearAppCache() {
@@ -536,31 +539,52 @@ public final class LauncherSettingsActivity extends Activity {
     }
 
     private TextView freeRamChoice;
+    private TextView freeRamHomeChoice;
     private boolean freeingRam;
 
+    /** First row of the landing panel, so Free RAM is on screen as soon as Settings opens. */
+    private void addFreeRamHome(LinearLayout card) {
+        freeRamHomeChoice = freeRamRow(R.id.freeRamHomeChoice);
+        card.addView(freeRamHomeChoice, rowParams());
+    }
+
+    /** Advanced, directly under Clear app cache. */
     private void addFreeRamRow(LinearLayout card) {
-        TextView row = settingsRow(R.id.freeRamChoice);
-        freeRamChoice = row;
+        freeRamChoice = freeRamRow(R.id.freeRamChoice);
+        card.addView(freeRamChoice, rowParams());
+    }
+
+    private TextView freeRamRow(int id) {
+        TextView row = settingsRow(id);
         row.setOnClickListener(v -> SettingsPicker.confirm(this, "Free RAM",
                 "This closes background apps to free memory. It does not remove apps, photos, or your settings.",
                 this::freeRam));
         row.setText("Free RAM\nCloses background apps. Asks before it runs.");
-        card.addView(row, rowParams());
+        return row;
     }
 
     private void updateFreeRamRow() {
-        if (freeRamChoice == null || freeingRam) return;
+        if (freeingRam) return;
         android.app.ActivityManager.MemoryInfo info = memoryInfo();
         String value = info.totalMem <= 0 ? "Unavailable" : Formatter.formatShortFileSize(this, info.availMem) + " free";
-        freeRamChoice.setText("Free RAM: " + value + "\nCloses background apps. Asks before it runs.");
-        formatRow(R.id.freeRamChoice);
+        showFreeRamRows("Free RAM: " + value + "\nCloses background apps. Asks before it runs.");
+    }
+
+    private void showFreeRamRows(String text) {
+        if (freeRamChoice != null) {
+            freeRamChoice.setText(text);
+            formatRow(R.id.freeRamChoice);
+        }
+        if (freeRamHomeChoice != null) {
+            freeRamHomeChoice.setText(text);
+            formatRow(R.id.freeRamHomeChoice);
+        }
     }
 
     private void freeRam() {
-        if (freeingRam || freeRamChoice == null) return;
+        if (freeingRam || (freeRamChoice == null && freeRamHomeChoice == null)) return;
         freeingRam = true;
-        freeRamChoice.setText("Free RAM: Closing apps\u2026");
-        formatRow(R.id.freeRamChoice);
+        showFreeRamRows("Free RAM: Closing apps\u2026");
         final String self = getPackageName();
         final String home = defaultHomePackage();
         new Thread(() -> {
