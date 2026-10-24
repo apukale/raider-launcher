@@ -22,6 +22,8 @@ import java.io.File;
  */
 final class Fonts {
     static final String HOME = "home", SETTINGS = "settings", DREAM = "dream", PANCHANG = "panchang";
+    /** Cleared prefs and Reset both resolve to this family. It is also the first chooser entry. */
+    static final String DEFAULT = "Outfit";
     static final String[] AREAS = {HOME, SETTINGS, DREAM, PANCHANG};
     static final String[] AREA_LABELS = {"Home", "Launcher settings", "Screensaver", "Panchang"};
 
@@ -81,7 +83,15 @@ final class Fonts {
     static String key(String area) { return "font_" + area; }
 
     static int family(Context c, String area) {
-        return index(c.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE).getString(key(area), NAMES[0]));
+        return familyIndex(c.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE).getString(key(area), null));
+    }
+
+    /** Missing, blank, and unknown saved names are Outfit. */
+    static int familyIndex(String stored) {
+        if (stored == null || stored.trim().isEmpty()) return index(DEFAULT);
+        int found = index(stored);
+        if (!NAMES[found].equalsIgnoreCase(stored.trim())) return index(DEFAULT);
+        return found;
     }
 
     static String name(Context c, String area) { return NAMES[family(c, area)]; }

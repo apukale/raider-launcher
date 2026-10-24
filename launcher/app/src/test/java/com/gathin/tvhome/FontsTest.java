@@ -21,6 +21,18 @@ public class FontsTest {
         assertEquals(0, Fonts.index(null));
         assertEquals(0, Fonts.index(""));
         assertEquals(0, Fonts.index("Google Sans"));
+        assertEquals("Outfit", Fonts.DEFAULT);
+        assertEquals("Outfit", Fonts.NAMES[0]);
+        assertEquals(0, Fonts.familyIndex(null));
+        assertEquals("Outfit", Fonts.NAMES[Fonts.familyIndex(null)]);
+        assertEquals("Outfit", Fonts.NAMES[Fonts.familyIndex("")]);
+        assertEquals("Outfit", Fonts.NAMES[Fonts.familyIndex("  ")]);
+        assertEquals("Outfit", Fonts.NAMES[Fonts.familyIndex("not-a-font")]);
+        assertEquals(Fonts.index("Sora"), Fonts.familyIndex("Sora"));
+        assertEquals("font_home", Fonts.key(Fonts.HOME));
+        assertEquals("font_settings", Fonts.key(Fonts.SETTINGS));
+        assertEquals("font_dream", Fonts.key(Fonts.DREAM));
+        assertEquals("font_panchang", Fonts.key(Fonts.PANCHANG));
         assertEquals("Outfit", Fonts.NAMES[Fonts.index("outfit")]);
         HashSet<String> banned = new HashSet<>(Arrays.asList("sf pro", "new york", "google sans"));
         for (String name : Fonts.NAMES) assertFalse(banned.contains(name.toLowerCase()));
