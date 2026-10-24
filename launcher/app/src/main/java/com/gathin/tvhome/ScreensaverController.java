@@ -31,7 +31,7 @@ final class ScreensaverController {
     private static final int[] PALETTE={0xFF2B5CFF,0xFF00A39A,0xFF8A3FFC,0xFFE0661B,0xFFD6336C};
     private final Context context; private final FrameLayout root; private final Handler handler=new Handler(Looper.getMainLooper());
     private final Random random=new Random(); private final View content,ambient,calendarBox; private final ImageView photo,nextImage; private final TextView calendar1,tithi,nakshatra,moon,rahu,festival,credit,weather;
-    private List<PhotoStore.Photo> photos; private Bitmap current,next; private int index,colorIndex,color; private ValueAnimator glowAnimator; private boolean running,calendarEnabled; private TextView worldClocks;
+    private List<PhotoStore.Photo> photos; private Bitmap current,next; private int index,colorIndex,color; private ValueAnimator glowAnimator; private boolean running,calendarEnabled; private android.widget.LinearLayout worldClockGrid;
     private final Runnable tick=new Runnable(){public void run(){place();shiftGlow();handler.postDelayed(this,MOVE);}};
     private final Runnable transitionTick=()->{updatePanchang(true);updateNight(false);};
     private final Runnable nightBoundary=()->updateNight(true);
@@ -48,7 +48,83 @@ final class ScreensaverController {
         handler.postDelayed(tick,MOVE);
         updateWorldClocks();handler.postDelayed(worldTick,30_000L);
     }
-    private void updateWorldClocks(){SharedPreferences p=context.getSharedPreferences(Config.SETTINGS_NAME,Context.MODE_PRIVATE);boolean show=p.getBoolean(WorldClocks.DREAM,false);if(worldClocks==null){android.widget.LinearLayout left=root.findViewById(R.id.dreamLeft);if(left==null)return;worldClocks=new TextView(context);worldClocks.setTextColor(0xB3FFFFFF);worldClocks.setTextSize(16);worldClocks.setGravity(Gravity.CENTER_HORIZONTAL);worldClocks.setTypeface(Fonts.of(context,Fonts.DREAM,R.font.outfit_regular));worldClocks.setIncludeFontPadding(false);worldClocks.setPadding(0,dp(10),0,0);left.addView(worldClocks);}if(!show){worldClocks.setVisibility(View.GONE);return;}worldClocks.setText(WorldClocks.dreamDetail(p::getString,System.currentTimeMillis()));worldClocks.setVisibility(View.VISIBLE);}
+    /** Two cities per row. Each city is one line (small label, slightly larger time) so four clocks are two rows, not four. India is not included. */
+    private void updateWorldClocks() {
+        SharedPreferences p = context.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE);
+        boolean show = p.getBoolean(WorldClocks.DREAM, false);
+        if (worldClockGrid == null) {
+            android.widget.LinearLayout left = root.findViewById(R.id.dreamLeft);
+            if (left == null) return;
+            worldClockGrid = dreamCityGrid();
+            android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.topMargin = dp(4);
+            left.addView(worldClockGrid, lp);
+        }
+        if (!show) { worldClockGrid.setVisibility(View.GONE); return; }
+        java.util.List<WorldClocks.Clock> cities = WorldClocks.cities(p::getString);
+        long now = System.currentTimeMillis();
+        for (int row = 0; row < worldClockGrid.getChildCount(); row++) {
+            android.widget.LinearLayout line = (android.widget.LinearLayout) worldClockGrid.getChildAt(row);
+            boolean any = false;
+            for (int col = 0; col < line.getChildCount(); col++) {
+                android.widget.LinearLayout cell = (android.widget.LinearLayout) line.getChildAt(col);
+                int index = row * 2 + col;
+                if (index >= cities.size()) { cell.setVisibility(View.GONE); continue; }
+                WorldClocks.Clock clock = cities.get(index);
+                TextView label = (TextView) cell.getChildAt(0);
+                TextView time = (TextView) cell.getChildAt(1);
+                label.setText(clock.label);
+                time.setText(WorldClocks.formatTime(clock.zone, now));
+                cell.setVisibility(View.VISIBLE);
+                any = true;
+            }
+            line.setVisibility(any ? View.VISIBLE : View.GONE);
+        }
+        worldClockGrid.setVisibility(cities.isEmpty() ? View.GONE : View.VISIBLE);
+    }
+    private android.widget.LinearLayout dreamCityGrid() {
+        android.widget.LinearLayout grid = new android.widget.LinearLayout(context);
+        grid.setOrientation(android.widget.LinearLayout.VERTICAL);
+        grid.setGravity(Gravity.CENTER_HORIZONTAL);
+        for (int row = 0; row < 2; row++) {
+            android.widget.LinearLayout line = new android.widget.LinearLayout(context);
+            line.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+            line.setGravity(Gravity.CENTER);
+            android.widget.LinearLayout.LayoutParams lineLp = new android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
+            if (row > 0) lineLp.topMargin = dp(1);
+            grid.addView(line, lineLp);
+            for (int col = 0; col < 2; col++) {
+                android.widget.LinearLayout cell = new android.widget.LinearLayout(context);
+                cell.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+                cell.setGravity(Gravity.CENTER_VERTICAL);
+                TextView label = dreamCityText(12, 0x99FFFFFF, Fonts.of(context, Fonts.DREAM, R.font.outfit_regular));
+                label.setMaxWidth(dp(108));
+                label.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                TextView time = dreamCityText(14, 0xE6FFFFFF, Fonts.of(context, Fonts.DREAM, R.font.outfit_medium));
+                cell.addView(label);
+                android.widget.LinearLayout.LayoutParams timeLp = new android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
+                timeLp.setMarginStart(dp(4));
+                cell.addView(time, timeLp);
+                android.widget.LinearLayout.LayoutParams cellLp = new android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
+                if (col > 0) cellLp.setMarginStart(dp(14));
+                line.addView(cell, cellLp);
+            }
+        }
+        return grid;
+    }
+    private TextView dreamCityText(int sp, int color, android.graphics.Typeface face) {
+        TextView text = new TextView(context);
+        text.setTextSize(sp);
+        text.setTextColor(color);
+        text.setTypeface(face);
+        text.setIncludeFontPadding(false);
+        text.setSingleLine(true);
+        text.setMinHeight(0);
+        text.setMinimumHeight(0);
+        text.setPadding(0, 0, 0, 0);
+        text.setLineSpacing(0f, 1f);
+        return text;
+    }
     private void updateWeather(boolean refresh){SharedPreferences p=context.getSharedPreferences(Config.SETTINGS_NAME,Context.MODE_PRIVATE);boolean enabled=p.getBoolean("weather_on_home",true);WeatherData d=WeatherClient.cached(context);if(d!=null){String label=d.temperature+"\u00B0 \u00B7 "+d.high+"\u00B0/"+d.low+"\u00B0"+WeatherData.rainSuffix(d.precipitation);weather.setText(label);int size=(int)(weather.getTextSize()*1.25f);WeatherIconDrawable icon=new WeatherIconDrawable(WeatherData.iconGroup(d.code),false,0xE6FFFFFF);icon.setBounds(0,0,size,size);weather.setCompoundDrawables(icon,null,null,null);weather.setCompoundDrawablePadding(dp(6));weather.setVisibility(p.getBoolean("weather_on_home",true)?View.VISIBLE:View.GONE);}if(enabled&&refresh&&(WeatherClient.fetchedAt(context)==0||System.currentTimeMillis()-WeatherClient.fetchedAt(context)>=WeatherClient.REFRESH_MS))WeatherClient.fetch(context,Config.load(context),data->handler.post(()->{if(running&&data!=null)updateWeather(false);}));}
     private void updatePanchang(boolean force){if(!calendarEnabled)return;long nowMs=System.currentTimeMillis();double now=PanchangDisplay.jdNow();Calendar c=Calendar.getInstance();Panchang.Result r=PanchangDisplay.day(c);String line1=r.month+" "+Panchang.currentPaksha(now);String tithiText=Panchang.currentTithiName(now)+" till "+PanchangDisplay.time(Panchang.tithiEndJd(now));String nakshatraText=Panchang.currentNakshatra(now)+" till "+PanchangDisplay.time(Panchang.nakshatraEndJd(now));String moonText=PanchangDisplay.moon(now);calendar1.setText(line1);tithi.setText(tithiText);nakshatra.setText(nakshatraText);moon.setText(moonText);PanchangDisplay.MoonDrawable icon=new PanchangDisplay.MoonDrawable(now);int size=Math.max(1,(int)(moon.getTextSize()*1.3f));icon.setBounds(0,0,size,size);moon.setCompoundDrawables(icon,null,null,null);moon.setCompoundDrawablePadding((int)(8*context.getResources().getDisplayMetrics().density));moon.setVisibility(View.VISIBLE);festival.setText(r.festival);festival.setVisibility(r.festival.isEmpty()?View.GONE:View.VISIBLE);double rs=Panchang.rahuStartJd(c.get(Calendar.YEAR),c.get(Calendar.MONTH)+1,c.get(Calendar.DAY_OF_MONTH)),re=Panchang.rahuEndJd(c.get(Calendar.YEAR),c.get(Calendar.MONTH)+1,c.get(Calendar.DAY_OF_MONTH));rahu.setText("Rahu Kalam "+PanchangDisplay.time(rs)+" to "+PanchangDisplay.time(re));rahu.setTextColor(now>=rs&&now<re?0xCCD9B273:(now>=re?0x7799AABB:0xE6FFFFFF));SharedPreferences p=context.getSharedPreferences(Config.SETTINGS_NAME,Context.MODE_PRIVATE);p.edit().putLong("panchang_updated",nowMs).putString("panchang_date",c.get(Calendar.YEAR)+"-"+(c.get(Calendar.MONTH)+1)+"-"+c.get(Calendar.DAY_OF_MONTH)).putString("panchang_line1",line1).putString("panchang_line2",tithiText).putString("panchang_festival",r.festival).apply();handler.removeCallbacks(transitionTick);long delay=PanchangDisplay.transitionDelayMs(c,now);handler.postDelayed(transitionTick,delay);}
     private static String hindiTithi(int n,boolean krishna){String[] a={"प्रतिपदा","द्वितीया","तृतीया","चतुर्थी","पंचमी","षष्ठी","सप्तमी","अष्टमी","नवमी","दशमी","एकादशी","द्वादशी","त्रयोदशी","चतुर्दशी","पूर्णिमा"};return krishna&&n==15?"अमावस्या":a[Math.max(1,Math.min(15,n))-1];}
