@@ -124,7 +124,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean homeCalendarOn;
     private final Runnable calendarTransition=()->{NightTheme.prepareHomeTextUpdate(root,originalHomeBackground);updateHomeCalendar(true);updateNightTheme(true);};
     private boolean calendarReceiverRegistered;
-    private final BroadcastReceiver calendarTimeReceiver=new BroadcastReceiver(){@Override public void onReceive(Context c,Intent i){NightTheme.prepareHomeTextUpdate(root,originalHomeBackground);updateHomeCalendar(true);updateHomeClockDetail();updateNightTheme(true);}};
+    private final BroadcastReceiver calendarTimeReceiver=new BroadcastReceiver(){@Override public void onReceive(Context c,Intent i){NightTheme.prepareHomeTextUpdate(root,originalHomeBackground);updateHomeCalendar(true);updateNightTheme(true);}};
     private boolean shamsi;
     /** Optional time-of-day backdrop (config.xml, sky_intensity); 0 keeps it hidden. */
     private SkyView sky;
@@ -213,7 +213,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         public void run() {
             updateGreeting();
             updateWifiLabel();
-            updateHomeClockDetail();
             sky.update();
             handler.postDelayed(this, MINUTE_MS);
         }
@@ -275,7 +274,24 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         homeCalendarStack.setOnKeyListener((v,key,event)->{ if(event.getAction()==KeyEvent.ACTION_DOWN && (key==KeyEvent.KEYCODE_DPAD_CENTER || key==KeyEvent.KEYCODE_ENTER)){open(new Intent(this,PanchangActivity.class));return true;} return false; });
         homeDate.setEllipsize(null);
         homeCalendarOn = panchangOnHome();
-        attachHomeClockDetail();
+        View homeClock = findViewById(R.id.clock);
+        if (homeClock != null) {
+            homeClock.setFocusable(true);
+            homeClock.setClickable(true);
+            homeClock.setBackgroundResource(R.drawable.calendar_focus);
+            int clockPad = Math.round(4 * density);
+            homeClock.setPadding(clockPad, clockPad, clockPad, clockPad);
+            homeClock.setContentDescription("World clocks");
+            if (homeClock.getNextFocusRightId() == View.NO_ID) homeClock.setNextFocusLeftId(R.id.homeCalendarStack);
+            homeClock.setOnClickListener(v -> open(new Intent(this, WorldClocksActivity.class)));
+            homeClock.setOnKeyListener((v, key, event) -> {
+                if (event.getAction() == KeyEvent.ACTION_DOWN && (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER)) {
+                    open(new Intent(this, WorldClocksActivity.class));
+                    return true;
+                }
+                return false;
+            });
+        }
         homeDate.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->updateHomeCalendar(false));
         homeDate.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener(){public void onViewAttachedToWindow(View v){updateHomeCalendar(true);}public void onViewDetachedFromWindow(View v){handler.removeCallbacks(calendarTransition);}});
         shamsi = cfg.shamsiDate;
@@ -517,7 +533,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         PhotoStore.migratePhotoContent(this);
         registerNightReceiver();
         homeCalendarOn=panchangOnHome();
-        updateHomeClockDetail();
         applyHomeCalendarTextSize();
         if (wallpaperView == null && wallpaperFile != null) showWallpaper(wallpaperFile);
         promptsPaused = false;
@@ -1104,9 +1119,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
 
     private boolean panchangOnHome(){android.content.SharedPreferences p=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE);return LauncherPrefs.panchangOnHome(LauncherPrefs.hinduOn(p.contains(LauncherPrefs.HINDU),p.getBoolean(LauncherPrefs.HINDU,true)),p.getBoolean("home_hindu_calendar",true));}
-    private void attachHomeClockDetail(){if(homeClockDetail!=null)return;View clock=findViewById(R.id.clock);if(clock==null||!(clock.getParent() instanceof View))return;View mid=(View)clock.getParent();if(!(mid.getParent() instanceof View))return;View row=(View)mid.getParent();if(!(row.getParent() instanceof android.widget.LinearLayout))return;android.widget.LinearLayout block=(android.widget.LinearLayout)row.getParent();homeClockDetail=new TextView(this);homeClockDetail.setId(R.id.homeClockDetail);homeClockDetail.setTextColor(0xA6FFFFFF);homeClockDetail.setTextSize(13);homeClockDetail.setTypeface(Fonts.of(this,Fonts.HOME,R.font.outfit_regular));homeClockDetail.setIncludeFontPadding(false);homeClockDetail.setMaxLines(2);homeClockDetail.setEllipsize(android.text.TextUtils.TruncateAt.END);homeClockDetail.setGravity(homeDate.getGravity());homeClockDetail.setContentDescription("Clock detail");android.widget.LinearLayout.LayoutParams lp=new android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,android.view.ViewGroup.LayoutParams.WRAP_CONTENT);lp.topMargin=dp(2);block.addView(homeClockDetail,block.indexOfChild(row)+1,lp);clock.setFocusable(true);updateHomeClockDetail();}
-    private void updateHomeClockDetail(){if(homeClockDetail==null)return;android.content.SharedPreferences p=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE);homeClockDetail.setText(WorldClocks.homeDetail(p::getString,System.currentTimeMillis()));}
-    private TextView homeClockDetail;
     private void updateHomeCalendar(boolean rearm) {
         if(homeDate==null)return;
         Calendar c=Calendar.getInstance(); long ms=System.currentTimeMillis(); double now=PanchangDisplay.jdNow();

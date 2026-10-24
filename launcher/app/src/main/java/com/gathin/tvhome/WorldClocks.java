@@ -7,6 +7,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -16,8 +17,10 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * India time plus four named cities. India is fixed (Asia/Kolkata) and is not a preference.
- * The Hindu calendar master does not hide these clocks.
+ * India (Asia/Kolkata) plus four city slots. India is fixed and is not a preference.
+ * A slot's display label is stored apart from its zone id, so the zone can be
+ * America/New_York while the label is NYC. The Hindu calendar master does not hide these clocks.
+ * Home draws only the clock; this list is for the world clocks screen and the screensaver.
  */
 final class WorldClocks {
     static final String INDIA_ZONE = "Asia/Kolkata";
@@ -34,10 +37,74 @@ final class WorldClocks {
         }
     }
 
+    /** One clock on the world clocks screen: local India, then each slot that has a zone. */
+    static final class Clock {
+        final String label, zone;
+        Clock(String label, String zone) {
+            this.label = label;
+            this.zone = zone;
+        }
+    }
+
     private WorldClocks() {}
+
+    static final String BACKGROUND = "world_clocks_bg";
 
     static String nameKey(int slot) { return "world_clock_" + (slot + 1) + "_name"; }
     static String zoneKey(int slot) { return "world_clock_" + (slot + 1) + "_zone"; }
+
+    /** Custom label when one was saved, otherwise the zone id. */
+    static String labelFor(String name, String zone) {
+        String custom = name == null ? "" : name.trim();
+        if (!custom.isEmpty()) return custom;
+        return zone == null ? "" : zone.trim();
+    }
+
+    /** Every canonical zone id the runtime knows, sorted for the settings picker. */
+    static String[] zones() {
+        String[] raw = TimeZone.getAvailableIDs();
+        ArrayList<String> out = new ArrayList<>();
+        if (raw != null) for (String id : raw) if (validZone(id)) out.add(id);
+        Collections.sort(out, String.CASE_INSENSITIVE_ORDER);
+        return out.toArray(new String[0]);
+    }
+
+    /**
+     * Case-insensitive filter. An empty query returns every id.
+     * Spaces and underscores match each other, so "new york" finds America/New_York.
+     */
+    static List<String> filterZones(String[] ids, String query) {
+        ArrayList<String> out = new ArrayList<>();
+        if (ids == null) return out;
+        String raw = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+        String folded = raw.replace(' ', '_').replace('-', '_');
+        String spaced = raw.replace('_', ' ');
+        for (String id : ids) {
+            if (id == null || id.isEmpty()) continue;
+            if (!raw.isEmpty()) {
+                String lower = id.toLowerCase(Locale.ROOT);
+                String nice = lower.replace('_', ' ');
+                if (!lower.contains(raw) && !lower.contains(folded) && !nice.contains(spaced)) continue;
+            }
+            out.add(id);
+        }
+        Collections.sort(out, String.CASE_INSENSITIVE_ORDER);
+        return out;
+    }
+
+    /** India first, then each slot whose zone id is real. A blank name uses the zone id. */
+    static List<Clock> entries(BiFunction<String, String, String> prefs) {
+        ArrayList<Clock> out = new ArrayList<>();
+        out.add(new Clock(INDIA_LABEL, INDIA_ZONE));
+        String[] names = read(prefs, true);
+        String[] zones = read(prefs, false);
+        for (int i = 0; i < SLOTS; i++) {
+            String zone = zones[i] == null ? "" : zones[i].trim();
+            if (!validZone(zone)) continue;
+            out.add(new Clock(labelFor(names[i], zone), zone));
+        }
+        return out;
+    }
 
     static boolean validZone(String id) {
         if (id == null || id.isEmpty()) return false;
@@ -50,7 +117,7 @@ final class WorldClocks {
         return format.format(new Date(epochMs)).replace('\u202F', ' ').replace('\u00A0', ' ');
     }
 
-    /** One line for the Home clock: India, then each configured city. */
+    /** India, then each configured city, on one line. Home does not draw this. */
     static String homeDetail(BiFunction<String, String, String> prefs, long nowMs) {
         return join(read(prefs, true), read(prefs, false), nowMs, "  \u00B7  ");
     }
@@ -67,8 +134,8 @@ final class WorldClocks {
         for (int i = 0; i < n; i++) {
             String name = names[i] == null ? "" : names[i].trim();
             String zone = zones == null || i >= zones.length || zones[i] == null ? "" : zones[i].trim();
-            if (name.isEmpty() || !validZone(zone)) continue;
-            append(out, name, zone, nowMs, separator);
+            if (!validZone(zone)) continue;
+            append(out, labelFor(name, zone), zone, nowMs, separator);
         }
         return out.toString();
     }

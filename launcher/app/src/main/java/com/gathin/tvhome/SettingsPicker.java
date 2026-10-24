@@ -28,6 +28,9 @@ import android.widget.TextView;
  */
 final class SettingsPicker {
     interface Pick { void onPick(int index); }
+    interface Choose { void onChoose(String value); }
+    /** Live filter for a long list. {@code apply} receives the current field text. */
+    interface Filter { String[] apply(String query); }
     /** Return false to leave the check unchanged (the last photo source cannot be turned off). */
     interface Allow { boolean allow(int index, boolean turnOn); }
 
@@ -170,6 +173,127 @@ final class SettingsPicker {
         });
         dialog.show();
         return dialog;
+    }
+
+    /**
+     * Scrollable list with a type-to-filter field. Empty text shows every item.
+     * Down from the field enters the list; Up from the first row returns to the field.
+     */
+    static void filter(Activity activity, CharSequence title, Filter filter, String selected, Choose onChoose) {
+        float density = activity.getResources().getDisplayMetrics().density;
+        int width = panelWidthPx(activity.getResources().getDisplayMetrics().widthPixels, density);
+        LinearLayout card = card(activity, width);
+        addTitle(activity, card, title);
+        EditText field = new EditText(activity);
+        field.setId(View.generateViewId());
+        field.setSingleLine(true);
+        field.setHint("Type to filter");
+        field.setTextColor(0xFFF4F1EA);
+        field.setHintTextColor(0xFFA9ABC7);
+        field.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_NEXT);
+        field.setInputType(android.text.InputType.TYPE_CLASS_TEXT);
+        field.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
+        LinearLayout.LayoutParams fieldLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        fieldLp.setMargins(dp(activity, 16), dp(activity, 2), dp(activity, 16), dp(activity, 2));
+        card.addView(field, fieldLp);
+        TextView count = text(activity, "", 13f, 0xFFA9ABC7, false);
+        count.setPadding(dp(activity, 16), 0, dp(activity, 16), dp(activity, 4));
+        card.addView(count);
+        ScrollView scroll = new ScrollView(activity);
+        scroll.setFillViewport(false);
+        scroll.setFocusable(false);
+        scroll.setVerticalScrollBarEnabled(true);
+        LinearLayout list = new LinearLayout(activity);
+        list.setOrientation(LinearLayout.VERTICAL);
+        scroll.addView(list, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        int visible = Math.max(4, visibleRows(MAX_VISIBLE, activity.getResources().getDisplayMetrics().heightPixels, density) - 1);
+        int scrollH = visible * Math.round(ROW_DP * density);
+        card.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, scrollH));
+        Dialog dialog = mount(activity, card, width);
+        LinearLayout bar = buttonBar(activity, dialog, activity.getString(android.R.string.cancel), null, null, null, null, null);
+        card.addView(bar);
+        View cancel = bar.getChildCount() > 0 ? bar.getChildAt(0) : null;
+        Runnable refill = () -> {
+            String[] matches = filter == null ? new String[0] : filter.apply(field.getText().toString());
+            if (matches == null) matches = new String[0];
+            count.setText(matches.length == 0 ? "No matches" : matches.length == 1 ? "1 timezone" : matches.length + " timezones");
+            list.removeAllViews();
+            for (String zone : matches) {
+                if (zone == null) continue;
+                final String value = zone;
+                LinearLayout row = new LinearLayout(activity);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setGravity(Gravity.CENTER_VERTICAL);
+                row.setMinimumHeight(Math.round(ROW_DP * density));
+                row.setPadding(dp(activity, 12), dp(activity, 2), dp(activity, 10), dp(activity, 2));
+                row.setFocusable(true);
+                row.setClickable(true);
+                row.setId(View.generateViewId());
+                row.setTag(value);
+                TextView label = text(activity, value, 15f, 0xFFF4F1EA, true);
+                label.setSingleLine(true);
+                label.setEllipsize(TextUtils.TruncateAt.END);
+                row.addView(label, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+                if (value.equals(selected)) {
+                    Mark mark = new Mark(activity, false);
+                    mark.on = true;
+                    int s = dp(activity, 16);
+                    LinearLayout.LayoutParams mp = new LinearLayout.LayoutParams(s, s);
+                    mp.setMarginStart(dp(activity, 10));
+                    row.addView(mark, mp);
+                }
+                row.setOnFocusChangeListener((v, has) -> {
+                    v.setBackground(SettingsStyle.focus(activity, SettingsStyle.accent(activity), has));
+                    if (has) v.post(() -> scroll.requestChildRectangleOnScreen(v, new Rect(0, 0, v.getWidth(), v.getHeight()), false));
+                });
+                row.setOnClickListener(v -> {
+                    dialog.dismiss();
+                    if (onChoose != null) onChoose.onChoose(value);
+                });
+                list.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            }
+            View first = list.getChildCount() > 0 ? list.getChildAt(0) : null;
+            View last = list.getChildCount() > 0 ? list.getChildAt(list.getChildCount() - 1) : null;
+            if (first != null) {
+                field.setNextFocusDownId(first.getId());
+                first.setNextFocusUpId(field.getId());
+            } else if (cancel != null) field.setNextFocusDownId(cancel.getId());
+            if (last != null && cancel != null) {
+                last.setNextFocusDownId(cancel.getId());
+                cancel.setNextFocusUpId(last.getId());
+            } else if (cancel != null) cancel.setNextFocusUpId(field.getId());
+            if (cancel != null) {
+                field.setNextFocusUpId(cancel.getId());
+                cancel.setNextFocusDownId(field.getId());
+            }
+        };
+        field.setOnEditorActionListener((v, action, event) -> {
+            if (action != android.view.inputmethod.EditorInfo.IME_ACTION_NEXT
+                    && action != android.view.inputmethod.EditorInfo.IME_ACTION_DONE) return false;
+            if (list.getChildCount() > 0) list.getChildAt(0).requestFocus();
+            return true;
+        });
+        field.addTextChangedListener(new android.text.TextWatcher() {
+            public void beforeTextChanged(CharSequence s, int start, int n, int after) {}
+            public void onTextChanged(CharSequence s, int start, int before, int n) {}
+            public void afterTextChanged(android.text.Editable s) { refill.run(); }
+        });
+        refill.run();
+        View initial = field;
+        if (selected != null) {
+            for (int i = 0; i < list.getChildCount(); i++) {
+                if (selected.equals(list.getChildAt(i).getTag())) { initial = list.getChildAt(i); break; }
+            }
+        }
+        final View focus = initial;
+        dialog.setOnShowListener(d -> {
+            focus.requestFocus();
+            if (focus == field) {
+                Window window = dialog.getWindow();
+                if (window != null) window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+            }
+        });
+        dialog.show();
     }
 
     private static void rows(Activity activity, CharSequence title, CharSequence[] items, int selected,

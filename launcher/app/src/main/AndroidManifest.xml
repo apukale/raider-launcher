@@ -77,6 +77,7 @@
             android:screenOrientation="landscape" />
         <activity android:name=".PanchangActivity" android:exported="false" android:excludeFromRecents="true" android:screenOrientation="landscape" />
         <activity android:name=".WeatherActivity" android:exported="false" android:excludeFromRecents="true" android:screenOrientation="landscape" />
+        <activity android:name=".WorldClocksActivity" android:exported="false" android:excludeFromRecents="true" android:screenOrientation="landscape" />
         <activity android:name=".ScreensaverActivity" android:exported="false" android:excludeFromRecents="true" android:noHistory="true" android:screenOrientation="landscape" />
         <activity
             android:name=".HomeSettingsActivity"

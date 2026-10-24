@@ -1,6 +1,7 @@
 package com.gathin.tvhome;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,11 +20,42 @@ public class WorldClocksTest {
     }
 
     @Test(timeout = 5000)
-    public void homeDetailAlwaysIncludesIndiaAndSkipsBlankCities() {
+    public void blankNameUsesTheZoneIdAndSkipsAnEmptyZone() {
         String[] names = {"London", "", "  ", "Tokyo"};
-        String[] zones = {"Europe/London", "Europe/Paris", "America/New_York", "Asia/Tokyo"};
+        String[] zones = {"Europe/London", "Europe/Paris", "", "Asia/Tokyo"};
         String line = WorldClocks.join(names, zones, NOON_UTC, "  \u00B7  ");
-        assertEquals("India 5:30 PM  \u00B7  London 12:00 PM  \u00B7  Tokyo 9:00 PM", line);
+        assertEquals("India 5:30 PM  \u00B7  London 12:00 PM  \u00B7  Europe/Paris 1:00 PM  \u00B7  Tokyo 9:00 PM", line);
+    }
+
+    @Test(timeout = 5000)
+    public void renameKeepsTheZoneAndEntriesIncludeLocal() {
+        assertEquals("NYC", WorldClocks.labelFor("NYC", "America/New_York"));
+        assertEquals("America/New_York", WorldClocks.labelFor("  ", "America/New_York"));
+        assertEquals("America/New_York", WorldClocks.labelFor(null, " America/New_York "));
+        List<WorldClocks.Clock> clocks = WorldClocks.entries(prefs("NYC", "America/New_York"));
+        assertEquals(2, clocks.size());
+        assertEquals("India", clocks.get(0).label);
+        assertEquals(WorldClocks.INDIA_ZONE, clocks.get(0).zone);
+        assertEquals("NYC", clocks.get(1).label);
+        assertEquals("America/New_York", clocks.get(1).zone);
+        assertEquals("7:00 AM", WorldClocks.formatTime(clocks.get(1).zone, NOON_UTC));
+    }
+
+    @Test(timeout = 5000)
+    public void filterZonesMatchesTheWholeIanaList() {
+        String[] ids = {"Pacific/Auckland", "America/New_York", "Europe/London", "Asia/Kolkata"};
+        List<String> all = WorldClocks.filterZones(ids, " ");
+        assertEquals(Arrays.asList("America/New_York", "Asia/Kolkata", "Europe/London", "Pacific/Auckland"), all);
+        assertEquals(Arrays.asList("America/New_York"), WorldClocks.filterZones(ids, "new york"));
+        assertEquals("America/New_York", WorldClocks.filterZones(ids, "NEW_YORK").get(0));
+        assertEquals("America/New_York", WorldClocks.filterZones(ids, "america/new").get(0));
+        assertTrue(WorldClocks.filterZones(ids, "zzz").isEmpty());
+        assertTrue(WorldClocks.filterZones(null, "a").isEmpty());
+        String[] zones = WorldClocks.zones();
+        assertTrue(zones.length > 100);
+        assertTrue(Arrays.asList(zones).contains("America/New_York"));
+        assertTrue(Arrays.asList(zones).contains("Asia/Kolkata"));
+        for (int i = 1; i < zones.length; i++) assertTrue(zones[i - 1].compareToIgnoreCase(zones[i]) <= 0);
     }
 
     @Test(timeout = 5000)
