@@ -5,7 +5,6 @@
     <item name="fontResetChoice" type="id" />
     <item name="inputNamesChoice" type="id" />
     <item name="weatherCityChoice" type="id" />
-    <item name="weatherDefaultChoice" type="id" />
     <item name="weatherUnitsChoice" type="id" />
     <item name="hinduMasterChoice" type="id" />
     <item name="worldCity1Choice" type="id" />
@@ -27,4 +26,8 @@
     <item name="calendarPlaceChoice" type="id" />
     <item name="homePhotoIntervalChoice" type="id" />
     <item name="homePhoto" type="id" />
+    <item name="homeLayoutWeather" type="id" />
+    <item name="homeLayoutClocks" type="id" />
+    <item name="homeLayoutPanchang" type="id" />
+    <item name="homeLayoutScreensaver" type="id" />
 </resources>

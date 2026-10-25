@@ -11,12 +11,14 @@ import android.widget.ImageView;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
  * Full-bleed Home background behind the apps. Photos on: the screensaver photo store,
- * center-cropped, advancing on the Photos change interval. Photos off: one random gradient,
+ * center-cropped, in a shuffled order on the Photos change interval. Each session starts on a
+ * random photo, and a finished pass is shuffled again. Photos off: one random gradient,
  * and the interval is not scheduled.
  */
 final class HomeFocusBackdrop {
@@ -27,8 +29,13 @@ final class HomeFocusBackdrop {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private final Runnable tick = this::advance;
+    private final Random random = new Random();
+    private final ArrayList<String> deck = new ArrayList<>();
+    private int cursor = -1;
     private int generation;
     private String currentFile = "";
+    /** Photo last shown, so the next shuffle does not open on it. Survives {@link #hide()}. */
+    private String lastShown = "";
     private boolean running;
     private boolean askedDownload;
     private Bitmap shown;
@@ -61,6 +68,8 @@ final class HomeFocusBackdrop {
         stop();
         generation++;
         currentFile = "";
+        deck.clear();
+        cursor = -1;
         photo.setImageDrawable(null);
         photo.setBackground(null);
         photo.setAlpha(0f);
@@ -97,14 +106,13 @@ final class HomeFocusBackdrop {
         askedDownload = false;
         ArrayList<String> files = new ArrayList<>();
         for (PhotoStore.Photo item : photos) files.add(item.file);
-        String next = advance || !files.contains(currentFile)
-                ? PhotoBackgroundCycle.nextFile(files, currentFile)
-                : currentFile;
+        String next = choose(files, advance);
         if (next.isEmpty()) {
             showGradient();
             return;
         }
         currentFile = next;
+        lastShown = next;
         final int request = ++generation;
         final String file = next;
         worker.execute(() -> {
@@ -130,6 +138,35 @@ final class HomeFocusBackdrop {
         schedule(rotationDelay());
     }
 
+    /**
+     * Next filename. A refresh keeps the photo on screen. An advance walks the shuffled deck,
+     * and a finished deck (or a changed catalog) is shuffled again.
+     */
+    private String choose(List<String> files, boolean advance) {
+        if (!advance && currentFile != null && !currentFile.isEmpty() && files.contains(currentFile)) {
+            if (!HomePhotoRotation.sameCatalog(deck, files)) {
+                deck.clear();
+                cursor = -1;
+            } else cursor = deck.indexOf(currentFile);
+            return currentFile;
+        }
+        String avoid = currentFile != null && !currentFile.isEmpty() ? currentFile : lastShown;
+        if (!HomePhotoRotation.sameCatalog(deck, files) || cursor < 0) {
+            deck.clear();
+            deck.addAll(HomePhotoRotation.shuffle(files, avoid, random));
+            cursor = 0;
+        } else if (advance) {
+            int next = HomePhotoRotation.advance(deck.size(), cursor);
+            if (next < 0) {
+                deck.clear();
+                deck.addAll(HomePhotoRotation.shuffle(files, avoid, random));
+                cursor = 0;
+            } else cursor = next;
+        }
+        if (deck.isEmpty() || cursor < 0 || cursor >= deck.size()) return "";
+        return deck.get(cursor);
+    }
+
     /** Schedule the next photo only when Photos is on. A zero delay leaves the gradient in place. */
     private void schedule(long delay) {
         if (running && delay > 0L) handler.postDelayed(tick, delay);
@@ -144,6 +181,8 @@ final class HomeFocusBackdrop {
         handler.removeCallbacks(tick);
         generation++;
         currentFile = "";
+        deck.clear();
+        cursor = -1;
         if (photo.getDrawable() != null || photo.getBackground() == null) {
             photo.setImageDrawable(null);
             recycleShown(null);

@@ -123,7 +123,7 @@ public class RaiderThemeTest {
         assertTrue(CalendarPanelFit.index("placement") < CalendarPanelFit.index("text_size"));
         assertEquals(-1, CalendarPanelFit.index("home"));
         assertEquals(-1, CalendarPanelFit.index("screensaver_calendar"));
-        assertTrue(CalendarPanelFit.index("open_world_clocks") < CalendarPanelFit.index("world_clocks"));
+        assertTrue(CalendarPanelFit.index("world_clocks") < CalendarPanelFit.index("open_world_clocks"));
         assertTrue(CalendarPanelFit.index("open_world_clocks") < CalendarPanelFit.index("city1"));
         assertTrue(CalendarPanelFit.index("city4") < CalendarPanelFit.index("screensaver_clocks"));
     }
@@ -136,6 +136,8 @@ public class RaiderThemeTest {
 
     @Test(timeout = 5000) public void rightPanelFocusCornerMatchesTheLeftRail() {
         assertEquals(SettingsStyle.RAIL_CORNER_DP, SettingsStyle.CONTENT_CORNER_DP);
+        assertEquals(SettingsStyle.CONTENT_CORNER_DP, SettingsStyle.CARD_CORNER_DP);
+        assertEquals(4, SettingsStyle.CARD_CORNER_DP);
         assertEquals(4f, SettingsStyle.focusCornerDp(false), 0f);
         assertTrue(SettingsStyle.focusCornerDp(true) < 0f);
     }

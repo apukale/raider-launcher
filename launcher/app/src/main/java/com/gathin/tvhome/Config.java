@@ -181,6 +181,7 @@ final class Config {
 
         double[] city = WeatherLocation.override(ctx);
         if (city != null) { weatherLatitude = city[0]; weatherLongitude = city[1]; weatherPlace = WeatherLocation.cityName(ctx); }
+        else { weatherLatitude = Double.NaN; weatherLongitude = Double.NaN; weatherPlace = ""; }
         Panchang.setLocation(weatherLatitude, weatherLongitude);
         return new Config(dock, hidden, tileOverrides, logoTileApps, liveTv, liveTvAction, panelService, panelAction, inputAction,
                 Math.max(1, columns), Math.max(0, rowsBelow), animations, advancedEffects,

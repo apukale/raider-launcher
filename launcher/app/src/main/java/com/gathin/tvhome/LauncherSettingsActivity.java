@@ -243,10 +243,10 @@ public final class LauncherSettingsActivity extends Activity {
             if(category==8){buildAbout(card);continue;}
             if(category==4){addOpenPanchang(card);addHinduMaster(card);addCalendarPlace(card);}
             if(category==3)addPhotosMaster(card);
-            if(category==0){LinearLayout apr=new LinearLayout(this);apr.setOrientation(LinearLayout.HORIZONTAL);apr.setGravity(android.view.Gravity.CENTER_VERTICAL);apr.setPadding(dp(14),0,dp(14),0);TextView aprTitle=categoryText("Apps per row",17,ink());aprTitle.setPadding(0,0,0,0);aprTitle.setIncludeFontPadding(false);aprTitle.setTypeface(Fonts.of(this,Fonts.SETTINGS,R.font.outfit_medium));apr.addView(aprTitle,new LinearLayout.LayoutParams(0,android.view.ViewGroup.LayoutParams.WRAP_CONTENT,1f));appsPerRowValue=categoryText(columns+" apps",16,SettingsStyle.accent(this));appsPerRowValue.setPadding(0,0,0,0);appsPerRowValue.setIncludeFontPadding(false);apr.addView(appsPerRowValue);card.addView(apr,new LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,dp(40)));LinearLayout choicesRow=new LinearLayout(this);choicesRow.setOrientation(LinearLayout.HORIZONTAL);int[] columnIds={R.id.columns4,R.id.columns5,R.id.columns6,R.id.columns7};for(int id:columnIds){View choice=legacy.findViewById(id);ViewGroupTools.detach(choice);if(choice instanceof TextView){((TextView)choice).setTextColor(ink());((TextView)choice).setTypeface(Fonts.of(this,Fonts.SETTINGS,R.font.outfit_medium));}LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(40),1f);lp.setMargins(dp(4),0,dp(4),dp(4));final int tint=COLUMN_TINTS[id==R.id.columns4?0:id==R.id.columns5?1:id==R.id.columns6?2:3];choice.setBackground(SettingsStyle.glow(this,SettingsStyle.focusColor(this),tint,false,false));choice.setOnFocusChangeListener((v,f)->{v.setBackground(SettingsStyle.glow(this,SettingsStyle.focusColor(this),tint,f,false));SettingsStyle.scale(v,f);});choicesRow.addView(choice,lp);}card.addView(choicesRow);}
+            if(category==0){addHomeLayoutModules(card);LinearLayout apr=new LinearLayout(this);apr.setOrientation(LinearLayout.HORIZONTAL);apr.setGravity(android.view.Gravity.CENTER_VERTICAL);apr.setPadding(dp(14),0,dp(14),0);TextView aprTitle=categoryText("Apps per row",17,ink());aprTitle.setPadding(0,0,0,0);aprTitle.setIncludeFontPadding(false);aprTitle.setTypeface(Fonts.of(this,Fonts.SETTINGS,R.font.outfit_medium));apr.addView(aprTitle,new LinearLayout.LayoutParams(0,android.view.ViewGroup.LayoutParams.WRAP_CONTENT,1f));appsPerRowValue=categoryText(columns+" apps",16,SettingsStyle.accent(this));appsPerRowValue.setPadding(0,0,0,0);appsPerRowValue.setIncludeFontPadding(false);apr.addView(appsPerRowValue);card.addView(apr,new LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,dp(40)));LinearLayout choicesRow=new LinearLayout(this);choicesRow.setOrientation(LinearLayout.HORIZONTAL);int[] columnIds={R.id.columns4,R.id.columns5,R.id.columns6,R.id.columns7};for(int id:columnIds){View choice=legacy.findViewById(id);ViewGroupTools.detach(choice);if(choice instanceof TextView){((TextView)choice).setTextColor(ink());((TextView)choice).setTypeface(Fonts.of(this,Fonts.SETTINGS,R.font.outfit_medium));}LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(40),1f);lp.setMargins(dp(4),0,dp(4),dp(4));final int tint=COLUMN_TINTS[id==R.id.columns4?0:id==R.id.columns5?1:id==R.id.columns6?2:3];choice.setBackground(SettingsStyle.glow(this,SettingsStyle.focusColor(this),tint,false,false));choice.setOnFocusChangeListener((v,f)->{v.setBackground(SettingsStyle.glow(this,SettingsStyle.focusColor(this),tint,f,false));SettingsStyle.scale(v,f);});choicesRow.addView(choice,lp);}card.addView(choicesRow);}
             boolean resetShown=false;
             for(int id:groups[category]){View row=legacy.findViewById(id);if(row==null)continue;ViewGroupTools.detach(row);if(isDestructive(id)&&!resetShown){resetShown=true;TextView cap=categoryText("Reset",13,0xFFE8907E);cap.setPadding(dp(12),0,dp(12),0);cap.setIncludeFontPadding(false);cap.setSingleLine(true);card.addView(cap);}LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,android.view.ViewGroup.LayoutParams.WRAP_CONTENT);lp.bottomMargin=dp(4);row.setBackground(SettingsStyle.focus(this,SettingsStyle.focusColor(this),false));if(row instanceof TextView){TextView t=(TextView)row;t.setTextColor(ink());t.setTextSize(17);t.setTypeface(Fonts.of(this,Fonts.SETTINGS,R.font.outfit_medium));t.setPadding(dp(16),dp(6),dp(16),dp(6));t.setMinHeight(dp(rowHeight));t.setMinimumHeight(dp(rowHeight));t.setSingleLine(false);t.setMaxLines(8);t.setEllipsize(null);t.setIncludeFontPadding(false);t.setGravity(android.view.Gravity.CENTER_VERTICAL|android.view.Gravity.START);t.setFocusable(true);t.setClickable(true);SettingsStyle.focusAnim(t);}card.addView(row,lp);if(id==R.id.accentChoice)addFontsEntry(card);if(id==R.id.tvSettingsChoice)addInputNamesRow(card);if(id==R.id.advancedChoice)card.addView(hint(getString(R.string.advanced_effects_warning)));}
-            if(category==0)addHomePhotoRows(card);
+            if(category==0){addHomePhotoRows(card);linkHomeLayoutModules();}
             if(category==4)addWorldClocks(card);
             if(category==6)addNightNowRow(card);
             if(category==5)addWeatherRows(card);
@@ -924,11 +924,10 @@ public final class LauncherSettingsActivity extends Activity {
     private void spaceRail(){if(categoryRail==null||railItems==null)return;categoryRail.post(()->{android.view.ViewParent parent=categoryRail.getParent();if(!(parent instanceof View))return;int viewport=((View)parent).getHeight();if(viewport<=0){if(railSpaceTries++<3)categoryRail.post(this::spaceRail);return;}float density=getResources().getDisplayMetrics().density;int[] gaps=SettingsChrome.railGapsPx(viewport,railItems.length,density);int pad=Math.round(SettingsChrome.RAIL_PAD_DP*density);categoryRail.setPadding(pad,pad,pad,pad);int row=Math.round(SettingsChrome.RAIL_ROW_DP*density);for(int i=0;i<railItems.length;i++){LinearLayout.LayoutParams lp=(LinearLayout.LayoutParams)railItems[i].getLayoutParams();lp.height=row;lp.bottomMargin=i<gaps.length?gaps[i]:0;railItems[i].setLayoutParams(lp);}});}
     private void tightenRail(){if(categoryRail==null||railItems==null)return;int max=0;int height=dp(SettingsChrome.RAIL_ROW_DP);for(View item:railItems){item.measure(View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));if(item.getMeasuredWidth()>max)max=item.getMeasuredWidth();}if(max<=0)return;for(View item:railItems){LinearLayout.LayoutParams lp=(LinearLayout.LayoutParams)item.getLayoutParams();lp.width=max;item.setLayoutParams(lp);}}
     private void fitAdvancedCard(){if(categoryCards==null||categoryCards.length<=7||categoryScroll==null||!(categoryCards[7] instanceof LinearLayout))return;int viewportPx=categoryScroll.getHeight();if(viewportPx<=0){categoryScroll.post(this::fitAdvancedCard);return;}float density=getResources().getDisplayMetrics().density;int viewportDp=Math.round(viewportPx/density);int bottomDp=categoryContent==null?0:Math.round(categoryContent.getPaddingBottom()/density);AdvancedPanelFit.Spec spec=AdvancedPanelFit.forViewport(viewportDp,bottomDp);LinearLayout card=(LinearLayout)categoryCards[7];card.setPadding(dp(SettingsChrome.PANEL_PAD_H_DP),dp(spec.cardPadDp),dp(SettingsChrome.PANEL_PAD_H_DP),dp(spec.cardPadDp));for(int i=0;i<card.getChildCount();i++){View child=card.getChildAt(i);android.widget.LinearLayout.LayoutParams lp=(android.widget.LinearLayout.LayoutParams)child.getLayoutParams();lp.bottomMargin=dp(spec.gapDp);if(child instanceof TextView){TextView t=(TextView)child;boolean caption=t.getId()==View.NO_ID;int h=dp(caption?spec.captionDp:spec.rowDp);lp.height=h;t.setMinHeight(h);t.setMinimumHeight(h);t.setMaxLines(1);t.setSingleLine(true);t.setEllipsize(android.text.TextUtils.TruncateAt.END);t.setPadding(dp(12),0,dp(12),0);t.setGravity(android.view.Gravity.CENTER_VERTICAL|android.view.Gravity.START);if(!caption)t.setTextSize(15);}child.setLayoutParams(lp);}if(selectedCategory==7&&categoryScroll.getScrollY()!=0)categoryScroll.scrollTo(0,0);}
-    // ---- 2.11.10: weather city (Open-Meteo geocoding), build default, units. Saved on the TV only. ----
-    private void addWeatherRows(LinearLayout card){TextView open=settingsRow(R.id.openWeatherChoice);open.setText(getString(R.string.open_weather_now));open.setOnClickListener(v->open(new Intent(this,WeatherActivity.class)));card.addView(open,0,rowParams());TextView city=settingsRow(R.id.weatherCityChoice);city.setOnClickListener(v->showCitySearch(""));card.addView(city,rowParams());TextView units=settingsRow(R.id.weatherUnitsChoice);units.setOnClickListener(v->{WeatherLocation.setFahrenheit(this,!WeatherLocation.fahrenheit(this));setResult(RESULT_OK);updateWeatherRows();});card.addView(units,rowParams());TextView def=settingsRow(R.id.weatherDefaultChoice);def.setOnClickListener(v->{if(!WeatherLocation.usingCity(this)){Toast.makeText(this,"Already using the build default",Toast.LENGTH_SHORT).show();return;}WeatherLocation.useBuild(this);setResult(RESULT_OK);updateWeatherRows();Toast.makeText(this,WeatherLocation.hasBuildDefault()?"Weather: "+WeatherLocation.buildPlace():"No build default; weather hidden until you pick a city",Toast.LENGTH_SHORT).show();});card.addView(def,rowParams());updateWeatherRows();}
-    private void updateWeatherRows(){TextView city=findViewById(R.id.weatherCityChoice),def=findViewById(R.id.weatherDefaultChoice),units=findViewById(R.id.weatherUnitsChoice);if(city==null)return;boolean usingCity=WeatherLocation.usingCity(this);String name=WeatherLocation.cityName(this);
-        city.setText("City: "+(usingCity&&!name.isEmpty()?name:"Not set")+"\nSearch by name; also sets the Panchang location");formatRow(R.id.weatherCityChoice);
-        def.setText("Use default from build: "+(!usingCity?"In use":WeatherLocation.hasBuildDefault()?WeatherLocation.buildPlace():"None"));formatRow(R.id.weatherDefaultChoice);
+    // ---- Weather city (Open-Meteo geocoding) and units. The city picker is the only location control. ----
+    private void addWeatherRows(LinearLayout card){TextView open=settingsRow(R.id.openWeatherChoice);open.setText(getString(R.string.open_weather_now));open.setOnClickListener(v->open(new Intent(this,WeatherActivity.class)));card.addView(open,0,rowParams());TextView city=settingsRow(R.id.weatherCityChoice);city.setOnClickListener(v->showCitySearch(""));card.addView(city,rowParams());TextView units=settingsRow(R.id.weatherUnitsChoice);units.setOnClickListener(v->{WeatherLocation.setFahrenheit(this,!WeatherLocation.fahrenheit(this));setResult(RESULT_OK);updateWeatherRows();});card.addView(units,rowParams());updateWeatherRows();}
+    private void updateWeatherRows(){TextView city=findViewById(R.id.weatherCityChoice),units=findViewById(R.id.weatherUnitsChoice);if(city==null)return;boolean hasCity=WeatherLocation.hasCity(this);String name=WeatherLocation.cityName(this);
+        city.setText("City: "+(hasCity?(name.isEmpty()?"Saved location":name):"Not set")+"\nSearch by name; also sets the Panchang location");formatRow(R.id.weatherCityChoice);
         units.setText("Units: "+(WeatherLocation.fahrenheit(this)?"\u00B0F":"\u00B0C"));formatRow(R.id.weatherUnitsChoice);}
     private void showCitySearch(String initial){android.widget.EditText in=new android.widget.EditText(this);in.setSingleLine(true);in.setHint("City name");in.setText(initial);in.setSelection(in.getText().length());in.setTextColor(ink());in.setHintTextColor(0xFFA9ABC7);in.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);in.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS);android.widget.FrameLayout box=new android.widget.FrameLayout(this);box.setPadding(dp(16),dp(4),dp(16),dp(4));box.addView(in,new android.widget.FrameLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,android.view.ViewGroup.LayoutParams.WRAP_CONTENT));
         final android.app.Dialog[] held=new android.app.Dialog[1];in.setOnEditorActionListener((v,a,e)->{if(a==android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH||a==android.view.inputmethod.EditorInfo.IME_ACTION_DONE){if(held[0]!=null)held[0].dismiss();searchCity(in.getText().toString());return true;}return false;});held[0]=SettingsPicker.form(this,"Weather city",box,getString(android.R.string.cancel),null,null,null,"Search",()->searchCity(in.getText().toString()));}
@@ -944,13 +943,116 @@ public final class LauncherSettingsActivity extends Activity {
     private void addOpenPanchang(LinearLayout card){TextView t=settingsRow(R.id.openPanchangChoice);t.setText(getString(R.string.open_panchang));t.setOnClickListener(v->open(new Intent(this,PanchangActivity.class)));card.addView(t,rowParams());}
     private void addHinduMaster(LinearLayout card){TextView t=settingsRow(R.id.hinduMasterChoice);t.setOnClickListener(v->{boolean on=choices.getBoolean(LauncherPrefs.HINDU,true);choices.edit().putBoolean(LauncherPrefs.HINDU,!on).apply();setResult(RESULT_OK);refresh();});card.addView(t,rowParams());}
     private static final int[] WORLD_CITY_IDS={R.id.worldCity1Choice,R.id.worldCity2Choice,R.id.worldCity3Choice,R.id.worldCity4Choice};
-    private void addWorldClocks(LinearLayout card){TextView open=settingsRow(R.id.openWorldClocksChoice);open.setText(getString(R.string.open_world_clocks));open.setOnClickListener(v->open(new Intent(this,WorldClocksActivity.class)));card.addView(open,rowParams());TextView cap=categoryText("World clocks",13,SettingsStyle.accent(this));cap.setId(R.id.worldClocksCaption);cap.setPadding(dp(12),dp(2),dp(12),dp(2));cap.setIncludeFontPadding(false);card.addView(cap);for(int i=0;i<WORLD_CITY_IDS.length;i++){final int slot=i;TextView city=settingsRow(WORLD_CITY_IDS[i]);city.setOnClickListener(v->chooseWorldCity(slot));card.addView(city,rowParams());}TextView dream=settingsRow(R.id.worldDreamChoice);dream.setOnClickListener(v->{choices.edit().putBoolean(WorldClocks.DREAM,!choices.getBoolean(WorldClocks.DREAM,false)).apply();setResult(RESULT_OK);refresh();});card.addView(dream,rowParams());}
+    private void addWorldClocks(LinearLayout card){TextView cap=categoryText("World clocks",13,SettingsStyle.accent(this));cap.setId(R.id.worldClocksCaption);cap.setPadding(dp(12),dp(2),dp(12),dp(2));cap.setIncludeFontPadding(false);card.addView(cap);TextView open=settingsRow(R.id.openWorldClocksChoice);open.setText(getString(R.string.open_world_clocks));open.setOnClickListener(v->open(new Intent(this,WorldClocksActivity.class)));card.addView(open,rowParams());for(int i=0;i<WORLD_CITY_IDS.length;i++){final int slot=i;TextView city=settingsRow(WORLD_CITY_IDS[i]);city.setOnClickListener(v->chooseWorldCity(slot));card.addView(city,rowParams());}TextView dream=settingsRow(R.id.worldDreamChoice);dream.setOnClickListener(v->{choices.edit().putBoolean(WorldClocks.DREAM,!choices.getBoolean(WorldClocks.DREAM,false)).apply();setResult(RESULT_OK);refresh();});card.addView(dream,rowParams());}
     private String storedClock(String key){return choices.contains(key)?choices.getString(key,""):null;}
     private void updateWorldClockRows(){TextView first=findViewById(WORLD_CITY_IDS[0]);if(first==null)return;for(int i=0;i<WORLD_CITY_IDS.length;i++){TextView city=findViewById(WORLD_CITY_IDS[i]);String storedName=storedClock(WorldClocks.nameKey(i));String storedZone=storedClock(WorldClocks.zoneKey(i));String label=WorldClocks.nameAt(i,storedName,storedZone);city.setText(WorldClocks.settingsLine(i,label));}TextView dream=findViewById(R.id.worldDreamChoice);dream.setText("Show world clocks on Screensaver: "+getString(choices.getBoolean(WorldClocks.DREAM,false)?R.string.on:R.string.off));}
     private void chooseWorldCity(int slot){String storedName=storedClock(WorldClocks.nameKey(slot));String storedZone=storedClock(WorldClocks.zoneKey(slot));String zone=WorldClocks.zoneAt(slot,storedZone);String label=WorldClocks.nameAt(slot,storedName,storedZone);String time=WorldClocks.formatTime(zone,System.currentTimeMillis());String message=label.equals(zone)?zone+"\n"+time:label+"\n"+zone+" \u00B7 "+time;boolean custom=storedName!=null||storedZone!=null;String clearLabel=custom?"Clear":null;Runnable clear=clearLabel==null?null:()->{choices.edit().remove(WorldClocks.nameKey(slot)).remove(WorldClocks.zoneKey(slot)).apply();setResult(RESULT_OK);refresh();};SettingsPicker.buttons(this,"City "+(slot+1),message,null,"Timezone",()->pickWorldZone(slot),"Rename",()->renameWorldSlot(slot),clearLabel,clear);}
     private void pickWorldZone(int slot){String current=WorldClocks.zoneAt(slot,storedClock(WorldClocks.zoneKey(slot)));String[] zones=WorldClocks.zones();SettingsPicker.filter(this,"Timezone",q->{java.util.List<String> matches=WorldClocks.filterZones(zones,q);return matches.toArray(new String[0]);},current,zone->{choices.edit().putString(WorldClocks.zoneKey(slot),zone).apply();setResult(RESULT_OK);refresh();});}
     private void renameWorldSlot(int slot){android.widget.EditText in=new android.widget.EditText(this);in.setSingleLine(true);in.setHint("Display name");String name=choices.getString(WorldClocks.nameKey(slot),"");String zone=choices.getString(WorldClocks.zoneKey(slot),"");if(name!=null)in.setText(name.trim());in.setSelection(in.getText().length());in.setTextColor(ink());in.setHintTextColor(0xFFA9ABC7);in.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);in.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS);android.widget.FrameLayout box=new android.widget.FrameLayout(this);box.setPadding(dp(16),dp(4),dp(16),dp(4));box.addView(in,new android.widget.FrameLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,android.view.ViewGroup.LayoutParams.WRAP_CONTENT));final android.app.Dialog[] held=new android.app.Dialog[1];Runnable save=()->{String typed=in.getText().toString().trim();if(typed.isEmpty()||typed.equals(zone==null?"":zone.trim()))choices.edit().remove(WorldClocks.nameKey(slot)).apply();else choices.edit().putString(WorldClocks.nameKey(slot),typed).apply();setResult(RESULT_OK);refresh();};in.setOnEditorActionListener((v,a,e)->{if(a==android.view.inputmethod.EditorInfo.IME_ACTION_DONE){if(held[0]!=null)held[0].dismiss();save.run();return true;}return false;});held[0]=SettingsPicker.form(this,"Rename",box,getString(android.R.string.cancel),null,null,null,"Save",save);}
     private void addKidsRow(LinearLayout card){TextView t=settingsRow(R.id.kidsChoice);t.setOnClickListener(v->SettingsPicker.notice(this,"Kids","Coming soon."));card.addView(t,rowParams());t.setText("Kids: Coming soon");}
+    /** Weather, World clocks, Panchang, Screensaver. Sits above the other Home Layout controls. */
+    private void addHomeLayoutModules(LinearLayout card) {
+        int[] ids = {R.id.homeLayoutWeather, R.id.homeLayoutClocks, R.id.homeLayoutPanchang, R.id.homeLayoutScreensaver};
+        int[] labels = {R.string.home_module_weather, R.string.home_module_clocks, R.string.home_module_panchang, R.string.home_module_screensaver};
+        int[] icons = {R.drawable.ic_cat_weather, R.drawable.ic_clock, R.drawable.ic_cat_calendar, R.drawable.ic_cat_screensaver};
+        LinearLayout grid = new LinearLayout(this);
+        grid.setOrientation(LinearLayout.VERTICAL);
+        grid.setClipChildren(false);
+        grid.setClipToPadding(false);
+        TextView[] blocks = new TextView[HomeModules.COUNT];
+        for (int row = 0; row < 2; row++) {
+            LinearLayout line = new LinearLayout(this);
+            line.setOrientation(LinearLayout.HORIZONTAL);
+            line.setClipChildren(false);
+            for (int col = 0; col < HomeModules.COLUMNS; col++) {
+                int index = row * HomeModules.COLUMNS + col;
+                TextView block = homeLayoutBlock(ids[index], labels[index], icons[index]);
+                final int picked = index;
+                block.setOnClickListener(v -> openHomeLayoutModule(picked));
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(56), 1f);
+                if (col == 0) lp.setMarginEnd(dp(8));
+                line.addView(block, lp);
+                blocks[index] = block;
+            }
+            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            if (row == 0) rowLp.bottomMargin = dp(8);
+            grid.addView(line, rowLp);
+        }
+        blocks[HomeModules.WEATHER].setNextFocusRightId(blocks[HomeModules.CLOCKS].getId());
+        blocks[HomeModules.WEATHER].setNextFocusDownId(blocks[HomeModules.PANCHANG].getId());
+        blocks[HomeModules.CLOCKS].setNextFocusLeftId(blocks[HomeModules.WEATHER].getId());
+        blocks[HomeModules.CLOCKS].setNextFocusDownId(blocks[HomeModules.SCREENSAVER].getId());
+        blocks[HomeModules.CLOCKS].setNextFocusRightId(blocks[HomeModules.CLOCKS].getId());
+        blocks[HomeModules.PANCHANG].setNextFocusUpId(blocks[HomeModules.WEATHER].getId());
+        blocks[HomeModules.PANCHANG].setNextFocusRightId(blocks[HomeModules.SCREENSAVER].getId());
+        blocks[HomeModules.PANCHANG].setNextFocusDownId(R.id.columns4);
+        blocks[HomeModules.SCREENSAVER].setNextFocusUpId(blocks[HomeModules.CLOCKS].getId());
+        blocks[HomeModules.SCREENSAVER].setNextFocusLeftId(blocks[HomeModules.PANCHANG].getId());
+        blocks[HomeModules.SCREENSAVER].setNextFocusRightId(blocks[HomeModules.SCREENSAVER].getId());
+        blocks[HomeModules.SCREENSAVER].setNextFocusDownId(R.id.columns6);
+        LinearLayout.LayoutParams gridLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        gridLp.bottomMargin = dp(12);
+        card.addView(grid, gridLp);
+    }
+
+    private TextView homeLayoutBlock(int id, int label, int icon) {
+        TextView block = new TextView(this);
+        block.setId(id);
+        block.setText(label);
+        block.setTextColor(ink());
+        block.setTextSize(16);
+        block.setTypeface(Fonts.of(this, Fonts.SETTINGS, R.font.outfit_medium));
+        block.setGravity(android.view.Gravity.CENTER_VERTICAL | android.view.Gravity.START);
+        block.setPadding(dp(14), 0, dp(12), 0);
+        block.setSingleLine(true);
+        block.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        block.setIncludeFontPadding(false);
+        block.setFocusable(true);
+        block.setClickable(true);
+        android.graphics.drawable.Drawable mark = getDrawable(icon);
+        if (mark != null) {
+            mark = mark.mutate();
+            mark.setTint(SettingsStyle.accent(this));
+            int size = dp(18);
+            mark.setBounds(0, 0, size, size);
+            block.setCompoundDrawablesRelative(mark, null, null, null);
+            block.setCompoundDrawablePadding(dp(8));
+        }
+        block.setBackground(homeLayoutRest());
+        block.setOnFocusChangeListener((v, focused) -> {
+            v.setBackground(focused ? SettingsStyle.focus(this, SettingsStyle.focusColor(this), true) : homeLayoutRest());
+            SettingsStyle.scale(v, focused);
+        });
+        return block;
+    }
+
+    private GradientDrawable homeLayoutRest() {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setColor(RaiderTheme.theme(this).surface);
+        drawable.setCornerRadius(dp(SettingsStyle.RAIL_CORNER_DP));
+        return drawable;
+    }
+
+    private void openHomeLayoutModule(int index) {
+        if (index == HomeModules.WEATHER) open(new Intent(this, WeatherActivity.class));
+        else if (index == HomeModules.CLOCKS) open(new Intent(this, WorldClocksActivity.class));
+        else if (index == HomeModules.PANCHANG) open(new Intent(this, PanchangActivity.class));
+        else if (index == HomeModules.SCREENSAVER) open(new Intent(this, ScreensaverActivity.class));
+    }
+
+    private void linkHomeLayoutModules() {
+        int[] left = {R.id.columns4, R.id.columns5};
+        int[] right = {R.id.columns6, R.id.columns7};
+        for (int id : left) {
+            View chip = findViewById(id);
+            if (chip != null) chip.setNextFocusUpId(R.id.homeLayoutPanchang);
+        }
+        for (int id : right) {
+            View chip = findViewById(id);
+            if (chip != null) chip.setNextFocusUpId(R.id.homeLayoutScreensaver);
+        }
+    }
+
     private void addHomePhotoRows(LinearLayout card){TextView photos=settingsRow(R.id.homePhotosChoice);photos.setOnClickListener(v->{boolean on=PhotosMaster.on(this);choices.edit().putBoolean(HomePhotoSettings.MASTER,!on).apply();setResult(RESULT_OK);PhotoStore.schedule(this,true);refresh();});card.addView(photos,rowParams());TextView interval=settingsRow(R.id.homePhotoIntervalChoice);interval.setOnClickListener(v->{if(!HomePhotoSettings.intervalInteractive(PhotosMaster.on(this)))return;choosePhotoInterval();});card.addView(interval,rowParams());updateHomePhotoRows();}
     private void updateHomePhotoRows(){TextView photos=findViewById(R.id.homePhotosChoice);TextView interval=findViewById(R.id.homePhotoIntervalChoice);if(photos==null&&interval==null)return;boolean on=PhotosMaster.on(this);if(photos!=null){photos.setText("Photos: "+getString(on?R.string.on:R.string.off)+"\n"+getString(on?R.string.photos_home_on:R.string.photos_home_off));setToggle(photos,on);formatRow(R.id.homePhotosChoice);}if(interval!=null){long ms=choices.getLong(HomePhotoSettings.INTERVAL,HomeFocusPhoto.INTERVAL_DEFAULT_MS);String text=getString(R.string.photo_interval,HomeFocusPhoto.intervalLabel(ms));if(!on)text=text+"\n"+getString(R.string.photo_interval_paused);interval.setText(text);formatRow(R.id.homePhotoIntervalChoice);interval.setEnabled(HomePhotoSettings.intervalInteractive(on));interval.setAlpha(HomePhotoSettings.intervalAlpha(on));}}
     private void addPhotosMaster(LinearLayout card){TextView t=settingsRow(R.id.photosMasterChoice);t.setText("Photos: "+getString(R.string.on));t.setOnClickListener(v->{boolean on=PhotosMaster.on(this);choices.edit().putBoolean(PhotosMaster.PREF,!on).apply();setResult(RESULT_OK);PhotoStore.schedule(this,true);refresh();});card.addView(t,0,rowParams());}

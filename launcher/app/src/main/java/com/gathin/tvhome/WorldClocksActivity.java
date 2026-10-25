@@ -37,7 +37,10 @@ public class WorldClocksActivity extends Activity {
             long now = System.currentTimeMillis();
             for (TextView time : times) {
                 Object zone = time.getTag();
-                if (zone instanceof String) time.setText(WorldClocks.formatTime((String) zone, now));
+                if (zone instanceof String) {
+                    time.setText(WorldClocks.formatTime((String) zone, now));
+                    if (fillsWidth(time)) fitClockTime(time);
+                }
             }
             for (TextView offset : offsets) {
                 Object zone = offset.getTag();
@@ -47,7 +50,8 @@ public class WorldClocksActivity extends Activity {
             main.postDelayed(this, Math.max(1000L, delay));
         }
     };
-    private LinearLayout screenRoot, cityRow;
+    private LinearLayout screenRoot, stage;
+    private WorldClockCards.Frame clockFrame;
     private TextView indiaTime, indiaOffset;
     private TextView empty;
     private View changeBackground;
@@ -135,7 +139,10 @@ public class WorldClocksActivity extends Activity {
         LinearLayout root = new LinearLayout(this);
         screenRoot = root;
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(48), dp(27), dp(48), dp(27));
+        float density = getResources().getDisplayMetrics().density;
+        int heightDp = density <= 0f ? 540 : Math.round(getResources().getDisplayMetrics().heightPixels / density);
+        clockFrame = WorldClockCards.frame(heightDp <= 0 ? 540 : heightDp);
+        root.setPadding(dp(clockFrame.screenPadH), dp(clockFrame.screenPadV), dp(clockFrame.screenPadH), dp(clockFrame.screenPadV));
         root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[] {0xFF12132A, 0xFF1C1E3F}));
         setContentView(root);
         LinearLayout header = new LinearLayout(this);
@@ -188,18 +195,13 @@ public class WorldClocksActivity extends Activity {
         citiesLp.setMarginStart(dp(12));
         header.addView(cities, citiesLp);
         root.addView(header);
-        LinearLayout stage = new LinearLayout(this);
+        stage = new LinearLayout(this);
         stage.setOrientation(LinearLayout.VERTICAL);
-        stage.setGravity(Gravity.CENTER);
-        root.addView(stage, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
-        cityRow = new LinearLayout(this);
-        cityRow.setOrientation(LinearLayout.HORIZONTAL);
-        cityRow.setGravity(Gravity.CENTER);
-        cityRow.setBaselineAligned(false);
-        stage.addView(cityRow, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT));
+        stage.setGravity(Gravity.CENTER_HORIZONTAL);
+        LinearLayout.LayoutParams stageLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f);
+        stageLp.topMargin = dp(clockFrame.headerGap);
+        root.addView(stage, stageLp);
         empty = text("No other cities set", 16, R.font.outfit_regular, 0xFFA9ABC7);
-        empty.setVisibility(View.GONE);
-        stage.addView(empty);
         back.requestFocus();
     }
 
@@ -210,7 +212,7 @@ public class WorldClocksActivity extends Activity {
     }
 
     private void render() {
-        cityRow.removeAllViews();
+        stage.removeAllViews();
         times.clear();
         offsets.clear();
         long now = System.currentTimeMillis();
@@ -228,22 +230,46 @@ public class WorldClocksActivity extends Activity {
                 getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)::getString;
         int accent = RaiderTheme.accent(this);
         List<WorldClocks.Clock> cities = WorldClocks.cities(prefs);
-        for (int i = 0; i < cities.size(); i++) {
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1);
-            if (i > 0) lp.setMarginStart(dp(12));
-            cityRow.addView(clockCard(cities.get(i), accent, now), lp);
-        }
         boolean none = cities.isEmpty();
-        cityRow.setVisibility(none ? View.GONE : View.VISIBLE);
-        empty.setVisibility(none ? View.VISIBLE : View.GONE);
+        if (none) {
+            stage.setGravity(Gravity.CENTER);
+            stage.addView(empty);
+            return;
+        }
+        stage.setGravity(Gravity.CENTER_HORIZONTAL);
+        int columns = WorldClockCards.COLUMNS;
+        int rowCount = WorldClockCards.rows(cities.size());
+        int index = 0;
+        for (int r = 0; r < rowCount; r++) {
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setBaselineAligned(false);
+            row.setGravity(Gravity.CENTER);
+            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f);
+            if (r > 0) rowLp.topMargin = dp(clockFrame.gridGap);
+            int inRow = Math.min(columns, cities.size() - index);
+            for (int c = 0; c < inRow; c++) {
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f);
+                if (c > 0) lp.setMarginStart(dp(clockFrame.gridGap));
+                row.addView(clockCard(cities.get(index), accent, now), lp);
+                index++;
+            }
+            if (inRow < columns) {
+                View spacer = new View(this);
+                spacer.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+                LinearLayout.LayoutParams spacerLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, columns - inRow);
+                spacerLp.setMarginStart(dp(clockFrame.gridGap));
+                row.addView(spacer, spacerLp);
+            }
+            stage.addView(row, rowLp);
+        }
     }
 
     private LinearLayout clockCard(WorldClocks.Clock clock, int accent, long now) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
-        card.setGravity(Gravity.CENTER_HORIZONTAL);
-        card.setMinimumHeight(dp(WorldClockCards.MIN_HEIGHT_DP));
-        card.setPadding(dp(WorldClockCards.PAD_H_DP), dp(WorldClockCards.PAD_V_DP), dp(WorldClockCards.PAD_H_DP), dp(WorldClockCards.PAD_V_DP));
+        card.setGravity(Gravity.CENTER);
+        card.setPadding(dp(clockFrame.cardPadH), dp(clockFrame.cardPadV), dp(clockFrame.cardPadH), dp(clockFrame.cardPadV));
         GradientDrawable fill = new GradientDrawable();
         fill.setColor(WorldClockCards.FILL);
         fill.setCornerRadius(dp(16));
@@ -254,16 +280,19 @@ public class WorldClocksActivity extends Activity {
         label.setMaxLines(2);
         label.setEllipsize(TextUtils.TruncateAt.END);
         card.addView(label, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-        card.addView(clockSpacer(), new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
-        TextView time = text(WorldClocks.formatTime(clock.zone, now), WorldClockCards.TIME_SP, R.font.outfit_light, Color.WHITE);
+        card.addView(fixedGap(WorldClockCards.LABEL_GAP_DP));
+        TextView time = text(WorldClocks.formatTime(clock.zone, now), clockFrame.timeSp, R.font.outfit_light, Color.WHITE);
+        time.setIncludeFontPadding(true);
         time.setTag(clock.zone);
         time.setMaxLines(1);
-        time.setSingleLine(true);
-        time.setEllipsize(TextUtils.TruncateAt.END);
-        time.setAutoSizeTextTypeUniformWithConfiguration(WorldClockCards.TIME_MIN_SP, WorldClockCards.TIME_SP, 2, android.util.TypedValue.COMPLEX_UNIT_SP);
+        time.setEllipsize(null);
+        time.setHorizontallyScrolling(false);
+        time.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            if (right - left != oldRight - oldLeft) fitClockTime((TextView) v);
+        });
         card.addView(time, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
         times.add(time);
-        card.addView(clockSpacer(), new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
+        card.addView(fixedGap(WorldClockCards.OFFSET_GAP_DP));
         String offsetText = WorldClocks.formatOffset(clock.zone, now);
         TextView offset = text(offsetText, WorldClockCards.OFFSET_SP, R.font.outfit_regular, 0xFFA9ABC7);
         offset.setTag(clock.zone);
@@ -273,10 +302,32 @@ public class WorldClocksActivity extends Activity {
         return card;
     }
 
-    private View clockSpacer() {
-        View spacer = new View(this);
-        spacer.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        return spacer;
+    /** City times are match-parent. The India header time is wrap-content and keeps its size. */
+    private static boolean fillsWidth(TextView time) {
+        android.view.ViewGroup.LayoutParams lp = time.getLayoutParams();
+        return lp != null && lp.width == android.view.ViewGroup.LayoutParams.MATCH_PARENT;
+    }
+
+    /** Shrink the clock face only as far as needed so the full time, including AM/PM, stays visible. */
+    private void fitClockTime(TextView time) {
+        int width = time.getWidth() - time.getPaddingLeft() - time.getPaddingRight();
+        if (width <= 4) return;
+        CharSequence value = time.getText();
+        if (value == null || value.length() == 0) return;
+        android.text.TextPaint paint = new android.text.TextPaint(time.getPaint());
+        paint.setTextSize(1f);
+        float measured = paint.measureText(value.toString());
+        float maxPx = WorldClockCards.TIME_SP * getResources().getDisplayMetrics().scaledDensity;
+        float sizePx = WorldClockCards.fitTextPx(width - 4f, measured, maxPx);
+        if (Math.abs(time.getTextSize() - sizePx) < 0.5f) return;
+        time.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, sizePx);
+    }
+
+    private View fixedGap(int dpValue) {
+        View gap = new View(this);
+        gap.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        gap.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(dpValue)));
+        return gap;
     }
 
     private void nextBackground() {

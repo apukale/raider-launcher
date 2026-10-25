@@ -1,9 +1,8 @@
 package com.gathin.tvhome;
 
 /**
- * D-pad moves inside the Home 2×2 above Settings.
+ * D-pad moves inside the Home Layout 2×2 at the top of that settings panel.
  * Reading order is Weather, World clocks, Panchang, Screensaver.
- * {@code contentOnRight} is the Hebrew header, where the clock sits to the right of the blocks.
  */
 final class HomeModules {
     static final int WEATHER = 0;
@@ -20,46 +19,23 @@ final class HomeModules {
 
     /** Stay on this block. */
     static final int STAY = -1;
-    /** Leave toward the clock and Hindu calendar. */
-    static final int EXIT_SIDE = -2;
-    /** Leave downward onto the pill under this column. */
+    /** Leave toward the category rail. */
+    static final int EXIT_LEFT = -2;
+    /** Leave downward onto the Home Layout controls. */
     static final int EXIT_DOWN = -3;
-
-    static final int PILL_INPUTS = 0;
-    static final int PILL_SETTINGS = 2;
+    /** Leave upward onto the settings header. */
+    static final int EXIT_UP = -4;
 
     private HomeModules() {}
 
-    static int neighbor(int index, int direction, boolean contentOnRight) {
+    static int neighbor(int index, int direction) {
         if (index < 0 || index >= COUNT) return STAY;
         int row = index / COLUMNS;
         int col = index % COLUMNS;
-        if (direction == UP) return row == 0 ? STAY : index - COLUMNS;
+        if (direction == UP) return row == 0 ? EXIT_UP : index - COLUMNS;
         if (direction == DOWN) return row == 0 ? index + COLUMNS : EXIT_DOWN;
-        boolean towardContent = contentOnRight ? direction == RIGHT : direction == LEFT;
-        boolean awayFromContent = contentOnRight ? direction == LEFT : direction == RIGHT;
-        if (towardContent) {
-            if (!contentOnRight) return col == 0 ? EXIT_SIDE : index - 1;
-            return col == COLUMNS - 1 ? EXIT_SIDE : index + 1;
-        }
-        if (awayFromContent) {
-            if (!contentOnRight) return col == COLUMNS - 1 ? STAY : index + 1;
-            return col == 0 ? STAY : index - 1;
-        }
+        if (direction == LEFT) return col == 0 ? EXIT_LEFT : index - 1;
+        if (direction == RIGHT) return col == COLUMNS - 1 ? STAY : index + 1;
         return STAY;
-    }
-
-    /** Bottom-row block to focus when coming up from a pill. Wifi uses the inner column. */
-    static int moduleAbovePill(int pill, boolean contentOnRight) {
-        boolean settings = pill == PILL_SETTINGS;
-        if (!contentOnRight) return settings ? SCREENSAVER : PANCHANG;
-        return settings ? PANCHANG : SCREENSAVER;
-    }
-
-    /** Inputs or Settings, the pill under this block's column. */
-    static int pillBelow(int index, boolean contentOnRight) {
-        int col = index % COLUMNS;
-        boolean settingsColumn = contentOnRight ? col == 0 : col == COLUMNS - 1;
-        return settingsColumn ? PILL_SETTINGS : PILL_INPUTS;
     }
 }
