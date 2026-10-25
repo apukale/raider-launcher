@@ -104,7 +104,7 @@ public class RaiderThemeTest {
         AdvancedPanelFit.Spec spec = AdvancedPanelFit.forViewport(viewport, 24);
         assertTrue(spec.fits(viewport));
         assertTrue(spec.rowDp >= 32);
-        assertEquals(7, AdvancedPanelFit.ROWS);
+        assertEquals(8, AdvancedPanelFit.ROWS);
     }
 
     @Test(timeout = 5000) public void calendarPanelFitsA1080pLeanbackScreen() {
