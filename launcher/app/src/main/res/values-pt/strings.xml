@@ -32,7 +32,7 @@
     <string name="card_prompt_names">O cartão se chama \'%1$s\'. O app é \'%2$s\'.</string>
     <string name="card_prompt_resigned">%1$s foi atualizado com outra chave de assinatura, então sua resposta anterior não vale mais. Decida de novo sobre o cartão.</string>
     <string name="card_prompt_relabelled">%1$s mudou o nome do cartão desde a sua decisão. Decida de novo.</string>
-    <string name="card_prompt_hint">Pode alterar isto mais tarde em Definições do launcher → Cartões de módulo.</string>
+    <string name="card_prompt_hint">Um cartão mostrado substitui o ícone da aplicação.</string>
     <string name="card_prompt_identity">%1$s, chave %2$s</string>
     <string name="card_keep_hidden">Manter oculto</string>
     <string name="card_show">Mostrar cartão</string>

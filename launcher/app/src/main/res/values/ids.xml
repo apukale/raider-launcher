@@ -2,8 +2,34 @@
 <resources>
     <item name="nightNowChoice" type="id" />
     <item name="fontChoice" type="id" />
+    <item name="fontResetChoice" type="id" />
     <item name="inputNamesChoice" type="id" />
     <item name="weatherCityChoice" type="id" />
-    <item name="weatherDefaultChoice" type="id" />
     <item name="weatherUnitsChoice" type="id" />
+    <item name="hinduMasterChoice" type="id" />
+    <item name="worldCity1Choice" type="id" />
+    <item name="worldCity2Choice" type="id" />
+    <item name="worldCity3Choice" type="id" />
+    <item name="worldCity4Choice" type="id" />
+    <item name="worldDreamChoice" type="id" />
+    <item name="kidsChoice" type="id" />
+    <item name="homeClockDetail" type="id" />
+    <item name="photosMasterChoice" type="id" />
+    <item name="resourcesChoice" type="id" />
+    <item name="freeRamChoice" type="id" />
+    <item name="freeRamHomeChoice" type="id" />
+    <item name="worldClocksCaption" type="id" />
+    <item name="worldClockCityGrid" type="id" />
+    <item name="openPanchangChoice" type="id" />
+    <item name="openWorldClocksChoice" type="id" />
+    <item name="openWeatherChoice" type="id" />
+    <item name="homePhotosChoice" type="id" />
+    <item name="calendarPlaceChoice" type="id" />
+    <item name="homePhotoIntervalChoice" type="id" />
+    <item name="homePhoto" type="id" />
+    <item name="homeLayoutGrid" type="id" />
+    <item name="homeLayoutWeather" type="id" />
+    <item name="homeLayoutClocks" type="id" />
+    <item name="homeLayoutPanchang" type="id" />
+    <item name="homeLayoutScreensaver" type="id" />
 </resources>

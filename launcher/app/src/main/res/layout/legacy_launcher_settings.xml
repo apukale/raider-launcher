@@ -30,10 +30,10 @@
             android:textSize="20sp" />
 
         <TextView android:id="@+id/accentChoice" style="@style/SettingsRow" android:text="Accent colour: Marigold" />
-        <TextView android:id="@+id/moduleCardsChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" android:text="@string/module_cards_settings" />
         <TextView android:id="@+id/weatherChoice" style="@style/SettingsRow" android:layout_height="70dp" android:layout_marginTop="10dp" android:textSize="16sp" />
         <TextView android:id="@+id/pillLabelsChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" />
         <TextView android:id="@+id/nightModeChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" />
+        <TextView android:id="@+id/nightDimChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" android:text="Dim: 45%" />
         <TextView android:id="@+id/nightStartsChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" />
         <TextView android:id="@+id/nightEndsChoice" style="@style/SettingsRow" android:layout_marginTop="10dp" />
 

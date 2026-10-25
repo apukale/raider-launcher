@@ -101,7 +101,7 @@
     <string name="card_prompt_names">The card is named \'%1$s\'. The app is \'%2$s\'.</string>
     <string name="card_prompt_resigned">%1$s was updated with a different signing key, so your earlier answer no longer applies. Decide again for its card.</string>
     <string name="card_prompt_relabelled">%1$s changed the name of its card since you decided. Decide again for it.</string>
-    <string name="card_prompt_hint">You can change this later in Launcher settings → Module cards.</string>
+    <string name="card_prompt_hint">A shown card replaces that app\'s tile.</string>
     <string name="card_prompt_identity">%1$s, key %2$s</string>
     <string name="card_keep_hidden">Keep hidden</string>
     <string name="card_show">Show card</string>
@@ -122,6 +122,16 @@
     <string name="photo_storage">Photo storage: %1$d MB</string>
     <string name="photo_storage_title">Photo storage</string>
     <string name="photo_interval">Photo change interval: %1$s</string>
+    <string name="photo_interval_paused">Applies when Photos is on</string>
+    <string name="photos_home_on">Full-bleed photos on Home</string>
+    <string name="photos_home_off">Random gradient on Home</string>
+    <string name="home_module_weather">Weather</string>
+    <string name="home_module_clocks">World clocks</string>
+    <string name="home_module_panchang">Panchang</string>
+    <string name="home_module_screensaver">Screensaver</string>
+    <string name="open_panchang">Open Panchang</string>
+    <string name="open_world_clocks">Open World Clocks</string>
+    <string name="open_weather_now">Open weather now</string>
     <string name="hindu_calendar">Hindu calendar: %1$s</string>
     <string name="home_hindu_calendar">Hindu calendar on Home: %1$s</string>
     <string name="calendar_text_size">Calendar text size: %1$s</string>

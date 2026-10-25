@@ -32,7 +32,7 @@
     <string name="card_prompt_names">Kartın adı “%1$s”. Uygulamanın adı “%2$s”.</string>
     <string name="card_prompt_resigned">%1$s farklı bir imzalama anahtarıyla güncellendi; önceki yanıtınız artık geçerli değil. Kartı için yeniden karar verin.</string>
     <string name="card_prompt_relabelled">%1$s, kararınızdan bu yana kartının adını değiştirdi. Kartı için yeniden karar verin.</string>
-    <string name="card_prompt_hint">Bunu daha sonra Başlatıcı ayarları → Modül kartları bölümünden değiştirebilirsiniz.</string>
+    <string name="card_prompt_hint">Gösterilen kart, uygulamanın kutucuğunun yerini alır.</string>
     <string name="card_prompt_identity">%1$s, anahtar %2$s</string>
     <string name="card_keep_hidden">Gizli tut</string>
     <string name="card_show">Kartı göster</string>

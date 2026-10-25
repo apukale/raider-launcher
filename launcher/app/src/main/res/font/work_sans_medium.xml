@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Work Sans at weight 500. Baked once per process from @font/work_sans, same as Outfit: per-view fontVariationSettings is slow on a TV CPU. -->
+<font-family xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <font
+        android:font="@font/work_sans"
+        android:fontStyle="normal"
+        android:fontWeight="500"
+        android:fontVariationSettings="'wght' 500"
+        tools:targetApi="28" />
+</font-family>

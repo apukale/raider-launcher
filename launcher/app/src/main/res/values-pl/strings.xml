@@ -32,7 +32,7 @@
     <string name="card_prompt_names">Karta nazywa się „%1$s”. Aplikacja to „%2$s”.</string>
     <string name="card_prompt_resigned">Aplikacja %1$s została zaktualizowana z innym kluczem podpisu, więc Twoja wcześniejsza decyzja już nie obowiązuje. Zdecyduj ponownie o jej karcie.</string>
     <string name="card_prompt_relabelled">Aplikacja %1$s zmieniła nazwę swojej karty od czasu Twojej decyzji. Zdecyduj o niej ponownie.</string>
-    <string name="card_prompt_hint">Możesz to później zmienić w Ustawieniach launchera → Karty modułów.</string>
+    <string name="card_prompt_hint">Wyświetlona karta zastępuje kafelek aplikacji.</string>
     <string name="card_prompt_identity">%1$s, klucz %2$s</string>
     <string name="card_keep_hidden">Zostaw ukrytą</string>
     <string name="card_show">Pokaż kartę</string>

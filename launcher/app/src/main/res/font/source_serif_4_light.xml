@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Source Serif 4 at weight 300. Baked once per process from @font/source_serif_4, same as Outfit: per-view fontVariationSettings is slow on a TV CPU. -->
+<font-family xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <font
+        android:font="@font/source_serif_4"
+        android:fontStyle="normal"
+        android:fontWeight="300"
+        android:fontVariationSettings="'wght' 300"
+        tools:targetApi="28" />
+</font-family>

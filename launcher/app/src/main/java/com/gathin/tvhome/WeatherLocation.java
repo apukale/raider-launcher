@@ -16,31 +16,41 @@ import org.json.JSONObject;
 /** Weather (and Panchang) location chosen on the TV. Stored only in the TV's prefs, never in the repo. */
 final class WeatherLocation {
     static final String MODE="weather_loc_mode", LAT="weather_city_lat", LON="weather_city_lon", NAME="weather_city_name", UNITS="weather_units";
-    static final String CITY="city", BUILD="build";
+    /** Set once when a build location is copied into the city prefs. Not a user setting. */
+    static final String SEEDED="weather_city_seeded";
+    static final String CITY="city";
     static final class Place { final String name,label; final double lat,lon; Place(String n,String l,double la,double lo){name=n;label=l;lat=la;lon=lo;} }
 
     private static double num(String s){try{return Double.parseDouble(s.trim());}catch(Exception e){return Double.NaN;}}
     private static SharedPreferences prefs(Context c){return c.getSharedPreferences(Config.SETTINGS_NAME,Context.MODE_PRIVATE);}
     static boolean valid(double lat,double lon){return !Double.isNaN(lat)&&!Double.isNaN(lon)&&lat>=-90&&lat<=90&&lon>=-180&&lon<=180;}
-    static double buildLat(){return num(BuildConfig.WEATHER_LATITUDE);}
-    static double buildLon(){return num(BuildConfig.WEATHER_LONGITUDE);}
-    static boolean hasBuildDefault(){return valid(buildLat(),buildLon());}
-    static String buildPlace(){String p=BuildConfig.WEATHER_PLACE==null?"":BuildConfig.WEATHER_PLACE.trim();return p.isEmpty()&&hasBuildDefault()?"Build default":p;}
+    private static double buildLat(){return num(BuildConfig.WEATHER_LATITUDE);}
+    private static double buildLon(){return num(BuildConfig.WEATHER_LONGITUDE);}
+    private static boolean hasBuildDefault(){return valid(buildLat(),buildLon());}
+    /** Place name from the build, or empty. Never a "build default" label. */
+    private static String seedName(){String p=BuildConfig.WEATHER_PLACE==null?"":BuildConfig.WEATHER_PLACE.trim();return p;}
 
-    /** First run of 2.11.10: copy the build's local.properties location onto the TV so weather keeps working in later builds without it. */
-    static void migrate(Context c){SharedPreferences p=prefs(c);if(p.contains(MODE))return;SharedPreferences.Editor e=p.edit();
-        if(hasBuildDefault())e.putString(MODE,CITY).putString(LAT,Double.toString(buildLat())).putString(LON,Double.toString(buildLon())).putString(NAME,buildPlace());else e.putString(MODE,BUILD);e.apply();}
-    static boolean usingCity(Context c){migrate(c);return CITY.equals(prefs(c).getString(MODE,BUILD));}
-    /** The saved city, or null when the build/theme default is in use. */
-    static double[] override(Context c){if(!usingCity(c))return null;SharedPreferences p=prefs(c);double la=num(p.getString(LAT,"")),lo=num(p.getString(LON,""));return valid(la,lo)?new double[]{la,lo}:null;}
-    static String cityName(Context c){return prefs(c).getString(NAME,"");}
+    /**
+     * Location is the city saved on the TV. On the first run only, a WEATHER_* pair from the
+     * build is copied into those prefs so an existing install keeps its place. After that the
+     * city picker is the only way to change it. There is no "use build default" mode.
+     */
+    static void migrate(Context c){SharedPreferences p=prefs(c);double la=num(p.getString(LAT,"")),lo=num(p.getString(LON,""));
+        if(valid(la,lo)){if(!CITY.equals(p.getString(MODE,"")))p.edit().putString(MODE,CITY).apply();return;}
+        if(p.getBoolean(SEEDED,false))return;
+        SharedPreferences.Editor e=p.edit().putBoolean(SEEDED,true);
+        if(hasBuildDefault())e.putString(MODE,CITY).putString(LAT,Double.toString(buildLat())).putString(LON,Double.toString(buildLon())).putString(NAME,seedName());
+        e.apply();}
+    /** Saved city coordinates, or null when the TV has no city yet. */
+    static double[] override(Context c){migrate(c);SharedPreferences p=prefs(c);double la=num(p.getString(LAT,"")),lo=num(p.getString(LON,""));return valid(la,lo)?new double[]{la,lo}:null;}
+    static boolean hasCity(Context c){return override(c)!=null;}
+    static String cityName(Context c){String n=prefs(c).getString(NAME,"");return n==null?"":n;}
     static boolean fahrenheit(Context c){return "f".equals(prefs(c).getString(UNITS,"c"));}
-    static double lat(Context c,Config cfg){double[] o=override(c);return o!=null?o[0]:cfg.weatherLatitude;}
-    static double lon(Context c,Config cfg){double[] o=override(c);return o!=null?o[1]:cfg.weatherLongitude;}
-    static String place(Context c,Config cfg){return override(c)!=null?cityName(c):cfg.weatherPlace;}
+    static double lat(Context c,Config cfg){double[] o=override(c);return o!=null?o[0]:Double.NaN;}
+    static double lon(Context c,Config cfg){double[] o=override(c);return o!=null?o[1]:Double.NaN;}
+    static String place(Context c,Config cfg){return override(c)!=null?cityName(c):"";}
 
-    static void useCity(Context c,Place p){prefs(c).edit().putString(MODE,CITY).putString(LAT,Double.toString(p.lat)).putString(LON,Double.toString(p.lon)).putString(NAME,p.name).apply();changed(c);}
-    static void useBuild(Context c){prefs(c).edit().putString(MODE,BUILD).apply();changed(c);}
+    static void useCity(Context c,Place p){prefs(c).edit().putString(MODE,CITY).putBoolean(SEEDED,true).putString(LAT,Double.toString(p.lat)).putString(LON,Double.toString(p.lon)).putString(NAME,p.name).apply();changed(c);}
     static void setFahrenheit(Context c,boolean f){prefs(c).edit().putString(UNITS,f?"f":"c").apply();invalidate(c);}
     private static void changed(Context c){invalidate(c);Config.load(c);}
     /** Drop the cached reading so Home fetches again for the new place or units. */
