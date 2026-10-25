@@ -14,6 +14,22 @@ final class HomeFocusPhoto {
         return Math.max(INTERVAL_FLOOR_MS, stored);
     }
 
+    /**
+     * Delay before the next Home photo, or {@code 0} when Photos is off.
+     * A zero delay means do not schedule: the Home background stays a gradient and does not rotate.
+     */
+    static long rotationDelayMs(boolean photosOn, long stored) {
+        if (!photosOn) return 0L;
+        return intervalMs(stored);
+    }
+
+    /** Row value for the Photos change interval. Matches the picker: {@code 30 s}, {@code 1 min}. */
+    static String intervalLabel(long stored) {
+        long ms = intervalMs(stored);
+        if (ms % 60_000L == 0L) return (ms / 60_000L) + " min";
+        return (ms / 1000L) + " s";
+    }
+
     /** Theme colour at 70% over the photo, so the shade matches the solid home colour. */
     static int scrim(int background) { return 0xB3000000 | (background & 0x00FFFFFF); }
 

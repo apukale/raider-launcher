@@ -1,23 +1,24 @@
 package com.gathin.tvhome;
 
 /**
- * Calendar &amp; Clocks has nine rows (five single-line, four city rows with a second line) plus a caption.
- * India is the home clock and is not a row on this panel.
- * On a 1080p leanback TV the settings scroll area is short, so this picks row heights that fit it.
+ * Calendar &amp; Clocks is eleven single-line rows plus one caption.
+ * Open Panchang, Hindu calendar, Home, Screensaver, text size, four cities,
+ * screensaver clocks, and Open World Clocks. India is the home clock and is not a row.
+ * City rows are one line ("City N — name"), so this card has no two-line rows.
+ * On a 1080p leanback TV the settings scroll area is short; these heights fit it
+ * with a few dp to spare so the page does not scroll.
  */
 final class CalendarPanelFit {
-    static final int ROWS = 9;
-    static final int TWO_LINE = 4;
-    static final int SINGLE = ROWS - TWO_LINE;
+    static final int ROWS = 11;
+    static final int CAPTIONS = 1;
     /** Settings chrome: 27dp top, 27dp bottom, 44dp header, 16dp gap under the header. */
     static final int CHROME_DP = 27 + 27 + 44 + 16;
 
     static final class Spec {
-        final int singleDp, twoDp, captionDp, cardPadDp, gapDp, bottomPadDp;
+        final int rowDp, captionDp, cardPadDp, gapDp, bottomPadDp;
 
-        Spec(int singleDp, int twoDp, int captionDp, int cardPadDp, int gapDp, int bottomPadDp) {
-            this.singleDp = singleDp;
-            this.twoDp = twoDp;
+        Spec(int rowDp, int captionDp, int cardPadDp, int gapDp, int bottomPadDp) {
+            this.rowDp = rowDp;
             this.captionDp = captionDp;
             this.cardPadDp = cardPadDp;
             this.gapDp = gapDp;
@@ -25,7 +26,8 @@ final class CalendarPanelFit {
         }
 
         int totalDp() {
-            return cardPadDp * 2 + captionDp + gapDp * ROWS + singleDp * SINGLE + twoDp * TWO_LINE + bottomPadDp;
+            int children = ROWS + CAPTIONS;
+            return cardPadDp * 2 + captionDp + gapDp * children + rowDp * ROWS + bottomPadDp;
         }
 
         boolean fits(int viewportDp) {
@@ -41,34 +43,37 @@ final class CalendarPanelFit {
     }
 
     /**
-     * Readable sizes that still fit. Single-line rows stay at least 30dp; city rows stay at least 40dp
-     * so a 16sp title and a 13sp zone line both remain legible from the couch.
+     * Readable sizes that still fit, leaving 4dp for rounding. Rows stay at least 30dp.
+     * A 1dp gap is preferred over a taller row that would sit flush against the next one.
      */
     static Spec forViewport(int viewportDp, int contentBottomPadDp) {
         int bottom = Math.max(0, contentBottomPadDp);
-        int[] single = {40, 36, 34, 32, 30};
-        int[] two = {52, 48, 46, 44, 42, 40};
-        int[] caption = {22, 20, 18};
-        int[] pad = {8, 6, 4};
+        int limit = Math.max(0, viewportDp - 4);
+        int[] rows = {40, 36, 34, 32, 30};
+        int[] caption = {22, 20, 18, 16};
+        int[] pad = {8, 6, 4, 2};
         int[] gap = {4, 2, 1};
         Spec best = null;
-        for (int s : single) {
-            for (int t : two) {
-                if (t < s + 8) continue;
-                for (int c : caption) {
-                    for (int p : pad) {
-                        for (int g : gap) {
-                            Spec spec = new Spec(s, t, c, p, g, bottom);
-                            if (spec.fits(viewportDp) && (best == null || spec.singleDp > best.singleDp
-                                    || (spec.singleDp == best.singleDp && spec.twoDp > best.twoDp))) {
-                                best = spec;
-                            }
-                        }
+        for (int row : rows) {
+            for (int cap : caption) {
+                for (int cardPad : pad) {
+                    for (int gapDp : gap) {
+                        Spec spec = new Spec(row, cap, cardPad, gapDp, bottom);
+                        if (spec.totalDp() > limit) continue;
+                        if (better(spec, best)) best = spec;
                     }
                 }
             }
         }
         if (best != null) return best;
-        return new Spec(30, 40, 16, 2, 0, bottom);
+        return new Spec(30, 16, 2, 0, bottom);
+    }
+
+    private static boolean better(Spec spec, Spec best) {
+        if (best == null) return true;
+        if (spec.rowDp != best.rowDp) return spec.rowDp > best.rowDp;
+        if (spec.gapDp != best.gapDp) return spec.gapDp > best.gapDp;
+        if (spec.cardPadDp != best.cardPadDp) return spec.cardPadDp > best.cardPadDp;
+        return spec.captionDp > best.captionDp;
     }
 }

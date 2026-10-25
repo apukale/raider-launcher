@@ -6,6 +6,8 @@ The screensaver can use locally stored photos from Bing (last 8 days, India and 
 
 To enable Unsplash, add `UNSPLASH_ACCESS_KEY=<your Client-ID key>` to `launcher/local.properties`. This local file is not committed. If the key is absent, Unsplash is silently skipped.
 
+Version 2.11.32 centres the four world clocks and shows each city's GMT offset under the time (India included, for example GMT+5:30). Home full-bleed photos rotate on the Photos change interval while Photos is on, and use one random gradient while Photos is off. Calendar & Clocks lists each city on one line, opens Panchang and World Clocks, and fits a 1080p screen without scrolling. Weather settings opens the Weather page. The selected settings category on the left rail has a slight corner instead of a capsule.
+
 Version 2.11.31 draws OpenWeatherMap cloud cover on the Weather screen, in the same India frame as the map (the spot RainViewer radar used). Add `OPENWEATHERMAP_API_KEY=<your free Weather Maps 1.0 key>` to `launcher/local.properties` and rebuild. The key is not committed. With no key, the India map still shows and the top-right note reads "Cloud cover: no API key". After a build that includes the key, that note reads "Cloud cover" when tiles load. Forecast data stays on Open-Meteo and does not use this key.
 
 Version 2.5 adds an on-TV **Clear app cache** action. For broader cache access on a build that allows it, grant:

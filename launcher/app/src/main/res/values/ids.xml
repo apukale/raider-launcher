@@ -20,5 +20,8 @@
     <item name="freeRamChoice" type="id" />
     <item name="freeRamHomeChoice" type="id" />
     <item name="worldClocksCaption" type="id" />
+    <item name="openPanchangChoice" type="id" />
+    <item name="openWorldClocksChoice" type="id" />
+    <item name="openWeatherChoice" type="id" />
     <item name="homePhoto" type="id" />
 </resources>

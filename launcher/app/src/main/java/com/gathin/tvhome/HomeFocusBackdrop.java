@@ -16,7 +16,8 @@ import java.util.concurrent.Executors;
 
 /**
  * Full-bleed Home background behind the apps. Photos on: the screensaver photo store,
- * center-cropped, advancing on the Photos change interval. Photos off: one random gradient.
+ * center-cropped, advancing on the Photos change interval. Photos off: one random gradient,
+ * and the interval is not scheduled.
  */
 final class HomeFocusBackdrop {
     private static final long EMPTY_RETRY_MS = 8_000L;
@@ -115,7 +116,7 @@ final class HomeFocusBackdrop {
                 }
                 if (bitmap == null) {
                     showGradient();
-                    if (running) handler.postDelayed(tick, interval());
+                    schedule(rotationDelay());
                     return;
                 }
                 photo.setBackground(null);
@@ -126,10 +127,21 @@ final class HomeFocusBackdrop {
                 scrim.setAlpha(1f);
             });
         });
-        if (running) handler.postDelayed(tick, interval());
+        schedule(rotationDelay());
+    }
+
+    /** Schedule the next photo only when Photos is on. A zero delay leaves the gradient in place. */
+    private void schedule(long delay) {
+        if (running && delay > 0L) handler.postDelayed(tick, delay);
+    }
+
+    private long rotationDelay() {
+        SharedPreferences prefs = activity.getSharedPreferences(Config.SETTINGS_NAME, Activity.MODE_PRIVATE);
+        return HomeFocusPhoto.rotationDelayMs(PhotosMaster.on(activity), prefs.getLong("photo_interval_ms", HomeFocusPhoto.INTERVAL_DEFAULT_MS));
     }
 
     private void showGradient() {
+        handler.removeCallbacks(tick);
         generation++;
         currentFile = "";
         if (photo.getDrawable() != null || photo.getBackground() == null) {
@@ -139,11 +151,6 @@ final class HomeFocusBackdrop {
         }
         photo.setAlpha(1f);
         scrim.setAlpha(0f);
-    }
-
-    private long interval() {
-        SharedPreferences prefs = activity.getSharedPreferences(Config.SETTINGS_NAME, Activity.MODE_PRIVATE);
-        return HomeFocusPhoto.intervalMs(prefs.getLong("photo_interval_ms", HomeFocusPhoto.INTERVAL_DEFAULT_MS));
     }
 
     private void recycleShown(Bitmap keep) {

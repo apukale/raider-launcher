@@ -31,6 +31,7 @@ public class WorldClocksActivity extends Activity {
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ArrayList<TextView> times = new ArrayList<>();
+    private final ArrayList<TextView> offsets = new ArrayList<>();
     private final Runnable tick = new Runnable() {
         @Override public void run() {
             long now = System.currentTimeMillis();
@@ -38,12 +39,16 @@ public class WorldClocksActivity extends Activity {
                 Object zone = time.getTag();
                 if (zone instanceof String) time.setText(WorldClocks.formatTime((String) zone, now));
             }
+            for (TextView offset : offsets) {
+                Object zone = offset.getTag();
+                if (zone instanceof String) offset.setText(WorldClocks.formatOffset((String) zone, now));
+            }
             long delay = 60_000L - (now % 60_000L);
             main.postDelayed(this, Math.max(1000L, delay));
         }
     };
     private LinearLayout screenRoot, cityRow;
-    private TextView indiaTime;
+    private TextView indiaTime, indiaOffset;
     private TextView empty;
     private View changeBackground;
     private Bitmap backgroundBitmap;
@@ -139,20 +144,31 @@ public class WorldClocksActivity extends Activity {
         TextView title = text("World clocks", 28, R.font.outfit_medium, 0xFFF4F1EA);
         title.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         header.addView(title, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        long now = System.currentTimeMillis();
         LinearLayout india = new LinearLayout(this);
-        india.setOrientation(LinearLayout.HORIZONTAL);
-        india.setGravity(Gravity.CENTER_VERTICAL | Gravity.END);
+        india.setOrientation(LinearLayout.VERTICAL);
+        india.setGravity(Gravity.END);
         india.setPadding(dp(28), 0, 0, 0);
+        LinearLayout indiaRow = new LinearLayout(this);
+        indiaRow.setOrientation(LinearLayout.HORIZONTAL);
+        indiaRow.setGravity(Gravity.CENTER_VERTICAL | Gravity.END);
         TextView indiaLabel = text(WorldClocks.INDIA_LABEL, 16, R.font.outfit_medium, 0xFFA9ABC7);
         indiaLabel.setGravity(Gravity.CENTER_VERTICAL);
-        india.addView(indiaLabel);
-        indiaTime = text(WorldClocks.formatTime(WorldClocks.INDIA_ZONE, System.currentTimeMillis()), 26, R.font.outfit_light, Color.WHITE);
+        indiaRow.addView(indiaLabel);
+        indiaTime = text(WorldClocks.formatTime(WorldClocks.INDIA_ZONE, now), 26, R.font.outfit_light, Color.WHITE);
         indiaTime.setGravity(Gravity.CENTER_VERTICAL);
         indiaTime.setTag(WorldClocks.INDIA_ZONE);
         indiaTime.setContentDescription("India time");
         LinearLayout.LayoutParams indiaTimeLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         indiaTimeLp.setMarginStart(dp(10));
-        india.addView(indiaTime, indiaTimeLp);
+        indiaRow.addView(indiaTime, indiaTimeLp);
+        india.addView(indiaRow);
+        indiaOffset = text(WorldClocks.formatOffset(WorldClocks.INDIA_ZONE, now), 16, R.font.outfit_regular, 0xFFA9ABC7);
+        indiaOffset.setTag(WorldClocks.INDIA_ZONE);
+        indiaOffset.setContentDescription("India offset");
+        LinearLayout.LayoutParams indiaOffsetLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        indiaOffsetLp.topMargin = dp(2);
+        india.addView(indiaOffset, indiaOffsetLp);
         header.addView(india, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         ImageButton back = iconButton(R.drawable.ic_back, "Back", v -> goHome());
         header.addView(back);
@@ -172,17 +188,18 @@ public class WorldClocksActivity extends Activity {
         citiesLp.setMarginStart(dp(12));
         header.addView(cities, citiesLp);
         root.addView(header);
+        LinearLayout stage = new LinearLayout(this);
+        stage.setOrientation(LinearLayout.VERTICAL);
+        stage.setGravity(Gravity.CENTER);
+        root.addView(stage, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
         cityRow = new LinearLayout(this);
         cityRow.setOrientation(LinearLayout.HORIZONTAL);
         cityRow.setGravity(Gravity.CENTER);
         cityRow.setBaselineAligned(false);
-        LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        rowLp.topMargin = dp(36);
-        rowLp.bottomMargin = dp(8);
-        root.addView(cityRow, rowLp);
+        stage.addView(cityRow, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
         empty = text("No other cities set", 16, R.font.outfit_regular, 0xFFA9ABC7);
         empty.setVisibility(View.GONE);
-        root.addView(empty);
+        stage.addView(empty);
         back.requestFocus();
     }
 
@@ -195,11 +212,17 @@ public class WorldClocksActivity extends Activity {
     private void render() {
         cityRow.removeAllViews();
         times.clear();
+        offsets.clear();
         long now = System.currentTimeMillis();
         if (indiaTime != null) {
             indiaTime.setText(WorldClocks.formatTime(WorldClocks.INDIA_ZONE, now));
             indiaTime.setTag(WorldClocks.INDIA_ZONE);
             times.add(indiaTime);
+        }
+        if (indiaOffset != null) {
+            indiaOffset.setText(WorldClocks.formatOffset(WorldClocks.INDIA_ZONE, now));
+            indiaOffset.setTag(WorldClocks.INDIA_ZONE);
+            offsets.add(indiaOffset);
         }
         java.util.function.BiFunction<String, String, String> prefs =
                 getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)::getString;
@@ -210,7 +233,9 @@ public class WorldClocksActivity extends Activity {
             if (i > 0) lp.setMarginStart(dp(12));
             cityRow.addView(clockCard(cities.get(i), accent, now, 16, 28), lp);
         }
-        empty.setVisibility(cities.isEmpty() ? View.VISIBLE : View.GONE);
+        boolean none = cities.isEmpty();
+        cityRow.setVisibility(none ? View.GONE : View.VISIBLE);
+        empty.setVisibility(none ? View.VISIBLE : View.GONE);
     }
 
     private LinearLayout clockCard(WorldClocks.Clock clock, int accent, long now, int labelSp, int timeSp) {
@@ -230,15 +255,14 @@ public class WorldClocksActivity extends Activity {
         timeLp.topMargin = dp(8);
         card.addView(time, timeLp);
         times.add(time);
-        if (!clock.label.equals(clock.zone)) {
-            TextView zone = text(clock.zone, 13, R.font.outfit_regular, 0xFFA9ABC7);
-            zone.setMaxLines(2);
-            zone.setEllipsize(TextUtils.TruncateAt.END);
-            LinearLayout.LayoutParams zoneLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-            zoneLp.topMargin = dp(6);
-            card.addView(zone, zoneLp);
-        }
-        card.setContentDescription(clock.label + " " + time.getText());
+        String offsetText = WorldClocks.formatOffset(clock.zone, now);
+        TextView offset = text(offsetText, 16, R.font.outfit_regular, 0xFFA9ABC7);
+        offset.setTag(clock.zone);
+        LinearLayout.LayoutParams offsetLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        offsetLp.topMargin = dp(6);
+        card.addView(offset, offsetLp);
+        offsets.add(offset);
+        card.setContentDescription(clock.label + " " + time.getText() + " " + offsetText);
         return card;
     }
 

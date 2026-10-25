@@ -20,7 +20,8 @@ import org.json.JSONObject;
  * India (Asia/Kolkata) plus four city slots. India is fixed and is not a preference.
  * A slot's display label is stored apart from its zone id, so the zone can be
  * America/New_York while the label is NYC. The Hindu calendar master does not hide these clocks.
- * Home draws only the clock. The world clocks screen shows India in the header, beside the title, and the four cities below.
+ * Home draws only the clock. The world clocks screen shows India in the header, beside the title, and the four cities
+ * vertically centred below it. Each clock shows its GMT offset under the time.
  * The screensaver strip, when enabled, shows those four cities and not India.
  */
 final class WorldClocks {
@@ -155,6 +156,28 @@ final class WorldClocks {
         SimpleDateFormat format = new SimpleDateFormat("h:mm a", Locale.US);
         format.setTimeZone(TimeZone.getTimeZone(zoneId));
         return format.format(new Date(epochMs)).replace('\u202F', ' ').replace('\u00A0', ' ');
+    }
+
+    /**
+     * Offset of {@code zoneId} at {@code epochMs}, including daylight saving.
+     * Whole hours are {@code GMT+5} or {@code GMT-8}. Hours and minutes are {@code GMT+5:30}.
+     * A zero offset is {@code GMT+0}.
+     */
+    static String formatOffset(String zoneId, long epochMs) {
+        String id = zoneId == null || zoneId.trim().isEmpty() ? "GMT" : zoneId.trim();
+        int minutes = (int) Math.round(TimeZone.getTimeZone(id).getOffset(epochMs) / 60_000.0);
+        char sign = minutes < 0 ? '-' : '+';
+        int abs = Math.abs(minutes);
+        int hours = abs / 60;
+        int mins = abs % 60;
+        if (mins == 0) return "GMT" + sign + hours;
+        return "GMT" + sign + hours + ":" + (mins < 10 ? "0" : "") + mins;
+    }
+
+    /** One settings line, for example {@code City 1 — Los Angeles}. No second timezone line. */
+    static String settingsLine(int slot, String label) {
+        String shown = label == null ? "" : label.trim();
+        return "City " + (slot + 1) + " \u2014 " + shown;
     }
 
     /** India, then each configured city, on one line. Home does not draw this. */

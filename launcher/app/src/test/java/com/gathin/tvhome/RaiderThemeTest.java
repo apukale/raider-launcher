@@ -70,6 +70,16 @@ public class RaiderThemeTest {
         assertEquals(30_000L, HomeFocusPhoto.intervalMs(0));
         assertEquals(120_000L, HomeFocusPhoto.intervalMs(120_000L));
         assertEquals(0x59000000, HomeFocusPhoto.PHOTO_SCRIM);
+        assertEquals(0L, HomeFocusPhoto.rotationDelayMs(false, 300_000L));
+        assertEquals(0L, HomeFocusPhoto.rotationDelayMs(false, 0L));
+        assertEquals(60_000L, HomeFocusPhoto.rotationDelayMs(true, 60_000L));
+        assertEquals(30_000L, HomeFocusPhoto.rotationDelayMs(true, 1L));
+        assertEquals(300_000L, HomeFocusPhoto.rotationDelayMs(true, 300_000L));
+        assertEquals("30 s", HomeFocusPhoto.intervalLabel(30_000L));
+        assertEquals("1 min", HomeFocusPhoto.intervalLabel(60_000L));
+        assertEquals("2 min", HomeFocusPhoto.intervalLabel(120_000L));
+        assertEquals("5 min", HomeFocusPhoto.intervalLabel(300_000L));
+        assertEquals("30 s", HomeFocusPhoto.intervalLabel(0L));
     }
 
     @Test(timeout = 5000) public void photosMasterDefaultsOn() {
@@ -102,9 +112,17 @@ public class RaiderThemeTest {
         assertEquals(426, viewport);
         CalendarPanelFit.Spec spec = CalendarPanelFit.forViewport(viewport, 24);
         assertTrue(spec.fits(viewport));
-        assertTrue(spec.singleDp >= 30);
-        assertTrue(spec.twoDp >= 40);
-        assertEquals(CalendarPanelFit.ROWS, 9);
+        assertTrue(spec.totalDp() <= viewport - 4);
+        assertTrue(spec.rowDp >= 30);
+        assertTrue(spec.gapDp >= 1);
+        assertEquals(11, CalendarPanelFit.ROWS);
+        assertEquals(1, CalendarPanelFit.CAPTIONS);
+    }
+
+    @Test(timeout = 5000) public void leftRailCornerIsMuchLessThanACapsule() {
+        assertEquals(4, SettingsStyle.RAIL_CORNER_DP);
+        int railRowDp = 36;
+        assertTrue(SettingsStyle.RAIL_CORNER_DP * 2 < railRowDp / 2);
     }
 
     @Test(timeout = 5000) public void freeRamSkipsForegroundSelfSystemAndHome() {

@@ -96,6 +96,37 @@ public class WorldClocksTest {
     }
 
     @Test(timeout = 5000)
+    public void offsetUsesTheZoneAtThatInstant() {
+        assertEquals("GMT+5:30", WorldClocks.formatOffset(WorldClocks.INDIA_ZONE, NOON_UTC));
+        assertEquals("GMT+0", WorldClocks.formatOffset("Europe/London", NOON_UTC));
+        assertEquals("GMT-5", WorldClocks.formatOffset("America/New_York", NOON_UTC));
+        assertEquals("GMT-8", WorldClocks.formatOffset("America/Los_Angeles", NOON_UTC));
+        assertEquals("GMT+4", WorldClocks.formatOffset("Asia/Dubai", NOON_UTC));
+        assertEquals("GMT+9", WorldClocks.formatOffset("Asia/Tokyo", NOON_UTC));
+        assertEquals("GMT+5:45", WorldClocks.formatOffset("Asia/Kathmandu", NOON_UTC));
+        assertEquals("GMT-3:30", WorldClocks.formatOffset("America/St_Johns", NOON_UTC));
+        long summer = Instant.parse("2026-07-15T12:00:00Z").toEpochMilli();
+        assertEquals("GMT+5:30", WorldClocks.formatOffset("Asia/Kolkata", summer));
+        assertEquals("GMT+1", WorldClocks.formatOffset("Europe/London", summer));
+        assertEquals("GMT-4", WorldClocks.formatOffset("America/New_York", summer));
+        assertEquals("GMT-7", WorldClocks.formatOffset("America/Los_Angeles", summer));
+        assertEquals("GMT-2:30", WorldClocks.formatOffset("America/St_Johns", summer));
+        assertEquals("GMT+13:45", WorldClocks.formatOffset("Pacific/Chatham", NOON_UTC));
+        assertEquals("GMT+0", WorldClocks.formatOffset(null, NOON_UTC));
+        assertEquals("GMT+0", WorldClocks.formatOffset("  ", NOON_UTC));
+        assertEquals("GMT+0", WorldClocks.formatOffset("Not/AZone", NOON_UTC));
+    }
+
+    @Test(timeout = 5000)
+    public void settingsLineIsCityAndSelectionOnOneLine() {
+        assertEquals("City 1 \u2014 Los Angeles", WorldClocks.settingsLine(0, "Los Angeles"));
+        assertEquals("City 2 \u2014 America/New_York", WorldClocks.settingsLine(1, "America/New_York"));
+        assertEquals("City 4 \u2014 NYC", WorldClocks.settingsLine(3, "  NYC  "));
+        assertFalse(WorldClocks.settingsLine(0, "Los Angeles").contains("\n"));
+        assertFalse(WorldClocks.settingsLine(0, "Foo: Bar").contains("\n"));
+    }
+
+    @Test(timeout = 5000)
     public void typedCityMatchesTheBuiltInList() {
         List<WorldClocks.Place> london = WorldClocks.matchLocal("lon");
         assertFalse(london.isEmpty());

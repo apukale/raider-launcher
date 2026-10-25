@@ -54,9 +54,14 @@ final class SettingsStyle {
     static GradientDrawable pill(Context c, int color) { GradientDrawable d = new GradientDrawable(); d.setColor(SURFACE); d.setCornerRadius(dp(c, 100)); return d; }
     static Drawable scrim() { return new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0x8C000000, 0xB3000000, 0xD9000000}); }
     static Drawable fallbackBackground() { return new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0xFF1C1B1F, 0xFF0E0E11}); }
+    /**
+     * Selected or focused left-rail item. The row is 36dp, so a capsule radius is about 18dp.
+     * 4dp is a slight corner on both ends, not a pill.
+     */
+    static final int RAIL_CORNER_DP = 4;
     /** Rows: transparent until focused, then a soft glow + 3 dp accent border drawn inside the row's bounds. */
     static Drawable focus(Context c, int color, boolean focused) { return focused ? new Glow(c, color, withAlpha(color, 0x24), true, false) : new ColorDrawable(0); }
-    static Drawable rail(Context c, int color, boolean selected, boolean focused) { return new Glow(c, color, selected ? (color | 0xFF000000) : 0, focused, true); }
+    static Drawable rail(Context c, int color, boolean selected, boolean focused) { return new Glow(c, color, selected ? (color | 0xFF000000) : 0, focused, true, RAIL_CORNER_DP); }
     static Drawable glow(Context c, int color, int fill, boolean focused, boolean pill) { return new Glow(c, color, fill, focused, pill); }
     static Drawable toggle(Context c, boolean on, int color) { return RaiderTheme.toggleDrawable(c, on, color); }
     static void scale(View v, boolean focused) {
@@ -70,12 +75,15 @@ final class SettingsStyle {
     private static final class Glow extends Drawable {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final int color, fill; private final boolean focused, pill; private final float d;
-        Glow(Context c, int color, int fill, boolean focused, boolean pill) { this.color = color; this.fill = fill; this.focused = focused; this.pill = pill; d = c.getResources().getDisplayMetrics().density; }
+        /** Corner radius in dp. Negative means a capsule (half the drawn height). */
+        private final float radiusDp;
+        Glow(Context c, int color, int fill, boolean focused, boolean pill) { this(c, color, fill, focused, pill, pill ? -1f : 12f); }
+        Glow(Context c, int color, int fill, boolean focused, boolean pill, float radiusDp) { this.color = color; this.fill = fill; this.focused = focused; this.pill = pill; this.radiusDp = radiusDp; d = c.getResources().getDisplayMetrics().density; }
         @Override public void draw(Canvas canvas) {
             android.graphics.Rect b = getBounds();
             float inset = (pill ? 3 : 5) * d;
             RectF r = new RectF(b.left + inset, b.top + inset, b.right - inset, b.bottom - inset);
-            float radius = pill ? r.height() / 2f : 12 * d;
+            float radius = radiusDp < 0f ? r.height() / 2f : radiusDp * d;
             if (focused) {
                 paint.setStyle(Paint.Style.FILL);
                 for (int k = 0; k < 4; k++) {        // soft halo, entirely inside the bounds
