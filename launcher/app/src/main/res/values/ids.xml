@@ -26,6 +26,7 @@
     <item name="calendarPlaceChoice" type="id" />
     <item name="homePhotoIntervalChoice" type="id" />
     <item name="homePhoto" type="id" />
+    <item name="homeLayoutGrid" type="id" />
     <item name="homeLayoutWeather" type="id" />
     <item name="homeLayoutClocks" type="id" />
     <item name="homeLayoutPanchang" type="id" />

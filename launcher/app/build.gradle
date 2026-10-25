@@ -15,8 +15,8 @@ android {
         applicationId 'com.gathin.tvhome'
         minSdk 26
         targetSdk 34
-        versionCode 48
-        versionName '2.11.34'
+        versionCode 49
+        versionName '2.11.35'
         // OPENWEATHERMAP_API_KEY: free Weather Maps 1.0 key for clouds_new on the Weather screen. Empty if unset.
         ['NASA_API_KEY', 'PEXELS_API_KEY', 'PIXABAY_API_KEY', 'WEATHER_LATITUDE', 'WEATHER_LONGITUDE', 'WEATHER_PLACE', 'OPENWEATHERMAP_API_KEY'].each { k -> buildConfigField 'String', k, '"' + (localProps.getProperty(k, '').replace('\\', '\\\\').replace('"', '\\"')) + '"' }
         buildConfigField 'String', 'UNSPLASH_ACCESS_KEY', '"' + (localProps.getProperty('UNSPLASH_ACCESS_KEY', '').replace('\\', '\\\\').replace('"', '\\"')) + '"'

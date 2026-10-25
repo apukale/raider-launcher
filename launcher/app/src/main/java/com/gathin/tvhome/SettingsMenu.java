@@ -4,6 +4,7 @@ package com.gathin.tvhome;
 final class SettingsMenu {
     /** Intent extra: open this left-rail index instead of Home Layout. */
     static final String OPEN_CATEGORY = "open_category";
+    static final int HOME = 0;
     static final int PHOTOS = 3;
     static final int CALENDAR = 4;
     static final String[] LABELS = {
