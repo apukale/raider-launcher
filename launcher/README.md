@@ -6,6 +6,8 @@ The screensaver can use locally stored photos from Bing (last 8 days, India and 
 
 To enable Unsplash, add `UNSPLASH_ACCESS_KEY=<your Client-ID key>` to `launcher/local.properties`. This local file is not committed. If the key is absent, Unsplash is silently skipped.
 
+Version 3.0.0.
+
 Version 2.11.36 lays City 1–4 in Calendar &amp; Clocks as a 2×2 under Open World Clocks, with the same gap between the columns, the rows, and the neighbouring controls, and still fits one 1080p screen. Clear cache and Free RAM use the same 4dp corner as the rest of settings.
 
 Version 2.11.35 puts Weather, World clocks, Panchang and Screensaver in a 2×2 at the top of Settings → Home Layout, above the other Home Layout controls. They are not on the Home screen. That Home Layout card is tightened so the 2×2 and the controls under it fit one 1080p screen without scrolling. Calendar &amp; Clocks puts Open World Clocks under the World clocks heading, and Hindu calendar placement is one choice: Only Home, or Home and Screensaver. World Clocks lays the four cities out in a 2×2 with a clear gap under the header, even gaps between the cards, and a clock face that keeps AM/PM on screen. The Weather screen keeps the current temperature and the hourly temperatures fully on screen, and the India cloud map sits inset from the screen edge. Weather location is only the city chosen in Settings → Weather. Home Layout can switch Photos on Home and the shared photo interval. Home background photos shuffle, so each session starts on a random photo and a finished pass uses a new order. The left rail, the right-hand card, and selected or focused rows all use the same 4dp corner. Rail items are spaced evenly down the 1080p column, and the right-hand card is inset equally on both sides.
