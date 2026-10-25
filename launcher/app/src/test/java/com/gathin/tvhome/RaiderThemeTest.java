@@ -113,11 +113,16 @@ public class RaiderThemeTest {
         CalendarPanelFit.Spec spec = CalendarPanelFit.forViewport(viewport, 24);
         assertTrue(spec.fits(viewport));
         assertTrue(spec.totalDp() <= viewport - 4);
-        assertTrue(spec.rowDp >= 30);
-        assertTrue(spec.gapDp >= 1);
-        assertEquals(10, CalendarPanelFit.ROWS);
+        assertTrue(spec.rowDp >= 36);
+        assertTrue(spec.gapDp >= 6);
+        assertTrue(spec.cardPadDp >= 6);
+        assertEquals(spec.gapDp, spec.cityGapDp);
+        assertEquals(spec.rowDp, spec.cityDp);
+        assertEquals(6, CalendarPanelFit.ROWS);
         assertEquals(1, CalendarPanelFit.CAPTIONS);
-        assertEquals(CalendarPanelFit.ROWS + CalendarPanelFit.CAPTIONS, CalendarPanelFit.ORDER.length);
+        assertEquals(2, CalendarPanelFit.CITY_ROWS);
+        assertEquals(2, CalendarPanelFit.CITY_COLUMNS);
+        assertEquals(CalendarPanelFit.ROWS + CalendarPanelFit.CAPTIONS + CalendarPanelFit.CITY_ROWS * CalendarPanelFit.CITY_COLUMNS, CalendarPanelFit.ORDER.length);
         assertTrue(CalendarPanelFit.index("open_panchang") < CalendarPanelFit.index("hindu"));
         assertTrue(CalendarPanelFit.index("hindu") < CalendarPanelFit.index("placement"));
         assertTrue(CalendarPanelFit.index("placement") < CalendarPanelFit.index("text_size"));
@@ -125,6 +130,9 @@ public class RaiderThemeTest {
         assertEquals(-1, CalendarPanelFit.index("screensaver_calendar"));
         assertTrue(CalendarPanelFit.index("world_clocks") < CalendarPanelFit.index("open_world_clocks"));
         assertTrue(CalendarPanelFit.index("open_world_clocks") < CalendarPanelFit.index("city1"));
+        assertTrue(CalendarPanelFit.index("city1") < CalendarPanelFit.index("city2"));
+        assertTrue(CalendarPanelFit.index("city2") < CalendarPanelFit.index("city3"));
+        assertTrue(CalendarPanelFit.index("city3") < CalendarPanelFit.index("city4"));
         assertTrue(CalendarPanelFit.index("city4") < CalendarPanelFit.index("screensaver_clocks"));
     }
 
