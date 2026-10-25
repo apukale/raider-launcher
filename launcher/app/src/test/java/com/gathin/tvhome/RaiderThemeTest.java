@@ -115,14 +115,51 @@ public class RaiderThemeTest {
         assertTrue(spec.totalDp() <= viewport - 4);
         assertTrue(spec.rowDp >= 30);
         assertTrue(spec.gapDp >= 1);
-        assertEquals(11, CalendarPanelFit.ROWS);
+        assertEquals(10, CalendarPanelFit.ROWS);
         assertEquals(1, CalendarPanelFit.CAPTIONS);
+        assertEquals(CalendarPanelFit.ROWS + CalendarPanelFit.CAPTIONS, CalendarPanelFit.ORDER.length);
+        assertTrue(CalendarPanelFit.index("open_panchang") < CalendarPanelFit.index("hindu"));
+        assertTrue(CalendarPanelFit.index("hindu") < CalendarPanelFit.index("placement"));
+        assertTrue(CalendarPanelFit.index("placement") < CalendarPanelFit.index("text_size"));
+        assertEquals(-1, CalendarPanelFit.index("home"));
+        assertEquals(-1, CalendarPanelFit.index("screensaver_calendar"));
+        assertTrue(CalendarPanelFit.index("open_world_clocks") < CalendarPanelFit.index("world_clocks"));
+        assertTrue(CalendarPanelFit.index("open_world_clocks") < CalendarPanelFit.index("city1"));
+        assertTrue(CalendarPanelFit.index("city4") < CalendarPanelFit.index("screensaver_clocks"));
     }
 
     @Test(timeout = 5000) public void leftRailCornerIsMuchLessThanACapsule() {
         assertEquals(4, SettingsStyle.RAIL_CORNER_DP);
         int railRowDp = 36;
         assertTrue(SettingsStyle.RAIL_CORNER_DP * 2 < railRowDp / 2);
+    }
+
+    @Test(timeout = 5000) public void rightPanelFocusCornerMatchesTheLeftRail() {
+        assertEquals(SettingsStyle.RAIL_CORNER_DP, SettingsStyle.CONTENT_CORNER_DP);
+        assertEquals(4f, SettingsStyle.focusCornerDp(false), 0f);
+        assertTrue(SettingsStyle.focusCornerDp(true) < 0f);
+    }
+
+    @Test(timeout = 5000) public void leftRailGapsAreEvenOnA1080pColumn() {
+        int viewport = CalendarPanelFit.viewportDp(540);
+        assertEquals(426, viewport);
+        int count = SettingsMenu.LABELS.length;
+        int[] gaps = SettingsChrome.railGapsPx(viewport, count, 1f);
+        assertEquals(count - 1, gaps.length);
+        int sum = 0, min = Integer.MAX_VALUE, max = 0;
+        for (int gap : gaps) { sum += gap; if (gap < min) min = gap; if (gap > max) max = gap; }
+        assertTrue(min >= SettingsChrome.RAIL_MIN_GAP_DP);
+        assertTrue(max <= SettingsChrome.RAIL_MAX_GAP_DP);
+        assertTrue(max - min <= 1);
+        int total = SettingsChrome.RAIL_PAD_DP * 2 + SettingsChrome.RAIL_ROW_DP * count + sum;
+        assertEquals(viewport, total);
+        assertTrue(SettingsChrome.RAIL_PAD_DP >= 8);
+    }
+
+    @Test(timeout = 5000) public void rightPanelInsetIsEqualOnBothSides() {
+        assertTrue(SettingsChrome.PANEL_GUTTER_DP >= 24);
+        assertTrue(SettingsChrome.PANEL_PAD_H_DP >= 16);
+        assertTrue(SettingsChrome.PANEL_PAD_H_DP > 12);
     }
 
     @Test(timeout = 5000) public void freeRamSkipsForegroundSelfSystemAndHome() {

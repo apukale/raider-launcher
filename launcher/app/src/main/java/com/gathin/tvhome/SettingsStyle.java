@@ -59,6 +59,13 @@ final class SettingsStyle {
      * 4dp is a slight corner on both ends, not a pill.
      */
     static final int RAIL_CORNER_DP = 4;
+    /**
+     * Right-panel rows and pickers use the same slight corner as the left rail.
+     * A capsule is only for a real pill.
+     */
+    static final int CONTENT_CORNER_DP = RAIL_CORNER_DP;
+    /** Corner radius in dp. Negative means a capsule. */
+    static float focusCornerDp(boolean capsule) { return capsule ? -1f : CONTENT_CORNER_DP; }
     /** Rows: transparent until focused, then a soft glow + 3 dp accent border drawn inside the row's bounds. */
     static Drawable focus(Context c, int color, boolean focused) { return focused ? new Glow(c, color, withAlpha(color, 0x24), true, false) : new ColorDrawable(0); }
     static Drawable rail(Context c, int color, boolean selected, boolean focused) { return new Glow(c, color, selected ? (color | 0xFF000000) : 0, focused, true, RAIL_CORNER_DP); }
@@ -77,7 +84,7 @@ final class SettingsStyle {
         private final int color, fill; private final boolean focused, pill; private final float d;
         /** Corner radius in dp. Negative means a capsule (half the drawn height). */
         private final float radiusDp;
-        Glow(Context c, int color, int fill, boolean focused, boolean pill) { this(c, color, fill, focused, pill, pill ? -1f : 12f); }
+        Glow(Context c, int color, int fill, boolean focused, boolean pill) { this(c, color, fill, focused, pill, focusCornerDp(pill)); }
         Glow(Context c, int color, int fill, boolean focused, boolean pill, float radiusDp) { this.color = color; this.fill = fill; this.focused = focused; this.pill = pill; this.radiusDp = radiusDp; d = c.getResources().getDisplayMetrics().density; }
         @Override public void draw(Canvas canvas) {
             android.graphics.Rect b = getBounds();

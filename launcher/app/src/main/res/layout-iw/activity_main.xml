@@ -67,15 +67,97 @@
                 android:layout_height="wrap_content"
                 android:layout_alignParentStart="true"
                 android:layout_alignParentTop="true"
-                    android:layout_marginTop="0dp"
+                android:layout_marginTop="0dp"
                 android:layout_marginBottom="6dp"
-                android:orientation="horizontal">
+                android:orientation="vertical"
+                android:gravity="start"
+                android:clipChildren="false"
+                android:clipToPadding="false">
+
+                <LinearLayout
+                    android:id="@+id/homeModuleGrid"
+                    android:layout_width="320dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:orientation="vertical"
+                    android:clipChildren="false"
+                    android:clipToPadding="false">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:clipChildren="false"
+                        android:clipToPadding="false">
+
+                        <TextView
+                            android:id="@+id/homeModuleWeather"
+                            style="@style/HomeModuleBlock"
+                            android:layout_marginEnd="6dp"
+                            android:text="@string/home_module_weather"
+                            android:drawableStart="@drawable/ic_cat_weather"
+                            android:contentDescription="@string/home_module_weather"
+                            android:nextFocusRight="@+id/homeModuleClocks"
+                            android:nextFocusDown="@+id/homeModulePanchang" />
+
+                        <TextView
+                            android:id="@+id/homeModuleClocks"
+                            style="@style/HomeModuleBlock"
+                            android:text="@string/home_module_clocks"
+                            android:drawableStart="@drawable/ic_clock"
+                            android:contentDescription="@string/home_module_clocks"
+                            android:nextFocusLeft="@+id/homeModuleWeather"
+                            android:nextFocusDown="@+id/homeModuleScreensaver"
+                            android:nextFocusRight="@+id/clock" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:orientation="horizontal"
+                        android:clipChildren="false"
+                        android:clipToPadding="false">
+
+                        <TextView
+                            android:id="@+id/homeModulePanchang"
+                            style="@style/HomeModuleBlock"
+                            android:layout_marginEnd="6dp"
+                            android:text="@string/home_module_panchang"
+                            android:drawableStart="@drawable/ic_cat_calendar"
+                            android:contentDescription="@string/home_module_panchang"
+                            android:nextFocusUp="@+id/homeModuleWeather"
+                            android:nextFocusRight="@+id/homeModuleScreensaver"
+                            android:nextFocusDown="@+id/btnSettings" />
+
+                        <TextView
+                            android:id="@+id/homeModuleScreensaver"
+                            style="@style/HomeModuleBlock"
+                            android:text="@string/home_module_screensaver"
+                            android:drawableStart="@drawable/ic_cat_screensaver"
+                            android:contentDescription="@string/home_module_screensaver"
+                            android:nextFocusUp="@+id/homeModuleClocks"
+                            android:nextFocusLeft="@+id/homeModulePanchang"
+                            android:nextFocusDown="@+id/btnInputs"
+                            android:nextFocusRight="@+id/homeCalendarStack" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/homePillRow"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="start"
+                    android:orientation="horizontal"
+                    android:clipChildren="false"
+                    android:clipToPadding="false">
 
                 <TextView
                     android:id="@+id/btnSettings"
                     style="@style/TopButton"
                     android:text="@string/settings"
                     android:drawableStart="@drawable/ic_settings"
+                    android:nextFocusUp="@+id/homeModulePanchang"
                     android:nextFocusDown="@+id/grid" />
 
                 <TextView
@@ -86,6 +168,7 @@
                     android:ellipsize="end"
                     android:text="@string/wifi"
                     android:drawableStart="@drawable/ic_wifi"
+                    android:nextFocusUp="@+id/homeModulePanchang"
                     android:nextFocusDown="@+id/grid" />
 
                 <TextView
@@ -93,7 +176,9 @@
                     style="@style/TopButton"
                     android:text="@string/inputs"
                     android:drawableStart="@drawable/ic_input"
+                    android:nextFocusUp="@+id/homeModuleScreensaver"
                     android:nextFocusDown="@+id/grid" />
+                </LinearLayout>
             </LinearLayout>
         </RelativeLayout>
 

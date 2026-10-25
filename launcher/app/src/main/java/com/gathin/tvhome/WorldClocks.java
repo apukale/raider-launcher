@@ -21,7 +21,7 @@ import org.json.JSONObject;
  * A slot's display label is stored apart from its zone id, so the zone can be
  * America/New_York while the label is NYC. The Hindu calendar master does not hide these clocks.
  * Home draws only the clock. The world clocks screen shows India in the header, beside the title, and the four cities
- * vertically centred below it. Each clock shows its GMT offset under the time.
+ * in tall translucent cards that fill the space below it. Each clock shows its GMT offset under the time.
  * The screensaver strip, when enabled, shows those four cities and not India.
  */
 final class WorldClocks {

@@ -196,7 +196,7 @@ public class WorldClocksActivity extends Activity {
         cityRow.setOrientation(LinearLayout.HORIZONTAL);
         cityRow.setGravity(Gravity.CENTER);
         cityRow.setBaselineAligned(false);
-        stage.addView(cityRow, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        stage.addView(cityRow, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT));
         empty = text("No other cities set", 16, R.font.outfit_regular, 0xFFA9ABC7);
         empty.setVisibility(View.GONE);
         stage.addView(empty);
@@ -229,41 +229,54 @@ public class WorldClocksActivity extends Activity {
         int accent = RaiderTheme.accent(this);
         List<WorldClocks.Clock> cities = WorldClocks.cities(prefs);
         for (int i = 0; i < cities.size(); i++) {
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1);
             if (i > 0) lp.setMarginStart(dp(12));
-            cityRow.addView(clockCard(cities.get(i), accent, now, 16, 28), lp);
+            cityRow.addView(clockCard(cities.get(i), accent, now), lp);
         }
         boolean none = cities.isEmpty();
         cityRow.setVisibility(none ? View.GONE : View.VISIBLE);
         empty.setVisibility(none ? View.VISIBLE : View.GONE);
     }
 
-    private LinearLayout clockCard(WorldClocks.Clock clock, int accent, long now, int labelSp, int timeSp) {
+    private LinearLayout clockCard(WorldClocks.Clock clock, int accent, long now) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setGravity(Gravity.CENTER_HORIZONTAL);
-        card.setPadding(dp(14), dp(16), dp(14), dp(16));
-        card.setBackground(RaiderTheme.card(this));
+        card.setMinimumHeight(dp(WorldClockCards.MIN_HEIGHT_DP));
+        card.setPadding(dp(WorldClockCards.PAD_H_DP), dp(WorldClockCards.PAD_V_DP), dp(WorldClockCards.PAD_H_DP), dp(WorldClockCards.PAD_V_DP));
+        GradientDrawable fill = new GradientDrawable();
+        fill.setColor(WorldClockCards.FILL);
+        fill.setCornerRadius(dp(16));
+        fill.setStroke(Math.max(1, dp(1)), WorldClockCards.STROKE);
+        card.setBackground(fill);
         card.setFocusable(false);
-        TextView label = text(clock.label, labelSp, R.font.outfit_medium, accent);
+        TextView label = text(clock.label, WorldClockCards.LABEL_SP, R.font.outfit_medium, accent);
         label.setMaxLines(2);
         label.setEllipsize(TextUtils.TruncateAt.END);
-        card.addView(label);
-        TextView time = text(WorldClocks.formatTime(clock.zone, now), timeSp, R.font.outfit_light, Color.WHITE);
+        card.addView(label, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        card.addView(clockSpacer(), new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
+        TextView time = text(WorldClocks.formatTime(clock.zone, now), WorldClockCards.TIME_SP, R.font.outfit_light, Color.WHITE);
         time.setTag(clock.zone);
-        LinearLayout.LayoutParams timeLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        timeLp.topMargin = dp(8);
-        card.addView(time, timeLp);
+        time.setMaxLines(1);
+        time.setSingleLine(true);
+        time.setEllipsize(TextUtils.TruncateAt.END);
+        time.setAutoSizeTextTypeUniformWithConfiguration(WorldClockCards.TIME_MIN_SP, WorldClockCards.TIME_SP, 2, android.util.TypedValue.COMPLEX_UNIT_SP);
+        card.addView(time, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
         times.add(time);
+        card.addView(clockSpacer(), new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
         String offsetText = WorldClocks.formatOffset(clock.zone, now);
-        TextView offset = text(offsetText, 16, R.font.outfit_regular, 0xFFA9ABC7);
+        TextView offset = text(offsetText, WorldClockCards.OFFSET_SP, R.font.outfit_regular, 0xFFA9ABC7);
         offset.setTag(clock.zone);
-        LinearLayout.LayoutParams offsetLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        offsetLp.topMargin = dp(6);
-        card.addView(offset, offsetLp);
+        card.addView(offset, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
         offsets.add(offset);
         card.setContentDescription(clock.label + " " + time.getText() + " " + offsetText);
         return card;
+    }
+
+    private View clockSpacer() {
+        View spacer = new View(this);
+        spacer.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        return spacer;
     }
 
     private void nextBackground() {

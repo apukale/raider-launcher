@@ -23,5 +23,8 @@
     <item name="openPanchangChoice" type="id" />
     <item name="openWorldClocksChoice" type="id" />
     <item name="openWeatherChoice" type="id" />
+    <item name="homePhotosChoice" type="id" />
+    <item name="calendarPlaceChoice" type="id" />
+    <item name="homePhotoIntervalChoice" type="id" />
     <item name="homePhoto" type="id" />
 </resources>

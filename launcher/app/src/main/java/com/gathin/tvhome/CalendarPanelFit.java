@@ -1,16 +1,39 @@
 package com.gathin.tvhome;
 
 /**
- * Calendar &amp; Clocks is eleven single-line rows plus one caption.
- * Open Panchang, Hindu calendar, Home, Screensaver, text size, four cities,
- * screensaver clocks, and Open World Clocks. India is the home clock and is not a row.
+ * Calendar &amp; Clocks is ten single-line rows plus one caption.
+ * Open Panchang stays above Hindu calendar. One Show row replaces the old
+ * Home and Screensaver toggles. Open World Clocks sits above the
+ * World clocks caption and the four city rows, not at the bottom of the card.
+ * India is the home clock and is not a row.
  * City rows are one line ("City N — name"), so this card has no two-line rows.
  * On a 1080p leanback TV the settings scroll area is short; these heights fit it
  * with a few dp to spare so the page does not scroll.
  */
 final class CalendarPanelFit {
-    static final int ROWS = 11;
+    static final int ROWS = 10;
     static final int CAPTIONS = 1;
+    /**
+     * On-screen order. Open World Clocks is before the caption and the city rows.
+     * Open Panchang stays first, ahead of Hindu calendar. Reordering must not add a row:
+     * {@link #ROWS} is what keeps the card inside a 1080p leanback scroll area.
+     */
+    static final String[] ORDER = {
+            "open_panchang",
+            "hindu",
+            "placement",
+            "text_size",
+            "open_world_clocks",
+            "world_clocks",
+            "city1", "city2", "city3", "city4",
+            "screensaver_clocks"
+    };
+
+    static int index(String id) {
+        if (id == null) return -1;
+        for (int i = 0; i < ORDER.length; i++) if (ORDER[i].equals(id)) return i;
+        return -1;
+    }
     /** Settings chrome: 27dp top, 27dp bottom, 44dp header, 16dp gap under the header. */
     static final int CHROME_DP = 27 + 27 + 44 + 16;
 

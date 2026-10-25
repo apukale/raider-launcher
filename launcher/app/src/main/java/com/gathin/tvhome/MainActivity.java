@@ -20,6 +20,7 @@ import android.graphics.Rect;
 import android.graphics.Shader;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.media.tv.TvContract;
 import android.media.tv.TvInputInfo;
 import android.media.tv.TvInputManager;
@@ -134,6 +135,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView shamsiDate;
     private TextView homeDate;
     private TextView homeWeather;
+    private final TextView[] homeModules = new TextView[HomeModules.COUNT];
     private TextView homeCalendarLine1, homeCalendarTithi, homeCalendarMoon, homeCalendarRahu;
     private View homeCalendarDivider, homeCalendarStack;
     private Config config;
@@ -440,7 +442,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         boolean rtlMenuBar = getResources().getBoolean(R.bool.rtl_menu_bar);
         View.OnKeyListener pillKeys = (v, keyCode, event) -> {
             if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
-            if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                focusModuleAbovePill(v.getId());
+                return true;
+            }
             if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
                 // Back to the dock tile Up came from, not wherever the focus finder lands.
                 focusTile(lastFocused % COLUMNS);
@@ -484,6 +489,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         .setDuration(160).start());
             }
         }
+        wireHomeModules();
 
         // Hide the glass when focus leaves the tiles.
         getWindow().getDecorView().getViewTreeObserver().addOnGlobalFocusChangeListener((oldF, newF) -> {
@@ -895,6 +901,117 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         paint(R.id.homeCalendarTithi, muted);
         paint(R.id.homeCalendarMoon, muted);
         paint(R.id.homeCalendarRahu, muted);
+        for (TextView block : homeModules) if (block != null) styleHomeModule(block, block.isFocused(), false);
+    }
+
+    /** Weather, World clocks, Panchang and Screensaver, in a 2×2 above Settings. */
+    private void wireHomeModules() {
+        int[] ids = {R.id.homeModuleWeather, R.id.homeModuleClocks, R.id.homeModulePanchang, R.id.homeModuleScreensaver};
+        int[] icons = {R.drawable.ic_cat_weather, R.drawable.ic_clock, R.drawable.ic_cat_calendar, R.drawable.ic_cat_screensaver};
+        boolean contentOnRight = getResources().getBoolean(R.bool.rtl_menu_bar);
+        int iconPx = Math.round(18 * density);
+        for (int i = 0; i < ids.length; i++) {
+            TextView block = findViewById(ids[i]);
+            homeModules[i] = block;
+            if (block == null) continue;
+            final int index = i;
+            Drawable icon = getDrawable(icons[i]);
+            if (icon != null) {
+                icon = icon.mutate();
+                icon.setBounds(0, 0, iconPx, iconPx);
+                block.setCompoundDrawablesRelative(icon, null, null, null);
+                block.setCompoundDrawablePadding(Math.round(8 * density));
+            }
+            block.setFocusable(true);
+            block.setClickable(true);
+            styleHomeModule(block, false, false);
+            block.setOnClickListener(v -> openHomeModule(index));
+            block.setOnKeyListener((v, key, event) -> onHomeModuleKey(index, key, event, contentOnRight));
+            block.setOnFocusChangeListener((v, focused) -> styleHomeModule((TextView) v, focused, true));
+        }
+        if (homeWeather != null) {
+            int towardModules = contentOnRight ? R.id.homeModuleClocks : R.id.homeModuleWeather;
+            homeWeather.setNextFocusRightId(contentOnRight ? R.id.weather : towardModules);
+            homeWeather.setNextFocusLeftId(contentOnRight ? towardModules : R.id.weather);
+            homeWeather.setNextFocusUpId(towardModules);
+        }
+        if (homeCalendarStack != null) {
+            if (contentOnRight) homeCalendarStack.setNextFocusLeftId(R.id.homeModuleScreensaver);
+            else homeCalendarStack.setNextFocusRightId(R.id.homeModulePanchang);
+        }
+    }
+
+    private void styleHomeModule(TextView block, boolean focused, boolean animate) {
+        int accent = RaiderTheme.accent(this);
+        block.setBackground(RaiderTheme.focusBackground(this, accent, focused));
+        block.setTextColor(RaiderTheme.theme(this).onSurface);
+        Drawable icon = block.getCompoundDrawablesRelative()[0];
+        if (icon != null) icon.setTint(accent);
+        float scale = focused ? 1.04f : 1f;
+        if (animate && animations && !reducedMotion) {
+            block.animate().scaleX(scale).scaleY(scale).setDuration(160).start();
+        } else {
+            block.animate().cancel();
+            block.setScaleX(scale);
+            block.setScaleY(scale);
+        }
+    }
+
+    private void openHomeModule(int index) {
+        if (index == HomeModules.WEATHER) open(new Intent(this, WeatherActivity.class));
+        else if (index == HomeModules.CLOCKS) open(new Intent(this, WorldClocksActivity.class));
+        else if (index == HomeModules.PANCHANG) open(new Intent(this, PanchangActivity.class));
+        else if (index == HomeModules.SCREENSAVER) startScreensaver();
+    }
+
+    private boolean onHomeModuleKey(int index, int key, KeyEvent event, boolean contentOnRight) {
+        if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+        if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
+            openHomeModule(index);
+            return true;
+        }
+        int direction = key == KeyEvent.KEYCODE_DPAD_LEFT ? HomeModules.LEFT
+                : key == KeyEvent.KEYCODE_DPAD_RIGHT ? HomeModules.RIGHT
+                : key == KeyEvent.KEYCODE_DPAD_UP ? HomeModules.UP
+                : key == KeyEvent.KEYCODE_DPAD_DOWN ? HomeModules.DOWN : -1;
+        if (direction < 0) return false;
+        int next = HomeModules.neighbor(index, direction, contentOnRight);
+        if (next == HomeModules.STAY) return true;
+        if (next == HomeModules.EXIT_SIDE) return focusBesideModules();
+        if (next == HomeModules.EXIT_DOWN) {
+            focusPill(HomeModules.pillBelow(index, contentOnRight));
+            return true;
+        }
+        if (next >= 0 && next < homeModules.length && homeModules[next] != null) homeModules[next].requestFocus();
+        return true;
+    }
+
+    private boolean focusBesideModules() {
+        if (homeCalendarStack != null && homeCalendarStack.getVisibility() == View.VISIBLE && homeCalendarStack.isFocusable()) {
+            homeCalendarStack.requestFocus();
+            return true;
+        }
+        View clock = findViewById(R.id.clock);
+        if (clock != null && clock.getVisibility() == View.VISIBLE && clock.isFocusable()) {
+            clock.requestFocus();
+            return true;
+        }
+        if (homeWeather != null && homeWeather.getVisibility() == View.VISIBLE && homeWeather.isFocusable()) homeWeather.requestFocus();
+        return true;
+    }
+
+    private void focusModuleAbovePill(int pillId) {
+        boolean contentOnRight = getResources().getBoolean(R.bool.rtl_menu_bar);
+        int pill = pillId == R.id.btnSettings ? HomeModules.PILL_SETTINGS : HomeModules.PILL_INPUTS;
+        int index = HomeModules.moduleAbovePill(pill, contentOnRight);
+        if (index >= 0 && index < homeModules.length && homeModules[index] != null) homeModules[index].requestFocus();
+    }
+
+    private void focusPill(int pill) {
+        int id = pill == HomeModules.PILL_SETTINGS ? R.id.btnSettings : R.id.btnInputs;
+        View target = findViewById(id);
+        if (target != null && target.getVisibility() == View.VISIBLE) target.requestFocus();
+        else if (btnWifi != null) btnWifi.requestFocus();
     }
 
     private void paint(int id, int color) {
@@ -1274,7 +1391,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void applyPillLabels(){if(btnInputs==null||btnWifi==null)return;TextView settings=findViewById(R.id.btnSettings);TextView[] buttons={(TextView)btnInputs,btnWifi,settings};int[] icons={R.drawable.ic_input,wifiIconRes!=0?wifiIconRes:R.drawable.ic_wifi,R.drawable.ic_settings};for(int i=0;i<buttons.length;i++){TextView button=buttons[i];if(button==null)continue;String label;if(button.getId()==R.id.btnInputs)label=getString(R.string.inputs);else if(button.getId()==R.id.btnSettings)label=getString(R.string.settings);else{CharSequence d=button.getContentDescription();label=d!=null&&d.length()>0?String.valueOf(d):(button.getText()!=null&&button.getText().length()>0?String.valueOf(button.getText()):getString(R.string.wifi));}button.setContentDescription(label);android.graphics.drawable.Drawable icon=getDrawable(icons[i]);if(icon!=null)icon=icon.mutate();if(pillLabels){if(button!=btnWifi||button.getText()==null||button.getText().length()==0)button.setText(label);button.setPaddingRelative(dp(16),0,dp(20),0);button.setCompoundDrawablePadding(dp(9));button.setMinWidth(0);button.setMinimumWidth(0);button.setMaxWidth(button==btnWifi?dp(180):Integer.MAX_VALUE);button.setCompoundDrawablesRelativeWithIntrinsicBounds(icon,null,null,null);}else{int size=dp(26),width=dp(48);button.setText("");if(icon!=null)icon.setBounds(0,0,size,size);int side=Math.max(0,(width-size)/2);button.setPaddingRelative(side,0,side,0);button.setCompoundDrawablePadding(0);button.setMinWidth(width);button.setMinimumWidth(width);button.setMaxWidth(width);button.setCompoundDrawablesRelative(icon,null,null,null);}}}
     private int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
 
-    private boolean panchangOnHome(){android.content.SharedPreferences p=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE);return LauncherPrefs.panchangOnHome(LauncherPrefs.hinduOn(p.contains(LauncherPrefs.HINDU),p.getBoolean(LauncherPrefs.HINDU,true)),p.getBoolean("home_hindu_calendar",true));}
+    private boolean panchangOnHome(){android.content.SharedPreferences p=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE);boolean home=p.getBoolean(CalendarPlacement.HOME,true);boolean dream=p.getBoolean(CalendarPlacement.DREAM,true);return LauncherPrefs.panchangOnHome(LauncherPrefs.hinduOn(p.contains(LauncherPrefs.HINDU),p.getBoolean(LauncherPrefs.HINDU,true)),CalendarPlacement.resolvedHome(home,dream));}
     private void updateHomeCalendar(boolean rearm) {
         if(homeDate==null)return;
         Calendar c=Calendar.getInstance(); long ms=System.currentTimeMillis(); double now=PanchangDisplay.jdNow();

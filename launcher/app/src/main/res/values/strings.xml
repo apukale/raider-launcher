@@ -125,6 +125,10 @@
     <string name="photo_interval_paused">Applies when Photos is on</string>
     <string name="photos_home_on">Full-bleed photos on Home</string>
     <string name="photos_home_off">Random gradient on Home</string>
+    <string name="home_module_weather">Weather</string>
+    <string name="home_module_clocks">World clocks</string>
+    <string name="home_module_panchang">Panchang</string>
+    <string name="home_module_screensaver">Screensaver</string>
     <string name="open_panchang">Open Panchang</string>
     <string name="open_world_clocks">Open World Clocks</string>
     <string name="open_weather_now">Open weather now</string>
