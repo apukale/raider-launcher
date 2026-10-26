@@ -1164,13 +1164,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     public void onTileLongPressed(int position, View card) {
         if (position < 0 || position >= adapter.getItemCount()) return;
         final String key = adapter.keyAt(position);
-        String pkg = adapter.packageAt(position);
+        final String pkg = adapter.packageAt(position);
+        final String baseLabel = adapter.baseLabelAt(position);
+        final boolean renameable = adapter.kindAt(position) != AppAdapter.Entry.HOME_SETTINGS && pkg != null;
+        CharSequence logo = getString(adapter.logoAt(position) ? R.string.use_banner : R.string.use_app_logo);
+        CharSequence[] actions = renameable
+                ? new CharSequence[]{getString(R.string.move_app), getString(R.string.hide_app), logo,
+                        getString(R.string.rename_app), getString(R.string.app_info)}
+                : new CharSequence[]{getString(R.string.move_app), getString(R.string.hide_app), logo,
+                        getString(R.string.app_info)};
+        final int renameIndex = renameable ? 3 : -1;
         // A long press opens this menu while OK is still held. The picker swallows that release
         // so it cannot choose the focused row.
-        SettingsPicker.list(this, getString(R.string.app_actions), new CharSequence[]{
-                getString(R.string.move_app), getString(R.string.hide_app),
-                getString(adapter.logoAt(position) ? R.string.use_banner : R.string.use_app_logo),
-                getString(R.string.app_info)}, which -> {
+        SettingsPicker.list(this, getString(R.string.app_actions), actions, which -> {
             if (which == 0) {
                 movingTile = true;
                 movingPosition = adapter.positionOf(key);
@@ -1187,6 +1193,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             } else if (which == 2) {
                 adapter.setLogoChoice(pkg, !adapter.logoAt(adapter.positionOf(key)));
                 reloadApps(false);
+            } else if (which == renameIndex) {
+                AppNames.showRename(this, pkg, baseLabel, () -> reloadApps(false));
             } else {
                 try { startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg))); } catch (Exception ignored) { }
             }

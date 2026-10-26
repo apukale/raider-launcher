@@ -1,13 +1,13 @@
 package com.gathin.tvhome;
 
 /**
- * Advanced is seven short rows plus a Reset caption: DNS, TV settings, input names,
- * default Home, the caption, reset app order, reset theme choices, and Kids.
+ * Advanced is eight short rows plus a Reset caption: DNS, TV settings, input names,
+ * app names, default Home, the caption, reset app order, reset theme choices, and Kids.
  * Clear cache and Free RAM live in the header, so this panel does not repeat them.
  * Heights match the Calendar rule: everything fits the 1080p leanback scroll area.
  */
 final class AdvancedPanelFit {
-    static final int ROWS = 7;
+    static final int ROWS = 8;
     static final int CHROME_DP = CalendarPanelFit.CHROME_DP;
 
     static final class Spec {

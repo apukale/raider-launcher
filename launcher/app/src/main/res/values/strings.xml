@@ -7,6 +7,7 @@
     <string name="app_info">App info</string>
     <string name="use_app_logo">Use app logo</string>
     <string name="use_banner">Use banner</string>
+    <string name="rename_app">Rename</string>
     <string name="move_hint">Use the direction buttons to move. Press OK or Back to finish.</string>
     <string name="reset_order">Reset order</string>
     <string name="reset_order_confirm">Return to alphabetical order and the theme dock?</string>

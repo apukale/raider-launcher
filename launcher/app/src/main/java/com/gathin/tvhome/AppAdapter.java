@@ -61,7 +61,10 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         static final int APP = 0, HOME_SETTINGS = 1, CARD = 2;
 
         final int kind;
+        /** Text drawn on the tile and in the hero. A custom app name replaces {@link #baseLabel}. */
         final String label;
+        /** Label before a custom app name: the APK label, a tile override, or a card label. */
+        final String baseLabel;
         final ComponentName component;
         final String pkg;
         final Drawable banner;
@@ -73,16 +76,21 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         final boolean logo;
 
         Entry(String label, ComponentName component, Drawable banner, Drawable icon, boolean logo) {
-            this(APP, label, component, banner, icon, null, 0, logo);
+            this(label, label, component, banner, icon, logo);
+        }
+
+        Entry(String label, String baseLabel, ComponentName component, Drawable banner, Drawable icon, boolean logo) {
+            this(APP, label, baseLabel, component, banner, icon, null, 0, logo);
         }
 
         Entry(int kind, String label, ComponentName component, Drawable banner, Drawable icon, String caption, int accent) {
-            this(kind, label, component, banner, icon, caption, accent, false);
+            this(kind, label, label, component, banner, icon, caption, accent, false);
         }
 
-        Entry(int kind, String label, ComponentName component, Drawable banner, Drawable icon, String caption, int accent, boolean logo) {
+        Entry(int kind, String label, String baseLabel, ComponentName component, Drawable banner, Drawable icon, String caption, int accent, boolean logo) {
             this.kind = kind;
             this.label = label;
+            this.baseLabel = baseLabel == null ? (label == null ? "" : label) : baseLabel;
             this.component = component;
             this.pkg = component.getPackageName();
             this.banner = banner;
@@ -204,16 +212,18 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                     // Broken/missing sources silently retain the target's own label and artwork.
                 }
             }
+            // A custom name replaces whatever the tile would have shown. It does not change the package.
+            String base = card != null && override == null && card.label != null ? card.label : label;
+            if (base == null) base = "";
+            String shown = AppNames.display(base, AppNames.name(ctx, pkg));
+            Drawable tileBanner = logo ? renderLogo(icon) : compact(banner, tileWidth(), tileHeightPx(tileWidth()));
+            Drawable tileIcon = logo ? null : compact(icon, iconSize(), iconSize());
             if (card != null) {
-                fresh.add(new Entry(Entry.CARD, override == null ? card.label : label,
-                        component, logo ? renderLogo(icon) : compact(banner, tileWidth(), tileHeightPx(tileWidth())),
-                        logo ? null : compact(icon, iconSize(), iconSize()), card.caption, card.accent,
-                        logo));
+                fresh.add(new Entry(Entry.CARD, shown, base, component, tileBanner, tileIcon, card.caption, card.accent, logo));
             } else {
                 // Same cleaner as the card prompt: an app label with a bidi override or line separator must not
-                // redraw the tile name as something else (#117).
-                fresh.add(new Entry(label, component, logo ? renderLogo(icon) : compact(banner, tileWidth(), tileHeightPx(tileWidth())),
-                        logo ? null : compact(icon, iconSize(), iconSize()), logo));
+                // redraw the tile name as something else (#117). The custom name goes through that cleaner too.
+                fresh.add(new Entry(shown, base, component, tileBanner, tileIcon, logo));
             }
         }
         Collections.sort(fresh, (a, b) -> {
@@ -590,6 +600,15 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     String labelAt(int position) {
         return position >= 0 && position < items.size() ? items.get(position).label : "";
+    }
+
+    /** Label before a custom app name, used to title the rename dialog and to clear back to it. */
+    String baseLabelAt(int position) {
+        return position >= 0 && position < items.size() ? items.get(position).baseLabel : "";
+    }
+
+    int kindAt(int position) {
+        return position >= 0 && position < items.size() ? items.get(position).kind : Entry.APP;
     }
 
     void move(int from, int to) {

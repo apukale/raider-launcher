@@ -4,6 +4,7 @@
     <item name="fontChoice" type="id" />
     <item name="fontResetChoice" type="id" />
     <item name="inputNamesChoice" type="id" />
+    <item name="appNamesChoice" type="id" />
     <item name="weatherCityChoice" type="id" />
     <item name="weatherUnitsChoice" type="id" />
     <item name="hinduMasterChoice" type="id" />
