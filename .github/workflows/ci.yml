@@ -45,7 +45,11 @@ jobs:
           chmod +x gradlew
           ./gradlew --no-daemon testReleaseUnitTest lintRelease assembleRelease
       - name: The launcher stays small
+        # CleanYourTV capped the release APK at 400 KB for 1 GB sets. Raider 3.0
+        # bundles the theme fonts, so the same build is about 1014 KB, and it
+        # runs on a 2 GB TCL. Keep a ceiling so a stray asset still fails CI.
         run: |
           size=$(stat -c %s launcher/app/build/outputs/apk/release/app-release.apk)
           echo "release APK: $((size / 1024)) KB"
-          test "$size" -lt 409600 || { echo "APK is over 400 KB; the launcher targets 1 GB TVs, keep it small"; exit 1; }
+          limit=$((1536 * 1024))
+          test "$size" -lt "$limit" || { echo "APK is over 1536 KB; Raider targets a 2 GB TV, keep the release build from growing without a reason"; exit 1; }
