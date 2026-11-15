@@ -92,7 +92,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private AppAdapter adapter;
     private RecyclerView grid;
-    private ContentShelf contentShelf;
+    private TextView btnMovies;
     private FrameLayout root;
     private GlassView glass;
     private View ambient;
@@ -241,7 +241,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 return;
             }
             reloadApps(false);
-            if (contentShelf != null) contentShelf.reload();
         }
     };
     private final Runnable minuteTick = new Runnable() {
@@ -307,7 +306,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         homeCalendarLine1=findViewById(R.id.homeCalendarLine1); homeCalendarTithi=findViewById(R.id.homeCalendarTithi); homeCalendarMoon=findViewById(R.id.homeCalendarMoon); homeCalendarRahu=findViewById(R.id.homeCalendarRahu);
         homeCalendarDivider=findViewById(R.id.homeCalendarDivider); homeCalendarStack=findViewById(R.id.homeCalendarStack);
         homeCalendarStack.setOnClickListener(v -> open(new Intent(this, PanchangActivity.class)));homeCalendarStack.setNextFocusUpId(R.id.weather);
-        homeCalendarStack.setOnKeyListener((v,key,event)->{ if(event.getAction()!=KeyEvent.ACTION_DOWN)return false; if(key==KeyEvent.KEYCODE_DPAD_CENTER || key==KeyEvent.KEYCODE_ENTER){open(new Intent(this,PanchangActivity.class));return true;} return key==KeyEvent.KEYCODE_DPAD_DOWN && contentShelf!=null && contentShelf.offerFocusFromTop(); });
+        homeCalendarStack.setOnKeyListener((v,key,event)->{ if(event.getAction()==KeyEvent.ACTION_DOWN && (key==KeyEvent.KEYCODE_DPAD_CENTER || key==KeyEvent.KEYCODE_ENTER)){open(new Intent(this,PanchangActivity.class));return true;} return false; });
         homeDate.setEllipsize(null);
         homeCalendarOn = panchangOnHome();
         View homeClock = findViewById(R.id.clock);
@@ -326,7 +325,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     open(new Intent(this, WorldClocksActivity.class));
                     return true;
                 }
-                return key == KeyEvent.KEYCODE_DPAD_DOWN && contentShelf != null && contentShelf.offerFocusFromTop();
+                return false;
             });
         }
         homeDate.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->updateHomeCalendar(false));
@@ -344,40 +343,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         hiddenApps = new HashSet<>(configuredHiddenApps);
 
         grid = findViewById(R.id.grid);
-        contentShelf = findViewById(R.id.contentShelf);
-        contentShelf.setHost(new ContentShelf.Host() {
-            @Override public void onBackdrop(boolean showing) {
-                if (homeBackdrop == null) return;
-                if (showing) homeBackdrop.hide();
-                else if (resumed) homeBackdrop.start();
-            }
-            @Override public void onBound() {
-                if (contentShelf.coversHero()) {
-                    heroName.animate().cancel();
-                    heroName.setAlpha(0f);
-                    heroShown = false;
-                    ambient.animate().cancel();
-                    ambient.setAlpha(0f);
-                }
-                updateNightTheme(false);
-            }
-            @Override public void openTitle(String media, int id) {
-                startActivity(new Intent(MainActivity.this, TitleActivity.class).putExtra("media", media).putExtra("id", id));
-            }
-            @Override public void watch(ProviderMap.Hit hit, TmdbModels.Title title) {
-                DeepLinkLauncher.openTitle(MainActivity.this, hit, title);
-            }
-            @Override public void focusUp() {
-                boolean calendar = homeCalendarStack != null && homeCalendarStack.getVisibility() == View.VISIBLE && homeCalendarStack.isFocusable();
-                if (calendar) homeCalendarStack.requestFocus();
-                else if (btnInputs != null && btnInputs.getVisibility() == View.VISIBLE) btnInputs.requestFocus();
-                else if (btnWifi != null) btnWifi.requestFocus();
-            }
-            @Override public void focusDown() {
-                focusTile(Math.max(0, lastFocused) % COLUMNS);
-            }
-        });
-        contentShelf.attachBackdrop(findViewById(R.id.contentBackdrop), findViewById(R.id.contentScrim));
         rtlAppGrid = getResources().getBoolean(R.bool.rtl_app_grid);
         // Mirror only the app grid; the header and other locales keep their own layouts.
         grid.setLayoutManager(new GridLayoutManager(this, COLUMNS) {
@@ -421,14 +386,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (grid.getPaddingTop() != want) {
                 grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), grid.getPaddingBottom());
             }
-            if (contentShelf != null) {
-                int shelfH = Math.max(0, want - (int) (8 * density));
-                ViewGroup.LayoutParams slp = contentShelf.getLayoutParams();
-                if (slp.height != shelfH) {
-                    slp.height = shelfH;
-                    contentShelf.setLayoutParams(slp);
-                }
-            }
         });
 
         // Keep the glass glued to its tile while the grid scrolls.
@@ -468,7 +425,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
 
         btnInputs = findViewById(R.id.btnInputs);
+        btnMovies = findViewById(R.id.btnMovies);
         View btnSettings = findViewById(R.id.btnSettings);
+        btnMovies.setOnClickListener(v -> open(new Intent(this, BrowseActivity.class)));
         btnInputs.setOnClickListener(v -> showInputs());
         btnWifi.setOnClickListener(v -> openNetworkPill());
         btnWifi.setOnLongClickListener(v -> {
@@ -488,12 +447,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
             if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                if (contentShelf != null && contentShelf.offerFocusFromTop()) return true;
                 // Back to the dock tile Up came from, not wherever the focus finder lands.
                 focusTile(lastFocused % COLUMNS);
                 return true;
             }
-            int firstButton = btnInputs.getVisibility() == View.VISIBLE ? R.id.btnInputs : R.id.btnWifi;
+            int firstButton = btnMovies != null && btnMovies.getVisibility() == View.VISIBLE ? R.id.btnMovies
+                    : btnInputs.getVisibility() == View.VISIBLE ? R.id.btnInputs : R.id.btnWifi;
             int leftButton = rtlMenuBar ? R.id.btnSettings : firstButton;
             int rightButton = rtlMenuBar ? firstButton : R.id.btnSettings;
             boolean calendarReachable = homeCalendarStack != null && homeCalendarStack.getVisibility() == View.VISIBLE && homeCalendarStack.isFocusable();
@@ -508,6 +467,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             return false;
         };
+        btnMovies.setOnKeyListener(pillKeys);
         btnInputs.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
@@ -525,7 +485,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             });
         }
         if (advancedEffects) {
-            for (View button : new View[]{btnInputs, btnWifi, btnSettings}) {
+            for (View button : new View[]{btnMovies, btnInputs, btnWifi, btnSettings}) {
                 button.setOnFocusChangeListener((view, focused) -> view.animate()
                         .scaleX(focused ? 1.04f : 1f).scaleY(focused ? 1.04f : 1f)
                         .setDuration(160).start());
@@ -679,10 +639,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         else if(weatherEnabled){WeatherData cached=WeatherClient.cached(this);if(cached!=null)showWeather(cached);else if(homeWeather.getText()==null||homeWeather.getText().length()==0)homeWeather.setVisibility(View.GONE);handler.postDelayed(weatherRefresh,WeatherClient.REFRESH_MS);}
         else homeWeather.setVisibility(View.GONE);
         applyHomeChrome();
-        if (contentShelf != null) {
-            contentShelf.setParked(lastFocused < COLUMNS);
-            contentShelf.reload();
-        }
+        updateMoviesButton();
         if (homeBackdrop != null) homeBackdrop.start();
         updateNightTheme(true);
         if (!calendarReceiverRegistered) {
@@ -738,7 +695,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onStop() {
         ContentImages.trim();
-        if (contentShelf != null) contentShelf.onHostStop();
         super.onStop();
     }
 
@@ -1009,7 +965,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             springY.animateToFinalPosition(y - glassScrollShift);
         }
         View item = (View) card.getParent();
-        if (contentShelf != null) contentShelf.setParked(position < COLUMNS);
         if (position < COLUMNS) {
             // Dock: park it at the bottom of the screen and show the top shelf for this app.
             int decoratedTop = item.getTop() - (int) (10 * density);
@@ -1033,14 +988,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     // ---- top shelf -------------------------------------------------------------------------------
 
     private void showHero(int position, float dockTopInRoot) {
-        if (contentShelf != null && contentShelf.coversHero()) {
-            heroName.animate().cancel();
-            heroName.setAlpha(0f);
-            heroShown = false;
-            ambient.animate().cancel();
-            ambient.setAlpha(0f);
-            return;
-        }
         String label = adapter.labelAt(position);
         int color = adapter.ambientColorAt(position);
         float y = dockTopInRoot - 18 * density - 26 * density - heroName.getHeight();
@@ -1216,10 +1163,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     rtlAppGrid, keyCode == KeyEvent.KEYCODE_DPAD_LEFT);
         }
         if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-            if (position < COLUMNS) {
-                if (contentShelf != null && contentShelf.offerFocusFromDock()) return true;
-                return false;          // dock row: let focus move to the top bar
-            }
+            if (position < COLUMNS) return false;          // dock row: let focus move to the top bar
             target = position - COLUMNS;
         } else {
             int lastRowStart = ((count - 1) / COLUMNS) * COLUMNS;
@@ -1349,7 +1293,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private int wifiIconRes;
     /** Icon + text, or a compact icon-only capsule. Icons are reloaded from resources every time, so hiding the text never loses them. */
-    private void applyPillLabels(){if(btnInputs==null||btnWifi==null)return;TextView settings=findViewById(R.id.btnSettings);TextView[] buttons={(TextView)btnInputs,btnWifi,settings};int[] icons={R.drawable.ic_input,wifiIconRes!=0?wifiIconRes:R.drawable.ic_wifi,R.drawable.ic_settings};for(int i=0;i<buttons.length;i++){TextView button=buttons[i];if(button==null)continue;String label;if(button.getId()==R.id.btnInputs)label=getString(R.string.inputs);else if(button.getId()==R.id.btnSettings)label=getString(R.string.settings);else{CharSequence d=button.getContentDescription();label=d!=null&&d.length()>0?String.valueOf(d):(button.getText()!=null&&button.getText().length()>0?String.valueOf(button.getText()):getString(R.string.wifi));}button.setContentDescription(label);android.graphics.drawable.Drawable icon=getDrawable(icons[i]);if(icon!=null)icon=icon.mutate();if(pillLabels){if(button!=btnWifi||button.getText()==null||button.getText().length()==0)button.setText(label);button.setPaddingRelative(dp(16),0,dp(20),0);button.setCompoundDrawablePadding(dp(9));button.setMinWidth(0);button.setMinimumWidth(0);button.setMaxWidth(button==btnWifi?dp(180):Integer.MAX_VALUE);button.setCompoundDrawablesRelativeWithIntrinsicBounds(icon,null,null,null);}else{int size=dp(26),width=dp(48);button.setText("");if(icon!=null)icon.setBounds(0,0,size,size);int side=Math.max(0,(width-size)/2);button.setPaddingRelative(side,0,side,0);button.setCompoundDrawablePadding(0);button.setMinWidth(width);button.setMinimumWidth(width);button.setMaxWidth(width);button.setCompoundDrawablesRelative(icon,null,null,null);}}}
+    private void updateMoviesButton(){if(btnMovies==null)return;android.content.SharedPreferences p=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE);btnMovies.setVisibility(ContentPrefs.enabled(p)?View.VISIBLE:View.GONE);}
+    private void applyPillLabels(){if(btnInputs==null||btnWifi==null)return;TextView settings=findViewById(R.id.btnSettings);TextView[] buttons={btnMovies,(TextView)btnInputs,btnWifi,settings};int[] icons={R.drawable.ic_movies,R.drawable.ic_input,wifiIconRes!=0?wifiIconRes:R.drawable.ic_wifi,R.drawable.ic_settings};for(int i=0;i<buttons.length;i++){TextView button=buttons[i];if(button==null)continue;String label;if(button.getId()==R.id.btnMovies)label="Movies & Series";else if(button.getId()==R.id.btnInputs)label=getString(R.string.inputs);else if(button.getId()==R.id.btnSettings)label=getString(R.string.settings);else{CharSequence d=button.getContentDescription();label=d!=null&&d.length()>0?String.valueOf(d):(button.getText()!=null&&button.getText().length()>0?String.valueOf(button.getText()):getString(R.string.wifi));}button.setContentDescription(label);android.graphics.drawable.Drawable icon=getDrawable(icons[i]);if(icon!=null)icon=icon.mutate();if(pillLabels){if(button!=btnWifi||button.getText()==null||button.getText().length()==0)button.setText(label);button.setPaddingRelative(dp(16),0,dp(20),0);button.setCompoundDrawablePadding(dp(9));button.setMinWidth(0);button.setMinimumWidth(0);button.setMaxWidth(button==btnWifi?dp(180):Integer.MAX_VALUE);button.setCompoundDrawablesRelativeWithIntrinsicBounds(icon,null,null,null);}else{int size=dp(26),width=dp(48);button.setText("");if(icon!=null)icon.setBounds(0,0,size,size);int side=Math.max(0,(width-size)/2);button.setPaddingRelative(side,0,side,0);button.setCompoundDrawablePadding(0);button.setMinWidth(width);button.setMinimumWidth(width);button.setMaxWidth(width);button.setCompoundDrawablesRelative(icon,null,null,null);}}}
     private int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
 
     private boolean panchangOnHome(){android.content.SharedPreferences p=getSharedPreferences(Config.SETTINGS_NAME,MODE_PRIVATE);boolean home=p.getBoolean(CalendarPlacement.HOME,true);boolean dream=p.getBoolean(CalendarPlacement.DREAM,true);return LauncherPrefs.panchangOnHome(LauncherPrefs.hinduOn(p.contains(LauncherPrefs.HINDU),p.getBoolean(LauncherPrefs.HINDU,true)),CalendarPlacement.resolvedHome(home,dream));}

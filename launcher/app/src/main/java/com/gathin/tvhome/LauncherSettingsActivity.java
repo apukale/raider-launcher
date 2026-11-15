@@ -981,15 +981,12 @@ public final class LauncherSettingsActivity extends Activity {
     private void pickWorldZone(int slot){String current=WorldClocks.zoneAt(slot,storedClock(WorldClocks.zoneKey(slot)));String[] zones=WorldClocks.zones();SettingsPicker.filter(this,"Timezone",q->{java.util.List<String> matches=WorldClocks.filterZones(zones,q);return matches.toArray(new String[0]);},current,zone->{choices.edit().putString(WorldClocks.zoneKey(slot),zone).apply();setResult(RESULT_OK);refresh();});}
     private void renameWorldSlot(int slot){android.widget.EditText in=new android.widget.EditText(this);in.setSingleLine(true);in.setHint("Display name");String name=choices.getString(WorldClocks.nameKey(slot),"");String zone=choices.getString(WorldClocks.zoneKey(slot),"");if(name!=null)in.setText(name.trim());in.setSelection(in.getText().length());in.setTextColor(ink());in.setHintTextColor(0xFFA9ABC7);in.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);in.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS);android.widget.FrameLayout box=new android.widget.FrameLayout(this);box.setPadding(dp(16),dp(4),dp(16),dp(4));box.addView(in,new android.widget.FrameLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,android.view.ViewGroup.LayoutParams.WRAP_CONTENT));final android.app.Dialog[] held=new android.app.Dialog[1];Runnable save=()->{String typed=in.getText().toString().trim();if(typed.isEmpty()||typed.equals(zone==null?"":zone.trim()))choices.edit().remove(WorldClocks.nameKey(slot)).apply();else choices.edit().putString(WorldClocks.nameKey(slot),typed).apply();setResult(RESULT_OK);refresh();};in.setOnEditorActionListener((v,a,e)->{if(a==android.view.inputmethod.EditorInfo.IME_ACTION_DONE){if(held[0]!=null)held[0].dismiss();save.run();return true;}return false;});held[0]=SettingsPicker.form(this,"Rename",box,getString(android.R.string.cancel),null,null,null,"Save",save);}
     private void addKidsRow(LinearLayout card){TextView t=settingsRow(R.id.kidsChoice);t.setOnClickListener(v->SettingsPicker.notice(this,"Kids","Coming soon."));card.addView(t,rowParams());t.setText("Kids: Coming soon");}
-    /** Hero, Trending in India, Top 10, and the title page. Each one switches on its own. Region stays India. */
+    /** Movies & Series icon, plus the language and time-window defaults for that screen. */
     private void addContent(LinearLayout card){
         card.addView(hint(ContentPrefs.available()
-                ? "Region is India. Titles that are not on an installed app stay hidden."
-                : "Titles stay hidden until TMDB_API_KEY is set in local.properties and the app is rebuilt."));
-        addContentToggle(card, R.id.contentHeroChoice, ContentPrefs.HERO);
-        addContentToggle(card, R.id.contentTrendingChoice, ContentPrefs.TRENDING);
-        addContentToggle(card, R.id.contentTopChoice, ContentPrefs.TOP10);
-        addContentToggle(card, R.id.contentTitleChoice, ContentPrefs.TITLE);
+                ? "Opens from the Movies & Series icon. Region is India. Only titles on an installed app are listed."
+                : "The icon stays hidden until TMDB_API_KEY is set in local.properties and the app is rebuilt."));
+        addContentToggle(card, R.id.contentHeroChoice, ContentPrefs.ENABLED);
         TextView languages=settingsRow(R.id.contentLanguagesChoice);
         languages.setOnClickListener(v->chooseContentLanguages());
         card.addView(languages, rowParams());
@@ -1009,10 +1006,7 @@ public final class LauncherSettingsActivity extends Activity {
     }
     private void updateContentRows(){
         if(choices==null)return;
-        setContentToggle(R.id.contentHeroChoice, "Hero", ContentPrefs.HERO);
-        setContentToggle(R.id.contentTrendingChoice, "Trending in India", ContentPrefs.TRENDING);
-        setContentToggle(R.id.contentTopChoice, "Top 10 in India", ContentPrefs.TOP10);
-        setContentToggle(R.id.contentTitleChoice, "Title page", ContentPrefs.TITLE);
+        setContentToggle(R.id.contentHeroChoice, "Movies & Series", ContentPrefs.ENABLED);
         TextView languages=findViewById(R.id.contentLanguagesChoice);
         if(languages!=null){languages.setText("Languages: "+ContentLanguages.label(choices.getString(ContentLanguages.PREF, ContentLanguages.DEFAULT))); formatRow(R.id.contentLanguagesChoice);}
         TextView window=findViewById(R.id.contentWindowChoice);

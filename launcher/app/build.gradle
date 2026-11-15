@@ -15,8 +15,8 @@ android {
         applicationId 'com.gathin.tvhome'
         minSdk 26
         targetSdk 34
-        versionCode 54
-        versionName '3.1.1'
+        versionCode 55
+        versionName '3.2.0'
         // OPENWEATHERMAP_API_KEY: free Weather Maps 1.0 key for clouds_new on the Weather screen. Empty if unset.
         // TMDB_API_KEY / TMDB_READ_TOKEN: free TMDB key for Trending and Top 10. Empty hides those rows.
         ['NASA_API_KEY', 'PEXELS_API_KEY', 'PIXABAY_API_KEY', 'WEATHER_LATITUDE', 'WEATHER_LONGITUDE', 'WEATHER_PLACE', 'OPENWEATHERMAP_API_KEY', 'TMDB_API_KEY', 'TMDB_READ_TOKEN'].each { k -> buildConfigField 'String', k, '"' + (localProps.getProperty(k, '').replace('\\', '\\\\').replace('"', '\\"')) + '"' }

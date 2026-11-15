@@ -1,11 +1,12 @@
 package com.gathin.tvhome;
 
-/** Recency choice for both India rows. One week is the default. */
+/** Default recency for Movies & Series. Zero means Any. One week is the default. */
 final class ContentWindow {
     static final String PREF = "tmdb_window_days";
+    static final int ANY = 0;
     static final int DEFAULT_DAYS = 7;
-    static final int[] DAYS = {3, 7, 14};
-    static final String[] LABELS = {"3 days", "1 week", "2 weeks"};
+    static final int[] DAYS = {3, 7, 14, 30, ANY};
+    static final String[] LABELS = {"3 days", "1 week", "2 weeks", "1 month", "Any"};
 
     private ContentWindow() {}
 
@@ -14,9 +15,9 @@ final class ContentWindow {
         return DEFAULT_DAYS;
     }
 
-    /** Three days uses trending/day. A week or two uses trending/week. */
+    /** Three days uses trending/day. Longer windows, including Any, use trending/week. */
     static boolean dailyTrending(int days) {
-        return normalize(days) <= 3;
+        return normalize(days) == 3;
     }
 
     static String label(int days) {

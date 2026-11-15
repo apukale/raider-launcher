@@ -29,9 +29,10 @@ final class Recency {
         return format(calendar);
     }
 
-    /** Chosen window first, then wider steps through 45 days. */
+    /** Chosen window first, then wider steps through 45 days. Any stays a single open-ended step. */
     static int[] steps(int windowDays) {
-        int start = windowDays <= 0 ? ContentWindow.DEFAULT_DAYS : windowDays;
+        if (windowDays <= 0) return new int[]{ContentWindow.ANY};
+        int start = windowDays;
         ArrayList<Integer> out = new ArrayList<>();
         out.add(start);
         for (int day : new int[]{7, 14, 21, 30, MAX_DAYS}) {

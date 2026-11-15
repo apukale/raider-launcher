@@ -2,12 +2,9 @@ package com.gathin.tvhome;
 
 import android.content.SharedPreferences;
 
-/** On/off switches for each TMDB piece. Region stays India. A missing key hides the feature. */
+/** Movies & Series switch. Region stays India. A missing key hides the icon. */
 final class ContentPrefs {
-    static final String HERO = "tmdb_hero";
-    static final String TRENDING = "tmdb_trending";
-    static final String TOP10 = "tmdb_top10";
-    static final String TITLE = "tmdb_title";
+    static final String ENABLED = "tmdb_on";
     static final String REGION = "IN";
     static final String REGION_LABEL = "India";
     static final String FETCHED = "tmdb_fetched_at";
@@ -19,11 +16,8 @@ final class ContentPrefs {
         return !BuildConfig.TMDB_API_KEY.trim().isEmpty() || !BuildConfig.TMDB_READ_TOKEN.trim().isEmpty();
     }
 
-    static boolean on(SharedPreferences prefs, String key) {
-        return prefs == null || prefs.getBoolean(key, true);
-    }
-
-    static boolean showsHome(SharedPreferences prefs) {
-        return available() && (on(prefs, HERO) || on(prefs, TRENDING) || on(prefs, TOP10));
+    /** The top-bar icon is shown only when a key is present and the switch is on. */
+    static boolean enabled(SharedPreferences prefs) {
+        return available() && (prefs == null || prefs.getBoolean(ENABLED, true));
     }
 }

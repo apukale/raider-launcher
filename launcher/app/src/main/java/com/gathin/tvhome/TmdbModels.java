@@ -205,6 +205,15 @@ final class TmdbModels {
         return year.isEmpty() ? kind : kind + " \u00B7 " + year;
     }
 
+    /** Second line under a poster. The number is a TMDB vote average, not an IMDb rating. */
+    static String cardMeta(Title title) {
+        String caption = cardCaption(title);
+        String rating = ratingLabel(title == null ? 0 : title.vote);
+        if (rating.isEmpty()) return caption;
+        String scored = rating + " TMDB";
+        return caption.isEmpty() ? scored : caption + " \u00B7 " + scored;
+    }
+
     /** Subscription providers in India. Rent and buy are ignored. The root is a watch-provider payload. */
     static int[] indiaProviders(String json) {
         if (json == null || json.isEmpty()) return new int[0];

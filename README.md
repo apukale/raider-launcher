@@ -1,6 +1,6 @@
 # Raider Launcher
 
-An Android TV and Google TV home screen. **3.1.1** (versionCode 54) is the current build. The screenshots are from 3.0.0 (51) on our TCL. 3.0.1 adds custom names for Home app tiles. 3.1.0 adds Trending in India and Top 10 in India when a TMDB key is set.
+An Android TV and Google TV home screen. **3.2.0** (versionCode 55) is the current build. The screenshots are from 3.0.0 (51) on our TCL. 3.0.1 adds custom names for Home app tiles. 3.1.0 adds Trending in India and Top 10 in India when a TMDB key is set.
 
 ![Home on a TCL, with the clock, weather, Panchang, and app rows over a full-bleed photo](docs/screenshots/home.png)
 
@@ -44,7 +44,7 @@ The core launcher, and the choice to disable bloat rather than uninstall it, sti
 - The weather map framed on India.
 - About, with a QR code for this GitHub page.
 - Custom names for Home app tiles (3.0.1). Hold OK and choose Rename, or use Settings → Advanced → App names. Clear, a blank Save, or the original label puts that app's own name back. Reset all app names does that for every tile.
-- Trending in India and Top 10 in India (3.1.1), plus a title page, when `TMDB_API_KEY` is set. Titles that are not on an installed app are left out. Settings → Content chooses the pieces, the languages (Telugu, Hindi, and English by default), and a time window of 3 days, 1 week, or 2 weeks. Region is India.
+- Movies & Series (3.2.0), opened from the icon to the left of Inputs, when `TMDB_API_KEY` is set. Home itself is unchanged. Settings → Content turns the icon off, and sets the default languages (Telugu, Hindi, and English) and time window.
 
 ## Features
 

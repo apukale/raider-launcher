@@ -31,14 +31,19 @@ public class RecencyTest {
         assertTrue(Arrays.equals(new String[]{"te", "hi", "en"}, ContentLanguages.selected("")));
         assertEquals("te,ta,kn", ContentLanguages.join(new boolean[]{true, false, false, true, false, true}));
         assertEquals("Telugu, Hindi", ContentLanguages.label("te,hi"));
-        assertEquals(7, ContentWindow.normalize(0));
+        assertEquals(0, ContentWindow.normalize(0));
+        assertEquals(7, ContentWindow.normalize(-1));
         assertEquals(3, ContentWindow.normalize(3));
         assertEquals(14, ContentWindow.normalize(14));
+        assertEquals(30, ContentWindow.normalize(30));
         assertTrue(ContentWindow.dailyTrending(3));
+        assertFalse(ContentWindow.dailyTrending(0));
         assertFalse(ContentWindow.dailyTrending(7));
         assertFalse(ContentWindow.dailyTrending(14));
         assertEquals("1 week", ContentWindow.label(7));
         assertEquals("3 days", ContentWindow.label(3));
+        assertEquals("1 month", ContentWindow.label(30));
+        assertEquals("Any", ContentWindow.label(0));
     }
 
     @Test(timeout = 5000)

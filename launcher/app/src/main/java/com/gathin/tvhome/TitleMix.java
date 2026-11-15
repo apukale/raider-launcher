@@ -49,6 +49,11 @@ final class TitleMix {
         return out;
     }
 
+    /** Movies and series alternating, ordered by the browse sort inside each type. */
+    static List<TmdbModels.Title> arrange(List<TmdbModels.Title> items, String sort) {
+        return interleave(items, (a, b) -> compareSort(a, b, sort));
+    }
+
     /** Newest first, movies and series alternating, starting with whichever is newer. */
     static List<TmdbModels.Title> interleaveTypes(List<TmdbModels.Title> items, boolean byPopularity) {
         ArrayList<TmdbModels.Title> movies = new ArrayList<>();
@@ -62,9 +67,29 @@ final class TitleMix {
         }
         movies.sort((a, b) -> compare(a, b, byPopularity));
         shows.sort((a, b) -> compare(a, b, byPopularity));
+        return zip(movies, shows, (a, b) -> compare(a, b, byPopularity));
+    }
+
+    private static List<TmdbModels.Title> interleave(List<TmdbModels.Title> items, java.util.Comparator<TmdbModels.Title> order) {
+        ArrayList<TmdbModels.Title> movies = new ArrayList<>();
+        ArrayList<TmdbModels.Title> shows = new ArrayList<>();
+        if (items != null) {
+            for (TmdbModels.Title title : items) {
+                if (title == null || title.poster.isEmpty()) continue;
+                if (title.movie()) movies.add(title);
+                else shows.add(title);
+            }
+        }
+        movies.sort(order);
+        shows.sort(order);
+        return zip(movies, shows, order);
+    }
+
+    private static List<TmdbModels.Title> zip(ArrayList<TmdbModels.Title> movies, ArrayList<TmdbModels.Title> shows,
+                                             java.util.Comparator<TmdbModels.Title> order) {
         ArrayList<TmdbModels.Title> out = new ArrayList<>();
         int m = 0, s = 0;
-        boolean showFirst = !shows.isEmpty() && (movies.isEmpty() || compare(shows.get(0), movies.get(0), byPopularity) < 0);
+        boolean showFirst = !shows.isEmpty() && (movies.isEmpty() || order.compare(shows.get(0), movies.get(0)) < 0);
         boolean movieTurn = !showFirst;
         while (m < movies.size() || s < shows.size()) {
             if (movieTurn && m < movies.size()) out.add(movies.get(m++));
@@ -144,6 +169,12 @@ final class TitleMix {
             if (item.id == title.id && item.media.equals(title.media)) return true;
         }
         return false;
+    }
+
+    private static int compareSort(TmdbModels.Title a, TmdbModels.Title b, String sort) {
+        if ("popularity".equals(sort) || "trending".equals(sort)) return Double.compare(b.popularity, a.popularity);
+        if ("rating".equals(sort)) return Double.compare(b.vote, a.vote);
+        return compare(a, b, false);
     }
 
     private static int compare(TmdbModels.Title a, TmdbModels.Title b, boolean byPopularity) {

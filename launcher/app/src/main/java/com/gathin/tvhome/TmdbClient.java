@@ -19,8 +19,12 @@ final class TmdbClient {
     private TmdbClient() {}
 
     static String discover(String media, String providers, String language, String dateGte, int page) throws IOException {
+        return discover(media, providers, language, dateGte, page, null);
+    }
+
+    static String discover(String media, String providers, String language, String dateGte, int page, String sort) throws IOException {
         if (!TmdbModels.MOVIE.equals(media) && !TmdbModels.TV.equals(media)) throw new IOException("media");
-        return getJson(TmdbUrls.discover(media, providers, language, dateGte, page));
+        return getJson(TmdbUrls.discover(media, providers, language, dateGte, page, sort));
     }
 
     static String trending(boolean day) throws IOException {

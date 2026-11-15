@@ -65,6 +65,24 @@ final class TmdbRepository {
         });
     }
 
+    interface BrowseListener { void onTitles(java.util.List<TmdbModels.Title> titles); }
+
+    /** Poster grid for the Movies & Series screen. Filters are the ones chosen on that screen. */
+    static void loadBrowse(Context context, String type, String sort, int windowDays, String[] languages, BrowseListener listener) {
+        Context app = context.getApplicationContext();
+        Handler main = new Handler(Looper.getMainLooper());
+        IO.execute(() -> {
+            java.util.List<TmdbModels.Title> titles = java.util.Collections.emptyList();
+            try {
+                if (ContentPrefs.available()) titles = browseNow(app, type, sort, windowDays, languages);
+            } catch (Exception e) {
+                Log.w(TAG, "browse " + e.getClass().getSimpleName());
+            }
+            java.util.List<TmdbModels.Title> delivered = titles;
+            main.post(() -> listener.onTitles(delivered));
+        });
+    }
+
     static void loadTitle(Context context, String media, int id, TitleListener listener) {
         Context app = context.getApplicationContext();
         Handler main = new Handler(Looper.getMainLooper());
@@ -91,7 +109,7 @@ final class TmdbRepository {
     private static TmdbModels.Home loadHomeNow(Context app, String[] status) throws Exception {
         if (!ContentPrefs.available()) return empty();
         SharedPreferences prefs = app.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE);
-        if (!ContentPrefs.showsHome(prefs)) return empty();
+        if (!ContentPrefs.enabled(prefs)) return empty();
         ProviderMap providers = map(app);
         Set<String> installed = InstalledAppsIndex.enabled(app, providers.packages());
         String query = providers.providerQuery(installed);
@@ -99,9 +117,9 @@ final class TmdbRepository {
             status[0] = "No supported streaming app is installed";
             return empty();
         }
-        boolean wantTrend = ContentPrefs.on(prefs, ContentPrefs.HERO) || ContentPrefs.on(prefs, ContentPrefs.TRENDING);
-        boolean wantTop = ContentPrefs.on(prefs, ContentPrefs.TOP10);
-        boolean wantHero = ContentPrefs.on(prefs, ContentPrefs.HERO);
+        boolean wantTrend = true;
+        boolean wantTop = true;
+        boolean wantHero = false;
         String[] languages = ContentLanguages.selected(prefs.getString(ContentLanguages.PREF, ContentLanguages.DEFAULT));
         int window = ContentWindow.normalize(prefs.getInt(ContentWindow.PREF, ContentWindow.DEFAULT_DAYS));
         DiskCache cache = cache(app);
@@ -170,13 +188,18 @@ final class TmdbRepository {
     }
 
     private static List<TmdbModels.Title> pages(DiskCache cache, long now, String media, String language, String from, String providers) {
+        return pages(cache, now, media, language, from, providers, null, 16);
+    }
+
+    private static List<TmdbModels.Title> pages(DiskCache cache, long now, String media, String language, String from, String providers, String sort, int cap) {
         java.util.ArrayList<TmdbModels.Title> out = new java.util.ArrayList<>();
+        String sortParam = browseSort(sort, TmdbModels.MOVIE.equals(media));
         for (int page = 1; page <= 3; page++) {
-            String key = pageKey(media, language, from, page, providers);
+            String key = pageKey(media, language, from, page, providers + "|" + sortParam);
             String body = cache.getText(key, now, CacheTtl.LISTS_MS);
             if (body == null) {
                 try {
-                    body = TmdbClient.discover(media, providers, language, from, page);
+                    body = TmdbClient.discover(media, providers, language, from, page, sortParam);
                     cache.putText(key, body, now);
                 } catch (Exception e) {
                     body = cache.getTextAnyAge(key);
@@ -190,13 +213,74 @@ final class TmdbRepository {
                 if (title.poster.isEmpty()) continue;
                 if (!title.language.isEmpty() && !language.equals(title.language)) continue;
                 TmdbModels.Title tagged = title.language.isEmpty() ? title.withLanguage(language) : title;
-                if (TmdbModels.MOVIE.equals(media) && !tagged.date.isEmpty() && !Recency.onOrAfter(tagged.date, from)) continue;
+                if (from != null && !from.isEmpty() && TmdbModels.MOVIE.equals(media) && !tagged.date.isEmpty() && !Recency.onOrAfter(tagged.date, from)) continue;
                 out.add(tagged);
                 added++;
             }
-            if (found.size() < 20 || out.size() >= 16 || added == 0) break;
+            if (found.size() < 20 || out.size() >= cap || added == 0) break;
         }
         return out;
+    }
+
+    private static String browseSort(String sort, boolean movie) {
+        if ("popularity".equals(sort)) return "popularity.desc";
+        if ("rating".equals(sort)) return "vote_average.desc";
+        return movie ? "primary_release_date.desc" : "first_air_date.desc";
+    }
+
+    private static java.util.List<TmdbModels.Title> browseNow(Context app, String type, String sort, int windowDays, String[] languages) {
+        ProviderMap providers = map(app);
+        java.util.Set<String> installed = InstalledAppsIndex.enabled(app, providers.packages());
+        String query = providers.providerQuery(installed);
+        if (query.isEmpty() || languages == null || languages.length == 0) return java.util.Collections.emptyList();
+        int window = ContentWindow.normalize(windowDays);
+        String from = window <= 0 ? "" : Recency.minusDays(Recency.today(), window);
+        DiskCache disk = cache(app);
+        long now = System.currentTimeMillis();
+        boolean movies = type == null || "all".equals(type) || TmdbModels.MOVIE.equals(type);
+        boolean shows = type == null || "all".equals(type) || TmdbModels.TV.equals(type);
+        if ("trending".equals(sort)) return browseTrending(disk, now, from, window, type, languages, providers, installed);
+        java.util.LinkedHashMap<String, java.util.List<TmdbModels.Title>> byLanguage = new java.util.LinkedHashMap<>();
+        for (String language : languages) {
+            java.util.ArrayList<TmdbModels.Title> both = new java.util.ArrayList<>();
+            if (movies) both.addAll(pages(disk, now, TmdbModels.MOVIE, language, from, query, sort, 20));
+            if (shows) both.addAll(pages(disk, now, TmdbModels.TV, language, from, query, sort, 20));
+            byLanguage.put(language, TitleMix.arrange(both, sort));
+        }
+        return TitleMix.mix(byLanguage, java.util.Collections.emptyList(), languages, 40);
+    }
+
+    private static java.util.List<TmdbModels.Title> browseTrending(DiskCache cache, long now, String from, int window, String type,
+                                                                  String[] languages, ProviderMap providers, java.util.Set<String> installed) {
+        boolean day = ContentWindow.dailyTrending(window);
+        String key = day ? "t2-day" : "t2-week";
+        String body = cache.getText(key, now, CacheTtl.LISTS_MS);
+        if (body == null) {
+            try {
+                body = TmdbClient.trending(day);
+                cache.putText(key, body, now);
+            } catch (Exception e) {
+                body = cache.getTextAnyAge(key);
+            }
+        }
+        if (body == null) return java.util.Collections.emptyList();
+        java.util.LinkedHashMap<String, java.util.List<TmdbModels.Title>> byLanguage = new java.util.LinkedHashMap<>();
+        for (String language : languages) byLanguage.put(language, new java.util.ArrayList<>());
+        int budget = 24;
+        for (TmdbModels.Title title : TmdbModels.discover(body, TmdbModels.MOVIE)) {
+            if (title.poster.isEmpty()) continue;
+            if (TmdbModels.MOVIE.equals(type) && !title.movie()) continue;
+            if (TmdbModels.TV.equals(type) && title.movie()) continue;
+            if (!from.isEmpty() && !title.date.isEmpty() && !Recency.onOrAfter(title.date, from)) continue;
+            String language = title.language;
+            if (!byLanguage.containsKey(language)) continue;
+            int[] left = new int[]{budget};
+            if (!onInstalled(cache, now, title, providers, installed, left)) continue;
+            budget = left[0];
+            byLanguage.get(language).add(title);
+            if (budget == 0) break;
+        }
+        return TitleMix.mix(byLanguage, java.util.Collections.emptyList(), languages, 40);
     }
 
     private static List<TmdbModels.Title> trendingExtras(Context app, DiskCache cache, long now, String from, int window,
