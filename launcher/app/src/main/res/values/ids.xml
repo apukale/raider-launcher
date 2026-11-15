@@ -33,4 +33,12 @@
     <item name="homeLayoutClocks" type="id" />
     <item name="homeLayoutPanchang" type="id" />
     <item name="homeLayoutScreensaver" type="id" />
+    <item name="contentPoster" type="id" />
+    <item name="contentPosterImage" type="id" />
+    <item name="contentRank" type="id" />
+    <item name="contentHeroChoice" type="id" />
+    <item name="contentTrendingChoice" type="id" />
+    <item name="contentTopChoice" type="id" />
+    <item name="contentTitleChoice" type="id" />
+    <item name="contentStatus" type="id" />
 </resources>

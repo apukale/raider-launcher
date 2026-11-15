@@ -1,0 +1,69 @@
+{
+  "region": "IN",
+  "providers": [
+    {
+      "id": 122,
+      "name": "JioHotstar",
+      "kind": "hotstar",
+      "priority": 10,
+      "wikidata": ["P11049"],
+      "packages": ["in.startv.hotstar"]
+    },
+    {
+      "id": 220,
+      "name": "JioHotstar",
+      "kind": "hotstar",
+      "priority": 12,
+      "wikidata": ["P11049"],
+      "packages": ["in.startv.hotstar"]
+    },
+    {
+      "id": 119,
+      "name": "Prime Video",
+      "kind": "prime",
+      "priority": 20,
+      "wikidata": ["P8055", "P14440"],
+      "packages": ["com.raider.primevideo", "com.amazon.amazonvideo.livingroom"]
+    },
+    {
+      "id": 8,
+      "name": "Netflix",
+      "kind": "netflix",
+      "priority": 30,
+      "wikidata": ["P1874"],
+      "packages": ["com.netflix.ninja", "com.netflix.mediaclient"]
+    },
+    {
+      "id": 237,
+      "name": "SonyLIV",
+      "kind": "sonyliv",
+      "priority": 40,
+      "wikidata": ["P9465"],
+      "packages": ["com.sonyliv"]
+    },
+    {
+      "id": 232,
+      "name": "ZEE5",
+      "kind": "zee5",
+      "priority": 50,
+      "wikidata": [],
+      "packages": ["com.graymatrix.did"]
+    },
+    {
+      "id": 532,
+      "name": "aha",
+      "kind": "aha",
+      "priority": 60,
+      "wikidata": [],
+      "packages": ["ahaflix.tv"]
+    },
+    {
+      "id": 192,
+      "name": "YouTube",
+      "kind": "youtube",
+      "priority": 70,
+      "wikidata": ["P1651"],
+      "packages": ["org.smarttube.stable", "com.google.android.youtube.tv"]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # Raider Launcher
 
-An Android TV and Google TV home screen. **3.0.1** (versionCode 52) is the current build. The screenshots are from 3.0.0 (51) on our TCL. 3.0.1 adds custom names for Home app tiles.
+An Android TV and Google TV home screen. **3.1.0** (versionCode 53) is the current build. The screenshots are from 3.0.0 (51) on our TCL. 3.0.1 adds custom names for Home app tiles. 3.1.0 adds Trending in India and Top 10 in India when a TMDB key is set.
 
 ![Home on a TCL, with the clock, weather, Panchang, and app rows over a full-bleed photo](docs/screenshots/home.png)
 
@@ -24,7 +24,7 @@ Stock Android TV and Google TV put a recommendations row, and often an ad, betwe
 
 Raider is derived from [CleanYourTV](https://github.com/Gathin23/cleanyourtv) by Gathin23. The launcher that first drew this home screen came from that project.
 
-From there it became the daily home screen on a real TCL Android TV 11: a G03_4K, 2 GB of RAM, 32-bit. Settings were rebuilt for a remote on a 1080p screen, one panel at a time: Home Layout, Appearance with seven named themes, Screensaver, Photos, Calendar & Clocks, Weather, Night Mode, Advanced, and About. That cut is **3.0.0**. **3.0.1** adds custom names for Home app tiles. Hold OK on a tile and choose Rename, or open Settings → Advanced → App names. The name stays on the TV. The package does not change.
+From there it became the daily home screen on a real TCL Android TV 11: a G03_4K, 2 GB of RAM, 32-bit. Settings were rebuilt for a remote on a 1080p screen, one panel at a time: Home Layout, Appearance with seven named themes, Screensaver, Photos, Calendar & Clocks, Weather, Night Mode, Advanced, and About. That cut is **3.0.0**. **3.0.1** adds custom names for Home app tiles. Hold OK on a tile and choose Rename, or open Settings → Advanced → App names. The name stays on the TV. The package does not change. **3.1.0** adds a Content section: a hero, Trending in India, and Top 10 in India, for titles that are on an app installed on the TV.
 
 There is no Play Store package. The release APK is signed with the debug key so a sideload can replace the copy already on the TV. In the app, About says **Made by apukale**.
 
@@ -44,6 +44,7 @@ The core launcher, and the choice to disable bloat rather than uninstall it, sti
 - The weather map framed on India.
 - About, with a QR code for this GitHub page.
 - Custom names for Home app tiles (3.0.1). Hold OK and choose Rename, or use Settings → Advanced → App names. Clear, a blank Save, or the original label puts that app's own name back. Reset all app names does that for every tile.
+- Trending in India and Top 10 in India (3.1.0), plus a title page, when `TMDB_API_KEY` is set. Titles that are not on an installed app are left out. Each piece has its own switch under Settings → Content. Region is India.
 
 ## Features
 
@@ -179,6 +180,7 @@ The release APK is signed with the debug key so a sideload can replace a debug i
 Optional keys belong in `launcher/local.properties`, which is gitignored:
 
 - `OPENWEATHERMAP_API_KEY` for the cloud layer
+- `TMDB_API_KEY` for Trending in India, Top 10, and the title page. `TMDB_READ_TOKEN` is optional. With neither key, those rows stay hidden
 - `UNSPLASH_ACCESS_KEY`, `PEXELS_API_KEY`, `PIXABAY_API_KEY` for those photo sources
 - `NASA_API_KEY` if you have one; NASA calls fall back to the public demo key when it is absent
 

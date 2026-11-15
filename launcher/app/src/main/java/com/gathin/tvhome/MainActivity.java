@@ -92,6 +92,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private AppAdapter adapter;
     private RecyclerView grid;
+    private ContentShelf contentShelf;
     private FrameLayout root;
     private GlassView glass;
     private View ambient;
@@ -240,6 +241,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 return;
             }
             reloadApps(false);
+            if (contentShelf != null) contentShelf.reload();
         }
     };
     private final Runnable minuteTick = new Runnable() {
@@ -305,7 +307,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         homeCalendarLine1=findViewById(R.id.homeCalendarLine1); homeCalendarTithi=findViewById(R.id.homeCalendarTithi); homeCalendarMoon=findViewById(R.id.homeCalendarMoon); homeCalendarRahu=findViewById(R.id.homeCalendarRahu);
         homeCalendarDivider=findViewById(R.id.homeCalendarDivider); homeCalendarStack=findViewById(R.id.homeCalendarStack);
         homeCalendarStack.setOnClickListener(v -> open(new Intent(this, PanchangActivity.class)));homeCalendarStack.setNextFocusUpId(R.id.weather);
-        homeCalendarStack.setOnKeyListener((v,key,event)->{ if(event.getAction()==KeyEvent.ACTION_DOWN && (key==KeyEvent.KEYCODE_DPAD_CENTER || key==KeyEvent.KEYCODE_ENTER)){open(new Intent(this,PanchangActivity.class));return true;} return false; });
+        homeCalendarStack.setOnKeyListener((v,key,event)->{ if(event.getAction()!=KeyEvent.ACTION_DOWN)return false; if(key==KeyEvent.KEYCODE_DPAD_CENTER || key==KeyEvent.KEYCODE_ENTER){open(new Intent(this,PanchangActivity.class));return true;} return key==KeyEvent.KEYCODE_DPAD_DOWN && contentShelf!=null && contentShelf.offerFocusFromTop(); });
         homeDate.setEllipsize(null);
         homeCalendarOn = panchangOnHome();
         View homeClock = findViewById(R.id.clock);
@@ -319,11 +321,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (homeClock.getNextFocusRightId() == View.NO_ID) homeClock.setNextFocusLeftId(R.id.homeCalendarStack);
             homeClock.setOnClickListener(v -> open(new Intent(this, WorldClocksActivity.class)));
             homeClock.setOnKeyListener((v, key, event) -> {
-                if (event.getAction() == KeyEvent.ACTION_DOWN && (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER)) {
+                if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+                if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
                     open(new Intent(this, WorldClocksActivity.class));
                     return true;
                 }
-                return false;
+                return key == KeyEvent.KEYCODE_DPAD_DOWN && contentShelf != null && contentShelf.offerFocusFromTop();
             });
         }
         homeDate.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->updateHomeCalendar(false));
@@ -341,6 +344,40 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         hiddenApps = new HashSet<>(configuredHiddenApps);
 
         grid = findViewById(R.id.grid);
+        contentShelf = findViewById(R.id.contentShelf);
+        contentShelf.setHost(new ContentShelf.Host() {
+            @Override public void onBackdrop(boolean showing) {
+                if (homeBackdrop == null) return;
+                if (showing) homeBackdrop.hide();
+                else if (resumed) homeBackdrop.start();
+            }
+            @Override public void onBound() {
+                if (contentShelf.coversHero()) {
+                    heroName.animate().cancel();
+                    heroName.setAlpha(0f);
+                    heroShown = false;
+                    ambient.animate().cancel();
+                    ambient.setAlpha(0f);
+                }
+                updateNightTheme(false);
+            }
+            @Override public void openTitle(String media, int id) {
+                startActivity(new Intent(MainActivity.this, TitleActivity.class).putExtra("media", media).putExtra("id", id));
+            }
+            @Override public void watch(ProviderMap.Hit hit, TmdbModels.Title title) {
+                DeepLinkLauncher.openTitle(MainActivity.this, hit, title);
+            }
+            @Override public void focusUp() {
+                boolean calendar = homeCalendarStack != null && homeCalendarStack.getVisibility() == View.VISIBLE && homeCalendarStack.isFocusable();
+                if (calendar) homeCalendarStack.requestFocus();
+                else if (btnInputs != null && btnInputs.getVisibility() == View.VISIBLE) btnInputs.requestFocus();
+                else if (btnWifi != null) btnWifi.requestFocus();
+            }
+            @Override public void focusDown() {
+                focusTile(Math.max(0, lastFocused) % COLUMNS);
+            }
+        });
+        contentShelf.attachBackdrop(findViewById(R.id.contentBackdrop), findViewById(R.id.contentScrim));
         rtlAppGrid = getResources().getBoolean(R.bool.rtl_app_grid);
         // Mirror only the app grid; the header and other locales keep their own layouts.
         grid.setLayoutManager(new GridLayoutManager(this, COLUMNS) {
@@ -383,6 +420,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             int want = Math.max(0, h - dockRow - gridRows - (int) (30 * density));
             if (grid.getPaddingTop() != want) {
                 grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), grid.getPaddingBottom());
+            }
+            if (contentShelf != null) {
+                int shelfH = Math.max(0, want - (int) (8 * density));
+                ViewGroup.LayoutParams slp = contentShelf.getLayoutParams();
+                if (slp.height != shelfH) {
+                    slp.height = shelfH;
+                    contentShelf.setLayoutParams(slp);
+                }
             }
         });
 
@@ -443,6 +488,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
             if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                if (contentShelf != null && contentShelf.offerFocusFromTop()) return true;
                 // Back to the dock tile Up came from, not wherever the focus finder lands.
                 focusTile(lastFocused % COLUMNS);
                 return true;
@@ -633,6 +679,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         else if(weatherEnabled){WeatherData cached=WeatherClient.cached(this);if(cached!=null)showWeather(cached);else if(homeWeather.getText()==null||homeWeather.getText().length()==0)homeWeather.setVisibility(View.GONE);handler.postDelayed(weatherRefresh,WeatherClient.REFRESH_MS);}
         else homeWeather.setVisibility(View.GONE);
         applyHomeChrome();
+        if (contentShelf != null) {
+            contentShelf.setParked(lastFocused < COLUMNS);
+            contentShelf.reload();
+        }
         if (homeBackdrop != null) homeBackdrop.start();
         updateNightTheme(true);
         if (!calendarReceiverRegistered) {
@@ -686,8 +736,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     @Override
+    protected void onStop() {
+        ContentImages.trim();
+        if (contentShelf != null) contentShelf.onHostStop();
+        super.onStop();
+    }
+
+    @Override
     public void onTrimMemory(int level) {
         super.onTrimMemory(level);
+        if (level >= TRIM_MEMORY_UI_HIDDEN) ContentImages.trim();
         if (level < TRIM_MEMORY_UI_HIDDEN) return;
         // Opening an app hides Home. Keep the tiles so coming back is not a full rebuild.
         if (homeBackdrop != null) homeBackdrop.hide();
@@ -951,6 +1009,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             springY.animateToFinalPosition(y - glassScrollShift);
         }
         View item = (View) card.getParent();
+        if (contentShelf != null) contentShelf.setParked(position < COLUMNS);
         if (position < COLUMNS) {
             // Dock: park it at the bottom of the screen and show the top shelf for this app.
             int decoratedTop = item.getTop() - (int) (10 * density);
@@ -974,6 +1033,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     // ---- top shelf -------------------------------------------------------------------------------
 
     private void showHero(int position, float dockTopInRoot) {
+        if (contentShelf != null && contentShelf.coversHero()) {
+            heroName.animate().cancel();
+            heroName.setAlpha(0f);
+            heroShown = false;
+            ambient.animate().cancel();
+            ambient.setAlpha(0f);
+            return;
+        }
         String label = adapter.labelAt(position);
         int color = adapter.ambientColorAt(position);
         float y = dockTopInRoot - 18 * density - 26 * density - heroName.getHeight();
@@ -1149,7 +1216,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     rtlAppGrid, keyCode == KeyEvent.KEYCODE_DPAD_LEFT);
         }
         if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-            if (position < COLUMNS) return false;          // dock row: let focus move to the top bar
+            if (position < COLUMNS) {
+                if (contentShelf != null && contentShelf.offerFocusFromDock()) return true;
+                return false;          // dock row: let focus move to the top bar
+            }
             target = position - COLUMNS;
         } else {
             int lastRowStart = ((count - 1) / COLUMNS) * COLUMNS;
