@@ -40,5 +40,7 @@
     <item name="contentTrendingChoice" type="id" />
     <item name="contentTopChoice" type="id" />
     <item name="contentTitleChoice" type="id" />
+    <item name="contentLanguagesChoice" type="id" />
+    <item name="contentWindowChoice" type="id" />
     <item name="contentStatus" type="id" />
 </resources>

@@ -31,10 +31,11 @@ public class TmdbModelsTest {
                 + "\"external_ids\":{\"wikidata_id\":\"Q10\"},"
                 + "\"credits\":{\"cast\":[{\"name\":\"Rajinikanth\",\"character\":\"Tiger\",\"profile_path\":\"/face.jpg\"}]},"
                 + "\"watch/providers\":{\"results\":{\"US\":{\"flatrate\":[{\"provider_id\":8}]},"
-                + "\"IN\":{\"flatrate\":[{\"provider_id\":119}],\"ads\":[{\"provider_id\":8}]}}}}";
+                + "\"IN\":{\"flatrate\":[{\"provider_id\":119}],\"ads\":[{\"provider_id\":8}],\"rent\":[{\"provider_id\":9}]}}}}";
         TmdbModels.Title full = TmdbModels.detail(detail, TmdbModels.MOVIE);
         assertEquals(163, full.runtime);
         assertEquals("2h 43m", TmdbModels.runtimeLabel(full.runtime));
+        assertEquals("Movie \u00B7 2026", TmdbModels.cardCaption(full));
         assertEquals(2, full.providerIds.length);
         assertEquals(119, full.providerIds[0]);
         assertEquals(8, full.providerIds[1]);

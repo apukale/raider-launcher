@@ -18,15 +18,18 @@ final class TmdbClient {
 
     private TmdbClient() {}
 
-    static String discover(String media, String sort, String providers) throws IOException {
+    static String discover(String media, String providers, String language, String dateGte, int page) throws IOException {
         if (!TmdbModels.MOVIE.equals(media) && !TmdbModels.TV.equals(media)) throw new IOException("media");
-        String path = "/3/discover/" + media
-                + "?language=en-IN&region=IN&watch_region=IN&include_adult=false&include_video=false&page=1"
-                + "&sort_by=" + sort
-                + "&with_watch_monetization_types=" + enc("flatrate|free|ads|rent|buy")
-                + "&with_watch_providers=" + enc(providers);
-        if ("vote_count.desc".equals(sort)) path += "&vote_count.gte=50";
-        return getJson("https://api.themoviedb.org" + path);
+        return getJson(TmdbUrls.discover(media, providers, language, dateGte, page));
+    }
+
+    static String trending(boolean day) throws IOException {
+        return getJson(TmdbUrls.trending(day));
+    }
+
+    static String watchProviders(String media, int id) throws IOException {
+        if ((!TmdbModels.MOVIE.equals(media) && !TmdbModels.TV.equals(media)) || id <= 0) throw new IOException("title");
+        return getJson(TmdbUrls.watchProviders(media, id));
     }
 
     static String detail(String media, int id) throws IOException {

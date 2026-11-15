@@ -990,6 +990,12 @@ public final class LauncherSettingsActivity extends Activity {
         addContentToggle(card, R.id.contentTrendingChoice, ContentPrefs.TRENDING);
         addContentToggle(card, R.id.contentTopChoice, ContentPrefs.TOP10);
         addContentToggle(card, R.id.contentTitleChoice, ContentPrefs.TITLE);
+        TextView languages=settingsRow(R.id.contentLanguagesChoice);
+        languages.setOnClickListener(v->chooseContentLanguages());
+        card.addView(languages, rowParams());
+        TextView window=settingsRow(R.id.contentWindowChoice);
+        window.setOnClickListener(v->chooseContentWindow());
+        card.addView(window, rowParams());
         TextView region=settingsRow(R.id.contentStatus);
         region.setFocusable(false);
         region.setClickable(false);
@@ -1007,6 +1013,10 @@ public final class LauncherSettingsActivity extends Activity {
         setContentToggle(R.id.contentTrendingChoice, "Trending in India", ContentPrefs.TRENDING);
         setContentToggle(R.id.contentTopChoice, "Top 10 in India", ContentPrefs.TOP10);
         setContentToggle(R.id.contentTitleChoice, "Title page", ContentPrefs.TITLE);
+        TextView languages=findViewById(R.id.contentLanguagesChoice);
+        if(languages!=null){languages.setText("Languages: "+ContentLanguages.label(choices.getString(ContentLanguages.PREF, ContentLanguages.DEFAULT))); formatRow(R.id.contentLanguagesChoice);}
+        TextView window=findViewById(R.id.contentWindowChoice);
+        if(window!=null){window.setText("Time window: "+ContentWindow.label(choices.getInt(ContentWindow.PREF, ContentWindow.DEFAULT_DAYS))); formatRow(R.id.contentWindowChoice);}
         TextView status=findViewById(R.id.contentStatus);
         if(status==null)return;
         long at=choices.getLong(ContentPrefs.FETCHED, 0);
@@ -1016,6 +1026,23 @@ public final class LauncherSettingsActivity extends Activity {
         String detail=error==null||error.isEmpty()?"Updated "+when:error;
         status.setText("Region: "+value+"\n"+detail);
         formatRow(R.id.contentStatus);
+    }
+    private void chooseContentLanguages(){
+        boolean[] checked=ContentLanguages.checked(choices.getString(ContentLanguages.PREF, ContentLanguages.DEFAULT));
+        SettingsPicker.multi(this,"Languages",ContentLanguages.LABELS,checked,(index,on)->{
+            if(!on){int n=0; for(boolean value:checked) if(value) n++; if(n<=1 && checked[index]) return false;}
+            boolean[] next=checked.clone(); next[index]=on;
+            choices.edit().putString(ContentLanguages.PREF, ContentLanguages.join(next)).apply();
+            updateContentRows();
+            return true;
+        }, ()->{});
+    }
+    private void chooseContentWindow(){
+        int current=ContentWindow.normalize(choices.getInt(ContentWindow.PREF, ContentWindow.DEFAULT_DAYS));
+        SettingsPicker.single(this,"Time window",ContentWindow.LABELS,ContentWindow.index(current),w->{
+            choices.edit().putInt(ContentWindow.PREF, ContentWindow.DAYS[w]).apply();
+            updateContentRows();
+        });
     }
     private void setContentToggle(int id, String title, String key){
         TextView row=findViewById(id);

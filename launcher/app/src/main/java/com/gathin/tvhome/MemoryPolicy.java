@@ -8,6 +8,8 @@ package com.gathin.tvhome;
 final class MemoryPolicy {
     static final int POSTER_PX = 185;
     static final int POSTER_LARGE_PX = 342;
+    /** Row posters on a 1080p TV. About 1.5x the first 3.1.0 size. */
+    static final int POSTER_WIDTH_DP = 190;
     static final int HERO_PX = 780;
     static final long IMAGE_DISK_CAP = 80L * 1024 * 1024;
     static final int IMAGE_MEMORY_CAP = 8 * 1024 * 1024;
@@ -21,9 +23,9 @@ final class MemoryPolicy {
 
     /** TMDB width bucket for a view that is about {@code targetPx} wide. */
     static int imageSize(int targetPx) {
-        if (targetPx <= 220) return POSTER_PX;
-        if (targetPx <= 420) return POSTER_LARGE_PX;
-        return HERO_PX;
+        if (targetPx >= HERO_PX) return HERO_PX;
+        if (targetPx <= 200) return POSTER_PX;
+        return POSTER_LARGE_PX;
     }
 
     /** Largest power-of-two sample that still covers the requested size. */

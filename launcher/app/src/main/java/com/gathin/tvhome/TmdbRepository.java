@@ -102,29 +102,160 @@ final class TmdbRepository {
         boolean wantTrend = ContentPrefs.on(prefs, ContentPrefs.HERO) || ContentPrefs.on(prefs, ContentPrefs.TRENDING);
         boolean wantTop = ContentPrefs.on(prefs, ContentPrefs.TOP10);
         boolean wantHero = ContentPrefs.on(prefs, ContentPrefs.HERO);
+        String[] languages = ContentLanguages.selected(prefs.getString(ContentLanguages.PREF, ContentLanguages.DEFAULT));
+        int window = ContentWindow.normalize(prefs.getInt(ContentWindow.PREF, ContentWindow.DEFAULT_DAYS));
         DiskCache cache = cache(app);
         long now = System.currentTimeMillis();
-        List<TmdbModels.Title> trending = wantTrend
-                ? TmdbModels.merge(list(cache, now, "movie-pop-" + query, TmdbModels.MOVIE, "popularity.desc", query),
-                list(cache, now, "tv-pop-" + query, TmdbModels.TV, "popularity.desc", query), MemoryPolicy.TRENDING_CAP)
-                : java.util.Collections.emptyList();
-        List<TmdbModels.Title> top = wantTop
-                ? TmdbModels.merge(list(cache, now, "movie-top-" + query, TmdbModels.MOVIE, "vote_count.desc", query),
-                list(cache, now, "tv-top-" + query, TmdbModels.TV, "vote_count.desc", query), MemoryPolicy.TOP_CAP)
-                : java.util.Collections.emptyList();
+        String today = Recency.today();
+        Lists lists = null;
+        for (int days : Recency.steps(window)) {
+            lists = collect(app, cache, now, today, days, languages, query, providers, installed, window);
+            int trendSize = lists.trending.size();
+            int topSize = lists.top.size();
+            if (Recency.filled(trendSize, topSize, wantTrend, wantTop)) break;
+        }
+        if (lists == null) return empty();
+        List<TmdbModels.Title> trending = wantTrend ? lists.trending : java.util.Collections.emptyList();
+        List<TmdbModels.Title> top = wantTop ? lists.top : java.util.Collections.emptyList();
         TmdbModels.Title hero = null;
         if (wantHero) {
+            List<TmdbModels.Title> heroPool = !trending.isEmpty() ? trending : top;
             int tries = 0;
-            for (TmdbModels.Title candidate : trending) {
+            for (TmdbModels.Title candidate : heroPool) {
                 if (tries++ == 3) break;
                 TmdbModels.Title full = loadTitleNow(app, candidate.media, candidate.id, providers, installed);
                 if (full == null) continue;
                 if (providers.forProviders(full.providerIds, installed).isEmpty()) continue;
-                hero = full;
+                hero = full.language.isEmpty() ? full.withLanguage(candidate.language) : full;
                 break;
             }
         }
         return new TmdbModels.Home(trending, top, hero);
+    }
+
+    private static final class Lists {
+        final List<TmdbModels.Title> trending;
+        final List<TmdbModels.Title> top;
+        Lists(List<TmdbModels.Title> trending, List<TmdbModels.Title> top) {
+            this.trending = trending;
+            this.top = top;
+        }
+    }
+
+    private static Lists collect(Context app, DiskCache cache, long now, String today, int days, String[] languages,
+                                 String query, ProviderMap providers, java.util.Set<String> installed, int window) {
+        String from = Recency.minusDays(today, days);
+        java.util.LinkedHashMap<String, List<TmdbModels.Title>> movies = new java.util.LinkedHashMap<>();
+        java.util.LinkedHashMap<String, List<TmdbModels.Title>> shows = new java.util.LinkedHashMap<>();
+        for (String language : languages) {
+            movies.put(language, pages(cache, now, TmdbModels.MOVIE, language, from, query));
+            shows.put(language, pages(cache, now, TmdbModels.TV, language, from, query));
+        }
+        java.util.ArrayList<TmdbModels.Title> known = new java.util.ArrayList<>();
+        for (List<TmdbModels.Title> list : movies.values()) known.addAll(list);
+        for (List<TmdbModels.Title> list : shows.values()) known.addAll(list);
+        List<TmdbModels.Title> extras = trendingExtras(app, cache, now, from, window, known, providers, installed);
+        java.util.LinkedHashMap<String, List<TmdbModels.Title>> newest = new java.util.LinkedHashMap<>();
+        java.util.LinkedHashMap<String, List<TmdbModels.Title>> popular = new java.util.LinkedHashMap<>();
+        for (String language : languages) {
+            java.util.ArrayList<TmdbModels.Title> both = new java.util.ArrayList<>();
+            both.addAll(movies.get(language));
+            both.addAll(shows.get(language));
+            newest.put(language, TitleMix.interleaveTypes(both, false));
+            popular.put(language, TitleMix.interleaveTypes(both, true));
+        }
+        return new Lists(
+                TitleMix.mix(newest, extras, languages, MemoryPolicy.TRENDING_CAP),
+                TitleMix.mix(popular, TitleMix.interleaveTypes(extras, true), languages, MemoryPolicy.TOP_CAP));
+    }
+
+    private static List<TmdbModels.Title> pages(DiskCache cache, long now, String media, String language, String from, String providers) {
+        java.util.ArrayList<TmdbModels.Title> out = new java.util.ArrayList<>();
+        for (int page = 1; page <= 3; page++) {
+            String key = pageKey(media, language, from, page, providers);
+            String body = cache.getText(key, now, CacheTtl.LISTS_MS);
+            if (body == null) {
+                try {
+                    body = TmdbClient.discover(media, providers, language, from, page);
+                    cache.putText(key, body, now);
+                } catch (Exception e) {
+                    body = cache.getTextAnyAge(key);
+                    Log.w(TAG, "discover " + language + " " + e.getClass().getSimpleName());
+                }
+            }
+            if (body == null) break;
+            List<TmdbModels.Title> found = TmdbModels.discover(body, media);
+            int added = 0;
+            for (TmdbModels.Title title : found) {
+                if (title.poster.isEmpty()) continue;
+                if (!title.language.isEmpty() && !language.equals(title.language)) continue;
+                TmdbModels.Title tagged = title.language.isEmpty() ? title.withLanguage(language) : title;
+                if (TmdbModels.MOVIE.equals(media) && !tagged.date.isEmpty() && !Recency.onOrAfter(tagged.date, from)) continue;
+                out.add(tagged);
+                added++;
+            }
+            if (found.size() < 20 || out.size() >= 16 || added == 0) break;
+        }
+        return out;
+    }
+
+    private static List<TmdbModels.Title> trendingExtras(Context app, DiskCache cache, long now, String from, int window,
+                                                        List<TmdbModels.Title> known, ProviderMap providers, java.util.Set<String> installed) {
+        java.util.ArrayList<TmdbModels.Title> out = new java.util.ArrayList<>();
+        boolean day = ContentWindow.dailyTrending(window);
+        String key = day ? "t2-day" : "t2-week";
+        String body = cache.getText(key, now, CacheTtl.LISTS_MS);
+        if (body == null) {
+            try {
+                body = TmdbClient.trending(day);
+                cache.putText(key, body, now);
+            } catch (Exception e) {
+                body = cache.getTextAnyAge(key);
+                Log.w(TAG, "trending " + e.getClass().getSimpleName());
+            }
+        }
+        if (body == null) return out;
+        int budget = 12;
+        for (TmdbModels.Title title : TmdbModels.discover(body, TmdbModels.MOVIE)) {
+            if (out.size() >= 12 || title.poster.isEmpty()) continue;
+            if (!title.date.isEmpty() && !Recency.onOrAfter(title.date, from)) continue;
+            if (contains(known, title) || contains(out, title)) continue;
+            int[] left = new int[]{budget};
+            if (!onInstalled(cache, now, title, providers, installed, left)) continue;
+            budget = left[0];
+            out.add(title);
+        }
+        return out;
+    }
+
+    private static boolean onInstalled(DiskCache cache, long now, TmdbModels.Title title, ProviderMap providers,
+                                      java.util.Set<String> installed, int[] budget) {
+        String key = "wp-" + title.media + "-" + title.id;
+        String body = cache.getText(key, now, CacheTtl.DETAILS_MS);
+        if (body == null) {
+            if (budget[0] <= 0) return false;
+            budget[0]--;
+            try {
+                body = TmdbClient.watchProviders(title.media, title.id);
+                cache.putText(key, body, now);
+            } catch (Exception e) {
+                body = cache.getTextAnyAge(key);
+                if (body == null) return false;
+            }
+        }
+        return !providers.forProviders(TmdbModels.indiaProviders(body), installed).isEmpty();
+    }
+
+    private static boolean contains(List<TmdbModels.Title> items, TmdbModels.Title title) {
+        for (TmdbModels.Title item : items) {
+            if (item.id == title.id && item.media.equals(title.media)) return true;
+        }
+        return false;
+    }
+
+    private static String pageKey(String media, String language, String from, int page, String providers) {
+        String raw = media + "|" + language + "|" + from + "|" + page + "|" + providers;
+        return "d2-" + Integer.toHexString(raw.hashCode());
     }
 
     private static TmdbModels.Home staleHome(Context app) {
@@ -132,32 +263,17 @@ final class TmdbRepository {
             if (!ContentPrefs.available()) return empty();
             SharedPreferences prefs = app.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE);
             ProviderMap providers = map(app);
-            String query = providers.providerQuery(InstalledAppsIndex.enabled(app, providers.packages()));
+            java.util.Set<String> installed = InstalledAppsIndex.enabled(app, providers.packages());
+            String query = providers.providerQuery(installed);
             if (query.isEmpty()) return empty();
-            DiskCache cache = cache(app);
-            List<TmdbModels.Title> trending = TmdbModels.merge(
-                    discoverAny(cache, "movie-pop-" + query, TmdbModels.MOVIE),
-                    discoverAny(cache, "tv-pop-" + query, TmdbModels.TV), MemoryPolicy.TRENDING_CAP);
-            List<TmdbModels.Title> top = TmdbModels.merge(
-                    discoverAny(cache, "movie-top-" + query, TmdbModels.MOVIE),
-                    discoverAny(cache, "tv-top-" + query, TmdbModels.TV), MemoryPolicy.TOP_CAP);
-            return new TmdbModels.Home(trending, top, trending.isEmpty() ? null : trending.get(0));
+            String[] languages = ContentLanguages.selected(prefs.getString(ContentLanguages.PREF, ContentLanguages.DEFAULT));
+            int window = ContentWindow.normalize(prefs.getInt(ContentWindow.PREF, ContentWindow.DEFAULT_DAYS));
+            Lists lists = collect(app, cache(app), System.currentTimeMillis(), Recency.today(), window, languages, query, providers, installed, window);
+            TmdbModels.Title hero = lists.trending.isEmpty() ? null : lists.trending.get(0);
+            return new TmdbModels.Home(lists.trending, lists.top, hero);
         } catch (Exception e) {
             return empty();
         }
-    }
-
-    private static List<TmdbModels.Title> list(DiskCache cache, long now, String key, String media, String sort, String query) throws Exception {
-        String body = cache.getText(key, now, CacheTtl.LISTS_MS);
-        if (body == null) {
-            body = TmdbClient.discover(media, sort, query);
-            cache.putText(key, body, now);
-        }
-        return TmdbModels.discover(body, media);
-    }
-
-    private static List<TmdbModels.Title> discoverAny(DiskCache cache, String key, String media) {
-        return TmdbModels.discover(cache.getTextAnyAge(key), media);
     }
 
     private static TmdbModels.Title loadTitleNow(Context app, String media, int id, ProviderMap providers, Set<String> installed) throws Exception {

@@ -3,6 +3,7 @@ package com.gathin.tvhome;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Outline;
+import android.graphics.Rect;
 import android.graphics.drawable.GradientDrawable;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
@@ -12,6 +13,7 @@ import android.view.ViewOutlineProvider;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -23,10 +25,11 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Hero, Trending in India, and Top 10 in India in the band above the dock.
- * Titles that are not on an installed app are not added. Continue Watching is not part of this.
+ * Hero, Trending in India, and Top 10 above the dock. The band scrolls so the
+ * larger posters can move into view. Up and down are handled here, one zone at
+ * a time, and each row remembers the poster that last had focus.
  */
-public final class ContentShelf extends LinearLayout {
+public final class ContentShelf extends ScrollView {
     interface Host {
         void onBackdrop(boolean showing);
         void onBound();
@@ -42,9 +45,11 @@ public final class ContentShelf extends LinearLayout {
     private SharedPreferences prefs;
     private TmdbModels.Home home;
     private boolean parked = true;
-    private boolean tooSmall;
-    private int posterPx;
     private int accent;
+    private int trendFocus;
+    private int topFocus;
+    private final int posterW;
+    private final int posterH;
 
     private final LinearLayout heroBlock;
     private final TextView eyebrow;
@@ -61,19 +66,27 @@ public final class ContentShelf extends LinearLayout {
 
     public ContentShelf(Context context, AttributeSet attrs) {
         super(context, attrs);
-        setOrientation(VERTICAL);
-        setClipChildren(false);
-        setClipToPadding(false);
+        setFillViewport(true);
         setFocusable(false);
         setDescendantFocusability(FOCUS_AFTER_DESCENDANTS);
-        posterPx = dp(120);
+        setSmoothScrollingEnabled(false);
+        setVerticalScrollBarEnabled(false);
+        setOverScrollMode(OVER_SCROLL_NEVER);
+        posterW = dp(MemoryPolicy.POSTER_WIDTH_DP);
+        posterH = Math.round(posterW * 3f / 2f);
         accent = RaiderTheme.accent(context);
+
+        LinearLayout body = new LinearLayout(context);
+        body.setOrientation(LinearLayout.VERTICAL);
+        body.setClipChildren(false);
+        addView(body, new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+
         heroBlock = column();
         heroBlock.setGravity(android.view.Gravity.BOTTOM);
         eyebrow = text(12, true);
         eyebrow.setLetterSpacing(0.14f);
         eyebrow.setAllCaps(true);
-        titleView = text(34, false);
+        titleView = text(32, false);
         titleView.setTypeface(Fonts.of(context, Fonts.HOME, R.font.outfit_light));
         titleView.setMaxLines(2);
         metaView = text(14, false);
@@ -84,39 +97,38 @@ public final class ContentShelf extends LinearLayout {
         watch.setTypeface(Fonts.of(context, Fonts.HOME, R.font.outfit_medium));
         watch.setFocusable(true);
         watch.setClickable(true);
-        int padH = dp(16);
-        int padV = dp(8);
-        watch.setPadding(padH, padV, padH, padV);
-        watch.setOnFocusChangeListener((v, focused) -> paintButton(focused));
+        watch.setPadding(dp(16), dp(8), dp(16), dp(8));
+        watch.setOnFocusChangeListener((v, focused) -> {
+            paintButton(focused);
+            if (focused) reveal(heroBlock);
+        });
         watch.setOnKeyListener((v, key, event) -> event.getAction() == KeyEvent.ACTION_DOWN
                 && (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT));
         heroBlock.addView(eyebrow);
-        heroBlock.addView(titleView, gapTop(4));
-        heroBlock.addView(metaView, gapTop(6));
-        heroBlock.addView(overviewView, gapTop(8));
-        heroBlock.addView(watch, gapTop(12));
-        addView(heroBlock, new LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f));
+        heroBlock.addView(titleView, gap(4));
+        heroBlock.addView(metaView, gap(6));
+        heroBlock.addView(overviewView, gap(8));
+        heroBlock.addView(watch, gap(12));
+        body.addView(heroBlock, matchWrap());
 
         trendAdapter = new PosterAdapter(false);
         trendBlock = section("Trending in India");
         trendRow = row();
         trendRow.setAdapter(trendAdapter);
-        trendBlock.addView(trendRow, rowParams(posterPx));
-        addView(trendBlock, wrap());
+        trendBlock.addView(trendRow, rowHeight());
+        body.addView(trendBlock, matchWrap());
 
         topAdapter = new PosterAdapter(true);
         topBlock = section("Top 10 in India");
         topRow = row();
         topRow.setAdapter(topAdapter);
-        topBlock.addView(topRow, rowParams(posterPx));
-        addView(topBlock, wrap());
+        topBlock.addView(topRow, rowHeight());
+        body.addView(topBlock, matchWrap());
 
         TextView credit = text(11, false);
         credit.setText(TmdbModels.CREDIT);
         credit.setAlpha(0.7f);
-        LayoutParams creditLp = gapTop(4);
-        creditLp.bottomMargin = dp(2);
-        addView(credit, creditLp);
+        body.addView(credit, gap(6));
         paintButton(false);
         setVisibility(GONE);
     }
@@ -126,13 +138,12 @@ public final class ContentShelf extends LinearLayout {
     void attachBackdrop(ImageView backdrop, View scrim) {
         this.backdrop = backdrop;
         this.scrim = scrim;
-        if (scrim != null) {
-            GradientDrawable left = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
-                    new int[]{0xF0101016, 0xC0101016, 0x66101016, 0x00101016});
-            GradientDrawable bottom = new GradientDrawable(GradientDrawable.Orientation.BOTTOM_TOP,
-                    new int[]{0xF208080E, 0x9908080E, 0x0008080E});
-            scrim.setBackground(new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{left, bottom}));
-        }
+        if (scrim == null) return;
+        GradientDrawable left = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
+                new int[]{0xF0101016, 0xC0101016, 0x66101016, 0x00101016});
+        GradientDrawable bottom = new GradientDrawable(GradientDrawable.Orientation.BOTTOM_TOP,
+                new int[]{0xF208080E, 0x9908080E, 0x0008080E});
+        scrim.setBackground(new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{left, bottom}));
     }
 
     void reload() {
@@ -178,83 +189,94 @@ public final class ContentShelf extends LinearLayout {
 
     boolean offerFocusFromTop() {
         if (getVisibility() != VISIBLE) return false;
-        if (watch.getVisibility() == VISIBLE) {
-            watch.requestFocus();
-            return true;
-        }
-        if (trendBlock.getVisibility() == VISIBLE) return focusRow(trendRow, 0);
-        if (topBlock.getVisibility() == VISIBLE) return focusRow(topRow, 0);
-        return false;
+        int next = HomeFocus.next(HomeFocus.TOP, false, watchVisible(), trendVisible(), topVisible());
+        return focusZone(next);
     }
 
     boolean offerFocusFromDock() {
         if (getVisibility() != VISIBLE) return false;
-        if (topBlock.getVisibility() == VISIBLE) return focusRow(topRow, 0);
-        if (trendBlock.getVisibility() == VISIBLE) return focusRow(trendRow, 0);
-        if (watch.getVisibility() == VISIBLE) {
-            watch.requestFocus();
-            return true;
-        }
-        return false;
+        int next = HomeFocus.next(HomeFocus.DOCK, true, watchVisible(), trendVisible(), topVisible());
+        return focusZone(next);
     }
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        if (event.getAction() == KeyEvent.ACTION_DOWN && move(event.getKeyCode())) return true;
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            int key = event.getKeyCode();
+            if ((key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_DOWN)
+                    && moveVertical(key == KeyEvent.KEYCODE_DPAD_UP)) {
+                return true;
+            }
+        }
         return super.dispatchKeyEvent(event);
     }
 
-    @Override
-    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        super.onSizeChanged(w, h, oldw, oldh);
-        tooSmall = h > 0 && h < dp(MemoryPolicy.MIN_SHELF_DP);
-        int rows = (trendBlock.getVisibility() == VISIBLE ? 1 : 0) + (topBlock.getVisibility() == VISIBLE ? 1 : 0);
-        if (rows == 0) rows = (ContentPrefs.on(prefs, ContentPrefs.TRENDING) ? 1 : 0) + (ContentPrefs.on(prefs, ContentPrefs.TOP10) ? 1 : 0);
-        int reserve = dp(28) + rows * dp(26);
-        if (ContentPrefs.on(prefs, ContentPrefs.HERO)) reserve += dp(112);
-        int leftover = Math.max(0, h - reserve);
-        int poster = rows == 0 ? posterPx : Math.max(dp(72), Math.min(dp(176), leftover / Math.max(1, rows)));
-        if (Math.abs(poster - posterPx) > 3 && poster > 0) {
-            posterPx = poster;
-            setRowHeight(trendRow, posterPx);
-            setRowHeight(topRow, posterPx);
-            post(() -> {
-                trendAdapter.notifyDataSetChanged();
-                topAdapter.notifyDataSetChanged();
-            });
-        }
-        applyVisibility();
-    }
-
-    private boolean move(int key) {
-        if (key != KeyEvent.KEYCODE_DPAD_UP && key != KeyEvent.KEYCODE_DPAD_DOWN) return false;
-        View focus = findFocus();
-        if (focus == null || host == null) return false;
-        boolean up = key == KeyEvent.KEYCODE_DPAD_UP;
-        boolean inHero = inside(heroBlock, focus);
-        boolean inTrend = inside(trendRow, focus);
-        boolean inTop = inside(topRow, focus);
-        if (up) {
-            if (inTop && trendBlock.getVisibility() == VISIBLE) return focusRow(trendRow, 0);
-            if ((inTop || inTrend) && watch.getVisibility() == VISIBLE) {
-                watch.requestFocus();
-                return true;
-            }
-            if (inHero || inTrend || inTop) {
-                host.focusUp();
-                return true;
-            }
-            return false;
-        }
-        if (inHero && trendBlock.getVisibility() == VISIBLE) return focusRow(trendRow, 0);
-        if (inHero && topBlock.getVisibility() == VISIBLE) return focusRow(topRow, 0);
-        if (inTrend && topBlock.getVisibility() == VISIBLE) return focusRow(topRow, 0);
-        if (inHero || inTrend || inTop) {
-            host.focusDown();
+    private boolean moveVertical(boolean up) {
+        int zone = zoneOf(findFocus());
+        if (zone < 0 || host == null) return false;
+        int next = HomeFocus.next(zone, up, watchVisible(), trendVisible(), topVisible());
+        if (next < 0) {
+            if (up) host.focusUp();
+            else host.focusDown();
             return true;
         }
+        return focusZone(next);
+    }
+
+    private boolean focusZone(int zone) {
+        if (zone == HomeFocus.HERO) {
+            if (watch.getVisibility() != VISIBLE || !watch.requestFocus()) return false;
+            reveal(heroBlock);
+            return true;
+        }
+        if (zone == HomeFocus.TRENDING) return focusIndex(trendRow, trendFocus, trendBlock);
+        if (zone == HomeFocus.TOP10) return focusIndex(topRow, topFocus, topBlock);
         return false;
     }
+
+    private boolean focusIndex(PosterRow row, int index, View block) {
+        if (row.getAdapter() == null || row.getAdapter().getItemCount() == 0 || row.getWidth() <= 0) return false;
+        int safe = Math.max(0, Math.min(index, row.getAdapter().getItemCount() - 1));
+        RecyclerView.LayoutManager manager = row.getLayoutManager();
+        View child = manager == null ? null : manager.findViewByPosition(safe);
+        if (child != null && child.requestFocus()) {
+            reveal(block);
+            return true;
+        }
+        if (manager != null) manager.scrollToPosition(safe);
+        final int target = safe;
+        row.post(() -> {
+            RecyclerView.LayoutManager ready = row.getLayoutManager();
+            View view = ready == null ? null : ready.findViewByPosition(target);
+            if (view != null && view.requestFocus()) reveal(block);
+        });
+        return row.getHeight() > 0;
+    }
+
+    private int zoneOf(View focus) {
+        if (inside(topRow, focus)) return HomeFocus.TOP10;
+        if (inside(trendRow, focus)) return HomeFocus.TRENDING;
+        if (inside(heroBlock, focus)) return HomeFocus.HERO;
+        return -1;
+    }
+
+    private void reveal(View block) {
+        if (block == null) return;
+        block.post(() -> {
+            Rect rect = new Rect(0, -dp(12), Math.max(1, block.getWidth()), block.getHeight() + dp(12));
+            block.requestRectangleOnScreen(rect, false);
+        });
+    }
+
+    private void remember(boolean ranked, int position) {
+        if (position < 0) return;
+        if (ranked) topFocus = position;
+        else trendFocus = position;
+    }
+
+    private boolean watchVisible() { return watch.getVisibility() == VISIBLE; }
+    private boolean trendVisible() { return trendBlock.getVisibility() == VISIBLE; }
+    private boolean topVisible() { return topBlock.getVisibility() == VISIBLE; }
 
     private void bind() {
         prefs = getContext().getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE);
@@ -265,13 +287,11 @@ public final class ContentShelf extends LinearLayout {
         trendBlock.setVisibility(trendOn ? VISIBLE : GONE);
         topBlock.setVisibility(topOn ? VISIBLE : GONE);
         if (trendOn) trendAdapter.submit(home.trending);
+        else trendFocus = 0;
         if (topOn) topAdapter.submit(home.top10);
+        else topFocus = 0;
         if (heroOn) bindHero(home.hero);
         else hideBackdrop();
-        LayoutParams heroLp = (LayoutParams) heroBlock.getLayoutParams();
-        heroLp.height = heroOn ? 0 : 0;
-        heroLp.weight = heroOn ? 1f : 0f;
-        heroBlock.setLayoutParams(heroLp);
         applyVisibility();
     }
 
@@ -322,7 +342,7 @@ public final class ContentShelf extends LinearLayout {
 
     private void applyVisibility() {
         boolean sections = heroBlock.getVisibility() == VISIBLE || trendBlock.getVisibility() == VISIBLE || topBlock.getVisibility() == VISIBLE;
-        boolean show = parked && !tooSmall && sections && ContentPrefs.showsHome(prefs);
+        boolean show = parked && sections && ContentPrefs.showsHome(prefs);
         setVisibility(show ? VISIBLE : GONE);
         if (!show || heroBlock.getVisibility() != VISIBLE) {
             if (backdrop != null && backdrop.getVisibility() == VISIBLE) hideBackdrop();
@@ -331,7 +351,7 @@ public final class ContentShelf extends LinearLayout {
 
     private String meta(TmdbModels.Title hero) {
         StringBuilder line = new StringBuilder();
-        append(line, hero.year());
+        append(line, TmdbModels.cardCaption(hero));
         append(line, TmdbModels.runtimeLabel(hero.runtime));
         append(line, TmdbModels.genreLine(hero));
         String rating = TmdbModels.ratingLabel(hero.vote);
@@ -345,28 +365,18 @@ public final class ContentShelf extends LinearLayout {
         line.append(part);
     }
 
-    private boolean focusRow(PosterRow row, int index) {
-        if (row.getAdapter() == null || row.getAdapter().getItemCount() == 0) return false;
-        int safe = Math.max(0, Math.min(index, row.getAdapter().getItemCount() - 1));
-        row.scrollToPosition(safe);
-        row.post(() -> {
-            RecyclerView.ViewHolder holder = row.findViewHolderForAdapterPosition(safe);
-            if (holder != null) holder.itemView.requestFocus();
-        });
-        return true;
-    }
-
     private void paintButton(boolean focused) {
-        GradientDrawable d = new GradientDrawable();
-        d.setCornerRadius(dp(4));
-        d.setColor(focused ? RaiderTheme.theme(getContext()).focus : accent);
-        watch.setBackground(d);
-        watch.setTextColor(RaiderColors.inkOn(focused ? RaiderTheme.theme(getContext()).focus : accent));
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setCornerRadius(dp(4));
+        int color = focused ? RaiderTheme.theme(getContext()).focus : accent;
+        drawable.setColor(color);
+        watch.setBackground(drawable);
+        watch.setTextColor(RaiderColors.inkOn(color));
     }
 
     private LinearLayout column() {
         LinearLayout box = new LinearLayout(getContext());
-        box.setOrientation(VERTICAL);
+        box.setOrientation(LinearLayout.VERTICAL);
         box.setClipChildren(false);
         return box;
     }
@@ -376,13 +386,14 @@ public final class ContentShelf extends LinearLayout {
         TextView name = text(16, false);
         name.setTypeface(Fonts.of(getContext(), Fonts.HOME, R.font.outfit_medium));
         name.setText(label);
-        box.addView(name, gapTop(8));
+        box.addView(name, gap(8));
         return box;
     }
 
     private PosterRow row() {
         PosterRow row = new PosterRow(getContext());
         row.setPadding(0, dp(6), dp(24), 0);
+        row.setNestedScrollingEnabled(false);
         return row;
     }
 
@@ -396,27 +407,18 @@ public final class ContentShelf extends LinearLayout {
         return view;
     }
 
-    private LayoutParams gapTop(int dp) {
-        LayoutParams lp = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-        lp.topMargin = dp(dp);
+    private LinearLayout.LayoutParams gap(int value) {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(value);
         return lp;
     }
 
-    private LayoutParams wrap() {
-        return new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
+    private LinearLayout.LayoutParams matchWrap() {
+        return new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
     }
 
-    private LayoutParams rowParams(int height) {
-        LayoutParams lp = new LayoutParams(LayoutParams.MATCH_PARENT, height);
-        return lp;
-    }
-
-    private void setRowHeight(PosterRow row, int height) {
-        ViewGroup.LayoutParams lp = row.getLayoutParams();
-        if (lp != null && lp.height != height) {
-            lp.height = height;
-            row.setLayoutParams(lp);
-        }
+    private LinearLayout.LayoutParams rowHeight() {
+        return new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, posterH + dp(28));
     }
 
     private void clearBitmaps(View view) {
@@ -430,8 +432,8 @@ public final class ContentShelf extends LinearLayout {
     private static boolean inside(View parent, View view) {
         while (view != null) {
             if (view == parent) return true;
-            android.view.ViewParent p = view.getParent();
-            view = p instanceof View ? (View) p : null;
+            android.view.ViewParent owner = view.getParent();
+            view = owner instanceof View ? (View) owner : null;
         }
         return false;
     }
@@ -444,15 +446,17 @@ public final class ContentShelf extends LinearLayout {
         private final boolean ranked;
         private List<TmdbModels.Title> items = Collections.emptyList();
 
-        PosterAdapter(boolean ranked) { this.ranked = ranked; }
+        PosterAdapter(boolean ranked) {
+            this.ranked = ranked;
+            setHasStableIds(true);
+        }
 
         void submit(List<TmdbModels.Title> next) {
             items = next == null ? Collections.emptyList() : next;
             notifyDataSetChanged();
         }
 
-        @Override
-        public int getItemCount() { return items.size(); }
+        @Override public int getItemCount() { return items.size(); }
 
         @Override
         public long getItemId(int position) {
@@ -463,7 +467,39 @@ public final class ContentShelf extends LinearLayout {
         @NonNull
         @Override
         public Holder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            return new Holder(parent.getContext());
+            return new Holder(itemView(parent.getContext()));
+        }
+
+        private View itemView(Context context) {
+            LinearLayout posterColumn = new LinearLayout(context);
+            posterColumn.setOrientation(LinearLayout.VERTICAL);
+            FrameLayout poster = posterCard(context);
+            poster.setId(R.id.contentPoster);
+            posterColumn.addView(poster, new LinearLayout.LayoutParams(posterW, posterH));
+            TextView line = text(12, false);
+            line.setId(R.id.contentStatus);
+            line.setMaxLines(1);
+            line.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            line.setTextColor(RaiderTheme.theme(context).secondary);
+            LinearLayout.LayoutParams captionLp = new LinearLayout.LayoutParams(posterW, dp(20));
+            captionLp.topMargin = dp(4);
+            posterColumn.addView(line, captionLp);
+            if (!ranked) return posterColumn;
+            LinearLayout row = new LinearLayout(context);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.TOP);
+            TextView number = new TextView(context);
+            number.setId(R.id.contentRank);
+            number.setTypeface(Fonts.of(context, Fonts.HOME, R.font.outfit_light));
+            number.setIncludeFontPadding(false);
+            number.setGravity(android.view.Gravity.BOTTOM | android.view.Gravity.CENTER_HORIZONTAL);
+            number.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, posterH * 0.42f);
+            number.setShadowLayer(8f, 0f, 2f, 0xCC000000);
+            row.addView(number, new LinearLayout.LayoutParams(dp(72), posterH));
+            LinearLayout.LayoutParams columnLp = new LinearLayout.LayoutParams(posterW, ViewGroup.LayoutParams.WRAP_CONTENT);
+            columnLp.setMarginStart(dp(4));
+            row.addView(posterColumn, columnLp);
+            return row;
         }
 
         @Override
@@ -474,97 +510,77 @@ public final class ContentShelf extends LinearLayout {
         @Override
         public void onViewRecycled(@NonNull Holder holder) {
             holder.image.setImageDrawable(null);
-            holder.card.setTag(null);
         }
 
         final class Holder extends RecyclerView.ViewHolder {
             final ImageView image;
             final FrameLayout card;
             final TextView rank;
+            final TextView caption;
 
-            Holder(Context context) {
-                super(ranked ? rankedItem(context) : plainItem(context));
+            Holder(View item) {
+                super(item);
                 card = itemView.findViewById(R.id.contentPoster);
                 image = itemView.findViewById(R.id.contentPosterImage);
                 rank = ranked ? itemView.findViewById(R.id.contentRank) : null;
+                caption = itemView.findViewById(R.id.contentStatus);
                 itemView.setFocusable(true);
                 itemView.setClickable(true);
-                itemView.setOnFocusChangeListener((v, focused) -> stroke(card, focused));
+                itemView.setOnFocusChangeListener((view, focused) -> {
+                    stroke(card, focused);
+                    if (!focused) return;
+                    int position = getBindingAdapterPosition();
+                    remember(ranked, position);
+                    reveal(ranked ? topBlock : trendBlock);
+                });
+                itemView.setOnKeyListener((view, key, event) -> {
+                    if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+                    if (key == KeyEvent.KEYCODE_DPAD_UP) return moveVertical(true);
+                    if (key == KeyEvent.KEYCODE_DPAD_DOWN) return moveVertical(false);
+                    return false;
+                });
             }
 
             void bind(TmdbModels.Title title, int position) {
-                int width = Math.round(posterPx * 2f / 3f);
-                if (ranked) {
-                    itemView.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, posterPx));
-                    ViewGroup.LayoutParams lp = card.getLayoutParams();
-                    lp.width = width;
-                    lp.height = posterPx;
-                    card.setLayoutParams(lp);
+                if (rank != null && position >= 0) {
                     rank.setText(String.valueOf(position + 1));
                     rank.setTextColor(accent);
-                    rank.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, posterPx * 0.5f);
-                    rank.getLayoutParams().width = Math.round(posterPx * 0.46f);
-                    rank.getLayoutParams().height = posterPx;
-                } else {
-                    itemView.setLayoutParams(new RecyclerView.LayoutParams(width, posterPx));
                 }
-                itemView.setContentDescription(title.name);
+                caption.setText(TmdbModels.cardCaption(title));
+                itemView.setContentDescription(title.name + ", " + TmdbModels.cardCaption(title));
                 itemView.setOnClickListener(v -> {
-                    if (host != null && ContentPrefs.on(prefs, ContentPrefs.TITLE)) host.openTitle(title.media, title.id);
+                    if (host != null && prefs != null && ContentPrefs.on(prefs, ContentPrefs.TITLE)) {
+                        host.openTitle(title.media, title.id);
+                    }
                 });
-                ContentImages.load(getContext(), image, title.poster, MemoryPolicy.POSTER_PX);
+                ContentImages.load(getContext(), image, title.poster, posterW);
                 stroke(card, itemView.hasFocus());
             }
         }
 
-        private FrameLayout plainItem(Context context) {
-            FrameLayout card = posterCard(context);
-            card.setId(R.id.contentPoster);
-            return card;
-        }
-
-        private LinearLayout rankedItem(Context context) {
-            LinearLayout row = new LinearLayout(context);
-            row.setOrientation(HORIZONTAL);
-            row.setGravity(android.view.Gravity.BOTTOM);
-            TextView number = new TextView(context);
-            number.setId(R.id.contentRank);
-            number.setTypeface(Fonts.of(context, Fonts.HOME, R.font.outfit_light));
-            number.setIncludeFontPadding(false);
-            number.setGravity(android.view.Gravity.BOTTOM | android.view.Gravity.CENTER_HORIZONTAL);
-            number.setShadowLayer(8f, 0f, 2f, 0xCC000000);
-            row.addView(number, new LinearLayout.LayoutParams(dp(36), LayoutParams.MATCH_PARENT));
-            FrameLayout card = posterCard(context);
-            card.setId(R.id.contentPoster);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(80), posterPx);
-            lp.setMarginStart(dp(2));
-            row.addView(card, lp);
-            return row;
-        }
-
         private FrameLayout posterCard(Context context) {
             FrameLayout card = new FrameLayout(context);
-            ImageView image = new ImageView(context);
-            image.setId(R.id.contentPosterImage);
-            image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            image.setBackgroundColor(0xFF1A1B2E);
-            image.setClipToOutline(true);
-            image.setOutlineProvider(new ViewOutlineProvider() {
+            ImageView picture = new ImageView(context);
+            picture.setId(R.id.contentPosterImage);
+            picture.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            picture.setBackgroundColor(0xFF1A1B2E);
+            picture.setClipToOutline(true);
+            picture.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
                 public void getOutline(View view, Outline outline) {
                     outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dp(4));
                 }
             });
-            card.addView(image, new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+            card.addView(picture, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             return card;
         }
 
         private void stroke(FrameLayout card, boolean focused) {
-            GradientDrawable d = new GradientDrawable();
-            d.setCornerRadius(dp(4));
-            d.setColor(0x00000000);
-            if (focused) d.setStroke(dp(2), accent);
-            card.setForeground(d);
+            GradientDrawable drawable = new GradientDrawable();
+            drawable.setCornerRadius(dp(4));
+            drawable.setColor(0x00000000);
+            if (focused) drawable.setStroke(dp(2), accent);
+            card.setForeground(drawable);
         }
     }
 
@@ -578,7 +594,6 @@ public final class ContentShelf extends LinearLayout {
             setClipChildren(false);
             setItemAnimator(null);
             setOverScrollMode(OVER_SCROLL_NEVER);
-            setHasFixedSize(false);
         }
 
         @Override
@@ -588,7 +603,7 @@ public final class ContentShelf extends LinearLayout {
                 if (next == null || !inside(this, next)) return focused;
                 return next;
             }
-            return super.focusSearch(focused, direction);
+            return null;
         }
     }
 }

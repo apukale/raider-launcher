@@ -15,7 +15,8 @@ final class TmdbModels {
     static final String CREDIT = "Data from TMDB \u00B7 JustWatch";
     static final String MOVIE = "movie";
     static final String TV = "tv";
-    private static final String[] WATCH_BUCKETS = {"flatrate", "free", "ads", "rent", "buy"};
+    /** Rent and buy are not "on an installed app" for these rows. */
+    private static final String[] WATCH_BUCKETS = {"flatrate", "free", "ads"};
     private static final Map<Integer, String> GENRES = genres();
 
     static final class Cast {
@@ -46,11 +47,12 @@ final class TmdbModels {
         final int[] providerIds;
         final Cast[] cast;
         final String wikidataId;
+        final String language;
         final Map<String, String> external;
 
         Title(String media, int id, String name, String overview, String poster, String backdrop,
               String date, double vote, double popularity, int runtime, int[] genreIds, String[] genres,
-              int[] providerIds, Cast[] cast, String wikidataId, Map<String, String> external) {
+              int[] providerIds, Cast[] cast, String wikidataId, String language, Map<String, String> external) {
             this.media = MOVIE.equals(media) ? MOVIE : TV;
             this.id = id;
             this.name = name == null ? "" : name;
@@ -66,6 +68,7 @@ final class TmdbModels {
             this.providerIds = providerIds == null ? new int[0] : providerIds;
             this.cast = cast == null ? new Cast[0] : cast;
             this.wikidataId = wikidataId == null ? "" : wikidataId;
+            this.language = language == null ? "" : language.trim().toLowerCase(Locale.US);
             this.external = external == null || external.isEmpty()
                     ? Collections.emptyMap() : Collections.unmodifiableMap(new HashMap<>(external));
         }
@@ -76,7 +79,12 @@ final class TmdbModels {
 
         Title withExternal(Map<String, String> more) {
             return new Title(media, id, name, overview, poster, backdrop, date, vote, popularity,
-                    runtime, genreIds, genres, providerIds, cast, wikidataId, more);
+                    runtime, genreIds, genres, providerIds, cast, wikidataId, language, more);
+        }
+
+        Title withLanguage(String code) {
+            return new Title(media, id, name, overview, poster, backdrop, date, vote, popularity,
+                    runtime, genreIds, genres, providerIds, cast, wikidataId, code, external);
         }
     }
 
@@ -144,7 +152,8 @@ final class TmdbModels {
             if (external != null) wiki = text(external, "wikidata_id");
             return new Title(media, id, name, text(o, "overview"), text(o, "poster_path"), text(o, "backdrop_path"),
                     date, o.optDouble("vote_average", 0), o.optDouble("popularity", 0), runtime, genreIds, names,
-                    providers(o.optJSONObject("watch/providers")), cast(o.optJSONObject("credits")), wiki, null);
+                    providers(o.optJSONObject("watch/providers")), cast(o.optJSONObject("credits")), wiki,
+                    text(o, "original_language"), null);
         } catch (Exception ignored) {
             return null;
         }
@@ -189,6 +198,23 @@ final class TmdbModels {
         return String.format(Locale.US, "%.1f", vote);
     }
 
+    static String cardCaption(Title title) {
+        if (title == null) return "";
+        String kind = title.movie() ? "Movie" : "Series";
+        String year = title.year();
+        return year.isEmpty() ? kind : kind + " \u00B7 " + year;
+    }
+
+    /** Subscription providers in India. Rent and buy are ignored. The root is a watch-provider payload. */
+    static int[] indiaProviders(String json) {
+        if (json == null || json.isEmpty()) return new int[0];
+        try {
+            return providers(new JSONObject(json));
+        } catch (Exception ignored) {
+            return new int[0];
+        }
+    }
+
     static String genreLine(Title title) {
         if (title == null) return "";
         ArrayList<String> names = new ArrayList<>();
@@ -213,6 +239,7 @@ final class TmdbModels {
 
     private static Title light(JSONObject o, String media) {
         if (o == null) return null;
+        if ("person".equals(text(o, "media_type"))) return null;
         int id = o.optInt("id", 0);
         String name = text(o, "title");
         if (name.isEmpty()) name = text(o, "name");
@@ -227,7 +254,7 @@ final class TmdbModels {
         if (MOVIE.equals(listed) || TV.equals(listed)) kind = listed;
         return new Title(kind, id, name, text(o, "overview"), text(o, "poster_path"), text(o, "backdrop_path"),
                 date, o.optDouble("vote_average", 0), o.optDouble("popularity", 0), 0, genreIds, null,
-                null, null, "", null);
+                null, null, "", text(o, "original_language"), null);
     }
 
     private static int[] providers(JSONObject watch) {
