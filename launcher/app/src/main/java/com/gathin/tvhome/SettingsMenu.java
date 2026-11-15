@@ -7,6 +7,8 @@ final class SettingsMenu {
     static final int HOME = 0;
     static final int PHOTOS = 3;
     static final int CALENDAR = 4;
+    static final int CONTENT = 8;
+    static final int ABOUT = 9;
     static final String[] LABELS = {
             "Home Layout",
             "Appearance",
@@ -16,6 +18,7 @@ final class SettingsMenu {
             "Weather",
             "Night Mode",
             "Advanced",
+            "Content",
             "About Raider Launcher"
     };
 

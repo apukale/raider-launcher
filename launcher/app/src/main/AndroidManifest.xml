@@ -8,7 +8,7 @@
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- Used only by PhotoStore to fetch local screensaver photos (Bing, Unsplash, NASA, Wikimedia, museums) and by WeatherClient. -->
+    <!-- Used by PhotoStore, WeatherClient, and TMDB title art. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
@@ -40,6 +40,17 @@
         <package android:name="com.xiaomi.mitv.settings" />
         <!-- Disabled source used only to load the SmartTube tile artwork. -->
         <package android:name="com.google.android.youtube.tv" />
+        <!-- Streaming apps the title rows can open. Android 11 hides unlisted packages. -->
+        <package android:name="com.netflix.ninja" />
+        <package android:name="com.netflix.mediaclient" />
+        <package android:name="in.startv.hotstar" />
+        <package android:name="com.raider.primevideo" />
+        <package android:name="com.amazon.amazonvideo.livingroom" />
+        <package android:name="com.sonyliv" />
+        <package android:name="com.graymatrix.did" />
+        <package android:name="ahaflix.tv" />
+        <package android:name="org.smarttube.stable" />
+        <package android:name="com.jio.media.jiotvplus" />
     </queries>
 
     <application
@@ -78,6 +89,8 @@
             android:screenOrientation="landscape" />
         <activity android:name=".PanchangActivity" android:exported="false" android:excludeFromRecents="true" android:screenOrientation="landscape" />
         <activity android:name=".WeatherActivity" android:exported="false" android:excludeFromRecents="true" android:screenOrientation="landscape" />
+        <activity android:name=".TitleActivity" android:exported="false" android:excludeFromRecents="true" android:screenOrientation="landscape" />
+        <activity android:name=".BrowseActivity" android:exported="false" android:excludeFromRecents="true" android:screenOrientation="landscape" />
         <activity android:name=".WorldClocksActivity" android:exported="false" android:excludeFromRecents="true" android:screenOrientation="landscape" />
         <activity android:name=".ScreensaverActivity" android:exported="false" android:excludeFromRecents="true" android:noHistory="true" android:screenOrientation="landscape" />
         <activity

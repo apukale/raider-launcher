@@ -6,7 +6,8 @@ package com.gathin.tvhome;
  * same horizontal padding inside every category, so text does not sit on the screen edge.
  */
 final class SettingsChrome {
-    static final int RAIL_ROW_DP = 36;
+    /** 32dp so ten rows, including Content, still keep an 8dp gap on a 1080p column. */
+    static final int RAIL_ROW_DP = 32;
     /** Same inset on every side of the rail card. The old end inset was 2dp. */
     static final int RAIL_PAD_DP = 10;
     /** Preferred gap. 2dp read as cramped on a 1080p TV. */

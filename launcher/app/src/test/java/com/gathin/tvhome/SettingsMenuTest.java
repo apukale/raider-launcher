@@ -5,7 +5,7 @@ import static org.junit.Assert.*;
 
 public class SettingsMenuTest {
     @Test(timeout = 5000)
-    public void railHasTheApprovedNineLabels() {
+    public void railHasTheApprovedLabels() {
         assertArrayEquals(new String[] {
                 "Home Layout",
                 "Appearance",
@@ -15,6 +15,7 @@ public class SettingsMenuTest {
                 "Weather",
                 "Night Mode",
                 "Advanced",
+                "Content",
                 "About Raider Launcher"
         }, SettingsMenu.LABELS);
     }
